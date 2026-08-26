@@ -1,0 +1,121 @@
+from contextlib import asynccontextmanager
+from datetime import datetime, timezone
+from fastapi import FastAPI, HTTPException, Request, status
+from fastapi.exceptions import RequestValidationError
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from sqlalchemy import text
+
+from app.core.config import settings
+from app.db.session import async_session_factory, engine
+from app.db.seed import seed_starter_categories
+from app.api.v1.router import api_v1_router
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup: Optionally seed starter categories if configured
+    if settings.SEED_STARTER_CATEGORIES:
+        try:
+            await seed_starter_categories()
+        except Exception as exc:
+            print(f"[Startup Warning] Could not run category seed: {exc}")
+    yield
+    # Shutdown: Dispose engine connection pool
+    await engine.dispose()
+
+
+app = FastAPI(
+    title="FinTrack API",
+    description="Backend REST API for FinTrack Personal Expense Tracker",
+    version=settings.APP_VERSION,
+    lifespan=lifespan,
+)
+
+# CORS Middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.cors_origins_list,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Register API v1 routes
+app.include_router(api_v1_router)
+
+
+# Root health endpoint for platform probes (Render /health)
+@app.get(
+    "/health",
+    summary="Platform health check",
+    tags=["Health"],
+)
+async def root_health():
+    db_status = "connected"
+    try:
+        async with async_session_factory() as session:
+            await session.execute(text("SELECT 1"))
+    except Exception:
+        db_status = "disconnected"
+
+    payload = {
+        "status": "ok" if db_status == "connected" else "error",
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "database": db_status,
+        "version": settings.APP_VERSION,
+        "environment": settings.ENVIRONMENT,
+    }
+
+    if db_status != "connected":
+        return JSONResponse(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            content=payload,
+        )
+
+    return payload
+
+
+# Standardized Validation Error Handler (SRS Section 3.1 & 3.4)
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    first_error = exc.errors()[0] if exc.errors() else {}
+    loc = first_error.get("loc", [])
+    field_name = str(loc[-1]) if loc else None
+    msg = first_error.get("msg", "Validation error")
+
+    return JSONResponse(
+        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        content={
+            "success": False,
+            "error": {
+                "code": "VALIDATION_ERROR",
+                "message": msg,
+                "field": field_name,
+            },
+        },
+    )
+
+
+# Standardized HTTP Exception Handler
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request: Request, exc: HTTPException):
+    code_map = {
+        400: "BAD_REQUEST",
+        404: "NOT_FOUND",
+        409: "CONFLICT",
+        422: "UNPROCESSABLE_ENTITY",
+        500: "INTERNAL_SERVER_ERROR",
+        503: "SERVICE_UNAVAILABLE",
+    }
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={
+            "success": False,
+            "error": {
+                "code": code_map.get(exc.status_code, "ERROR"),
+                "message": str(exc.detail),
+                "field": None,
+            },
+        },
+    )

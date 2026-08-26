@@ -1,0 +1,3 @@
+"""
+FinTrack backend application package.
+"""

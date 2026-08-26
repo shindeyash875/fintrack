@@ -1,46 +1,147 @@
 # FinTrack — Project Progress
 
-## Phase Completed: Phase 0 — Analysis & Architecture
+## Phase Completed: Phase 1 — Environment & Project Scaffolding
 
 ### 1. Work Completed
-- Fully reviewed and analyzed `AGENTS.md`, `PRD.md` (`DOCS/expensetracker prd final.md`), and `SRS.md` (`DOCS/FinTrack_SRS.md`).
-- Inspected the existing repository status: clean git initialized repository on branch `main` with no prior commits and no pre-existing application code.
-- Formulated the complete **MVP Feature Breakdown** mapping all functional requirements (FR-1 through FR-30) to priority levels and implementation components.
-- Designed the **Main Application Modules** for both FastAPI backend (`core`, `db`, `models`, `schemas`, `services`, `api/v1`) and React frontend (`layout`, `expenses`, `categories`, `budgets`, `dashboard`, `common`).
-- Designed the **Database Entities and Relationships** (Categories, Expenses, Budgets) and the high-level PostgreSQL schema with check constraints, foreign keys, unique constraints, and performance indexes.
-- Designed the **Backend Module and REST API Plan** adhering to `/api/v1` base URL, standardized success/error envelopes, and strict validation.
-- Planned the **Frontend Page and Component Hierarchy** (DashboardPage, ExpensesPage, responsive navigation shell, modals, filters, and Recharts charts).
-- Traced the complete **Frontend → Backend → Database Data Flow** for all core operations (adding expense, filtering/pagination, dashboard aggregation, and safe category deletion).
-- Conducted a **Technical Risk Analysis** covering Supabase connection pooling vs Alembic migrations, timezone normalization for budgets, category deletion cascade rules, and tech stack compliance.
-- Outlined the **Recommended 10-Phase Roadmap** (Phase 0 to Phase 9) adhering strictly to the **Run → Test → Deploy** cycle.
+- **Project Structure & Git Hygiene:**
+  - Initialized root and sub-project architecture strictly following SRS Section 5 (`backend/`, `frontend/`, `DOCS/`).
+  - Created all 3 `.gitignore` files (`.gitignore`, `backend/.gitignore`, `frontend/.gitignore`) guaranteeing that secrets (`.env`, `.env.*`), build artifacts (`dist/`), virtual environments (`venv/`), and dependencies (`node_modules/`) are strictly excluded from version control.
+  - Created root `README.md` and `docker-compose.yml` for multi-container orchestration.
+- **Backend Scaffolding (FastAPI + SQLAlchemy 2.0 Async + Alembic):**
+  - Configured `backend/.env.example` with dual PostgreSQL URLs (`DATABASE_URL` for pooled queries, `DIRECT_URL` for migrations) and CORS settings.
+  - Implemented `app/core/config.py` using `pydantic-settings` to ensure zero hardcoded configurations.
+  - Created `app/core/security.py` as a placeholder for Phase 2 Supabase Auth.
+  - Set up async database layer in `app/db/session.py` and `app/db/base.py` with DeclarativeBase and `get_db` session dependency.
+  - Implemented idempotent starter categories seed script `app/db/seed.py` gated behind `SEED_STARTER_CATEGORIES=true` (FR-10).
+  - Scaffolded SQLAlchemy ORM models in `app/models/` (`Category`, `Expense`, `Budget`) with required check constraints (`amount > 0`, `limit_amount > 0`), unique constraints, and foreign key rules (`ON DELETE RESTRICT` for expenses).
+  - Implemented Pydantic v2 schemas in `app/schemas/` (`common`, `category`, `expense`, `budget`, `dashboard`) enforcing validation parity (positive amounts, non-future dates, max title lengths, standardized response and error envelopes).
+  - Implemented business logic services in `app/services/` (`CategoryService`, `ExpenseService`, `BudgetService`, `DashboardService`).
+  - Implemented REST endpoints in `app/api/v1/endpoints/` (`health`, `categories`, `expenses`, `budgets`, `dashboard`) and aggregated under `/api/v1` router.
+  - Set up `app/main.py` with CORS middleware, lifespan hooks, standardized validation error handlers, and `/health` probes.
+  - Configured `alembic.ini` and `app/db/alembic/env.py` for async database migrations.
+  - Created `backend/Dockerfile` with Python 3.11-slim base.
+- **Frontend Scaffolding (React 18 + Vite + Tailwind CSS):**
+  - Created `frontend/.env.example` defining `VITE_API_BASE_URL` and `VITE_APP_ENV`.
+  - Configured `package.json` with React 18, Vite, Tailwind CSS, Framer Motion, Recharts, React Router v6, Zustand, React Hook Form + Zod, and Axios.
+  - Set up `vite.config.js`, `tailwind.config.js`, and `postcss.config.js` with brand tokens (`brand` emerald palette, `status` track/near/over colors) and typography (Inter, Outfit).
+  - Configured `index.html` with Google Fonts and responsive viewport.
+  - Implemented Axios client in `src/api/client.js` with response interceptors unpacking standardized response envelopes.
+  - Created modular endpoint clients in `src/api/endpoints/` (`categories.js`, `expenses.js`, `budgets.js`, `dashboard.js`).
+  - Implemented Zod validation schemas in `src/schemas/` mirroring backend validation rules.
+  - Set up Zustand state stores in `src/store/` (`useUIStore`, `useCategoryStore`, `useExpenseStore`, `useBudgetStore`).
+  - Built common UI components adhering strictly to "no inline styles" (`Button.jsx`, `Modal.jsx`, `Toast.jsx`, `Skeleton.jsx`, `EmptyState.jsx`).
+  - Built responsive navigation layout shell (`Layout.jsx`, `Navbar.jsx`, `Sidebar.jsx`) with desktop persistent left rail (≥1024px) and mobile collapsible drawer.
+  - Created core views: `DashboardPage.jsx` (summary metric cards, spending breakdown, recent transactions, honest empty state) and `ExpensesPage.jsx` (search, category filter, payment mode filter, sorting, desktop table view, mobile cards view, pagination).
+  - Configured `App.jsx` with React Router v6 routes (`/` and `/expenses`).
+  - Created `frontend/Dockerfile` with multi-stage build and `nginx.conf` supporting SPA fallback.
 
 ### 2. Files Created / Modified
-- Created [implementation_plan.md](file:///C:/Users/Yash%20Shinde/.gemini/antigravity-ide/brain/3568e403-c85b-4cb3-8bf0-9802a4fd195b/implementation_plan.md) (comprehensive Phase 0 architecture specification and implementation blueprint).
-- Created [PROGRESS.md](file:///d:/FinTrack/PROGRESS.md) (phase tracking and project handoff log).
+- **Root:**
+  - `d:\FinTrack\.gitignore`
+  - `d:\FinTrack\README.md`
+  - `d:\FinTrack\docker-compose.yml`
+  - `d:\FinTrack\PROGRESS.md`
+- **Backend:**
+  - `d:\FinTrack\backend\.gitignore`
+  - `d:\FinTrack\backend\.env.example`
+  - `d:\FinTrack\backend\Dockerfile`
+  - `d:\FinTrack\backend\requirements.txt`
+  - `d:\FinTrack\backend\alembic.ini`
+  - `d:\FinTrack\backend\app\core\config.py`
+  - `d:\FinTrack\backend\app\core\security.py`
+  - `d:\FinTrack\backend\app\db\base.py`
+  - `d:\FinTrack\backend\app\db\session.py`
+  - `d:\FinTrack\backend\app\db\seed.py`
+  - `d:\FinTrack\backend\app\db\alembic\env.py`
+  - `d:\FinTrack\backend\app\db\alembic\script.py.mako`
+  - `d:\FinTrack\backend\app\models\category.py`
+  - `d:\FinTrack\backend\app\models\expense.py`
+  - `d:\FinTrack\backend\app\models\budget.py`
+  - `d:\FinTrack\backend\app\schemas\common.py`
+  - `d:\FinTrack\backend\app\schemas\category.py`
+  - `d:\FinTrack\backend\app\schemas\expense.py`
+  - `d:\FinTrack\backend\app\schemas\budget.py`
+  - `d:\FinTrack\backend\app\schemas\dashboard.py`
+  - `d:\FinTrack\backend\app\services\category_service.py`
+  - `d:\FinTrack\backend\app\services\expense_service.py`
+  - `d:\FinTrack\backend\app\services\budget_service.py`
+  - `d:\FinTrack\backend\app\services\dashboard_service.py`
+  - `d:\FinTrack\backend\app\api\v1\endpoints\health.py`
+  - `d:\FinTrack\backend\app\api\v1\endpoints\categories.py`
+  - `d:\FinTrack\backend\app\api\v1\endpoints\expenses.py`
+  - `d:\FinTrack\backend\app\api\v1\endpoints\budgets.py`
+  - `d:\FinTrack\backend\app\api\v1\endpoints\dashboard.py`
+  - `d:\FinTrack\backend\app\api\v1\router.py`
+  - `d:\FinTrack\backend\app\main.py`
+  - `d:\FinTrack\backend\tests\conftest.py`
+  - `d:\FinTrack\backend\tests\test_health.py`
+- **Frontend:**
+  - `d:\FinTrack\frontend\.gitignore`
+  - `d:\FinTrack\frontend\.env.example`
+  - `d:\FinTrack\frontend\Dockerfile`
+  - `d:\FinTrack\frontend\nginx.conf`
+  - `d:\FinTrack\frontend\package.json`
+  - `d:\FinTrack\frontend\vite.config.js`
+  - `d:\FinTrack\frontend\tailwind.config.js`
+  - `d:\FinTrack\frontend\postcss.config.js`
+  - `d:\FinTrack\frontend\index.html`
+  - `d:\FinTrack\frontend\src\styles\index.css`
+  - `d:\FinTrack\frontend\src\api\client.js`
+  - `d:\FinTrack\frontend\src\api\endpoints\categories.js`
+  - `d:\FinTrack\frontend\src\api\endpoints\expenses.js`
+  - `d:\FinTrack\frontend\src\api\endpoints\budgets.js`
+  - `d:\FinTrack\frontend\src\api\endpoints\dashboard.js`
+  - `d:\FinTrack\frontend\src\schemas\categorySchema.js`
+  - `d:\FinTrack\frontend\src\schemas\expenseSchema.js`
+  - `d:\FinTrack\frontend\src\schemas\budgetSchema.js`
+  - `d:\FinTrack\frontend\src\store\useUIStore.js`
+  - `d:\FinTrack\frontend\src\store\useCategoryStore.js`
+  - `d:\FinTrack\frontend\src\store\useExpenseStore.js`
+  - `d:\FinTrack\frontend\src\store\useBudgetStore.js`
+  - `d:\FinTrack\frontend\src\components\common\Button.jsx`
+  - `d:\FinTrack\frontend\src\components\common\Modal.jsx`
+  - `d:\FinTrack\frontend\src\components\common\Toast.jsx`
+  - `d:\FinTrack\frontend\src\components\common\Skeleton.jsx`
+  - `d:\FinTrack\frontend\src\components\common\EmptyState.jsx`
+  - `d:\FinTrack\frontend\src\components\layout\Sidebar.jsx`
+  - `d:\FinTrack\frontend\src\components\layout\Navbar.jsx`
+  - `d:\FinTrack\frontend\src\components\layout\Layout.jsx`
+  - `d:\FinTrack\frontend\src\pages\DashboardPage.jsx`
+  - `d:\FinTrack\frontend\src\pages\ExpensesPage.jsx`
+  - `d:\FinTrack\frontend\src\App.jsx`
+  - `d:\FinTrack\frontend\src\main.jsx`
+  - `d:\FinTrack\frontend\src\tests\setup.js`
+  - `d:\FinTrack\frontend\src\tests\App.test.jsx`
 
-### 3. Tests / Checks Performed
-- Validated repository state via git status (verified no untracked application code or unexpected artifacts).
-- Verified requirement traceability between PRD and SRS (100% alignment across FR-1 through FR-30).
-- Confirmed compliance with user rules: no inline styles, no change in tech stack, ORM-first approach, no direct React-to-Postgres connections.
+### 3. Tests & Verification Performed
+- **Backend Test Suite:** Executed `pytest` in isolated `backend/venv`:
+  - `test_root_health`: PASSED (verifies `/health` returns status, version, and db connection state).
+  - `test_api_v1_health`: PASSED (verifies `/api/v1/health` deep probe).
+  - 2 passed in 5.77s.
+- **Frontend Test Suite:** Executed `vitest run`:
+  - `App.test.jsx`: PASSED (verifies layout, brand header, and navigation render).
+  - 1 passed in 6.92s.
+- **Frontend Production Build:** Executed `vite build`:
+  - Successfully transformed 2005 modules and generated production bundle in `dist/` (zero build errors, built in 4.40s).
+- **Git Hygiene Verification:**
+  - Ran `git status -u` to verify no untracked `.env`, credentials, `venv`, or `node_modules` are exposed.
+  - Verified 100% adherence to AGENTS.md rule 2 (no inline styling) across all frontend components.
 
 ### 4. Important Technical Decisions
-- **No Mock / Dummy Data (FR-30):** All endpoints and UI states will operate strictly against the live PostgreSQL database from Phase 1 onward. Genuine empty states and skeleton loaders will be built.
-- **Dual Database URLs for Supabase:** Configured runtime queries through Supabase's transaction pooler (port 6543) via `DATABASE_URL`, and direct connection (port 5432) via `DIRECT_URL` for Alembic migrations to prevent advisory lock issues.
-- **Category Delete Protection:** Enforced `ON DELETE RESTRICT` at the database level. Backend category deletion returns a `409 Conflict` if expenses are attached unless explicit resolution flags (`?reassign_to=` or `?cascade=true`) are passed with user confirmation.
-- **Budget Normalization:** Normalized all budget periods to the first of the month (`YYYY-MM-01`) at the database level to avoid timezone drift.
+- All Phase 1 scaffolding adheres directly to the architectural decisions established in the SRS and Phase 0 planning. No new architectural divergence occurred.
 
 ### 5. Known Issues
-- None at this stage.
+- None.
 
 ### 6. Pending Work
-- Application scaffolding and codebase creation (scheduled for Phase 1).
+- Database provisioning & live migration (scheduled for Phase 2).
 
 ### 7. Exact Next Phase & Recommended Next Steps
-- **Exact Next Phase:** **Phase 1 — Environment & Project Scaffolding**
-- **Recommended Next Steps for Phase 1:**
-  1. Initialize standard directory layout (`backend/`, `frontend/`, root).
-  2. Create all three `.gitignore` files (root, `backend/.gitignore`, `frontend/.gitignore`) ensuring `.env` is never committed.
-  3. Create `.env.example` files for both backend and frontend.
-  4. Create `backend/Dockerfile`, `frontend/Dockerfile`, and root `docker-compose.yml`.
-  5. Scaffold base FastAPI backend package and React 18 + Vite + Tailwind CSS frontend package.
-  6. Run validation checks before committing.
+- **Exact Next Phase:** **Phase 2 — Database Setup, Migrations & Seed Data**
+- **Recommended Next Steps for Phase 2:**
+  1. Verify live connection to Supabase PostgreSQL using `DIRECT_URL` and `DATABASE_URL`.
+  2. Generate the initial Alembic migration revision (`alembic revision --autogenerate -m "initial_schema"`).
+  3. Review migration script for explicit constraints (`amount > 0`, `limit_amount > 0`, date constraints, indexes, unique constraints).
+  4. Execute migration (`alembic upgrade head`) against the live database.
+  5. Run idempotent starter categories seed (`python -m app.db.seed`) with `SEED_STARTER_CATEGORIES=true`.
+  6. Verify tables and schema live in Supabase PostgreSQL.

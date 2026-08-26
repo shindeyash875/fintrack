@@ -1,0 +1,12 @@
+# Root .gitignore
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.log
+docker-compose.override.yml
+
+# Environment & Secrets Safety (AGENTS.md Rule 6)
+.env
+.env.*
+!.env.example
