@@ -90,3 +90,34 @@ class ExpenseRead(ExpenseBase):
     updated_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class ExpenseImportRowError(BaseModel):
+    row_number: int
+    raw_data: Optional[str] = None
+    error: str
+
+
+class ExpenseImportResult(BaseModel):
+    total_processed: int
+    imported_count: int
+    skipped_duplicates_count: int
+    errors: list[ExpenseImportRowError] = []
+
+
+class ExpenseImportCsvPayload(BaseModel):
+    csv_content: str = Field(..., min_length=1, description="Raw CSV content string")
+
+
+class ExpenseImportItem(BaseModel):
+    title: str = Field(..., min_length=1, max_length=50)
+    amount: Decimal = Field(..., gt=0, decimal_places=2)
+    expense_date: date
+    category_name: Optional[str] = None
+    payment_mode: Optional[str] = None
+    notes: Optional[str] = None
+
+
+class ExpenseImportJsonPayload(BaseModel):
+    items: list[ExpenseImportItem] = Field(..., min_length=1)
+

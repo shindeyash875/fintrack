@@ -1,12 +1,21 @@
+import json
 import uuid
-from datetime import date
+from datetime import date, datetime
 from decimal import Decimal
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi.responses import Response
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.session import get_db
 from app.services.expense_service import ExpenseService
-from app.schemas.expense import ExpenseCreate, ExpenseUpdate, ExpenseRead
+from app.schemas.expense import (
+    ExpenseCreate,
+    ExpenseUpdate,
+    ExpenseRead,
+    ExpenseImportResult,
+    ExpenseImportCsvPayload,
+    ExpenseImportJsonPayload,
+)
 from app.schemas.common import ResponseEnvelope
 
 router = APIRouter()
@@ -66,6 +75,115 @@ async def create_expense(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Failed to create expense: {str(exc)}",
         )
+
+
+@router.get(
+    "/export/csv",
+    summary="Export expenses matching active filters as CSV (FR-29)",
+)
+async def export_expenses_csv(
+    search: Optional[str] = Query(None, description="Search term"),
+    date_from: Optional[date] = Query(None, description="Start date"),
+    date_to: Optional[date] = Query(None, description="End date"),
+    category_id: Optional[uuid.UUID] = Query(None, description="Filter by category"),
+    amount_min: Optional[Decimal] = Query(None, ge=0, description="Min amount"),
+    amount_max: Optional[Decimal] = Query(None, ge=0, description="Max amount"),
+    payment_mode: Optional[str] = Query(None, description="Payment mode"),
+    sort_by: str = Query("expense_date"),
+    sort_dir: str = Query("desc"),
+    session: AsyncSession = Depends(get_db),
+):
+    expenses = await ExpenseService.get_all_filtered(
+        session=session,
+        search=search,
+        date_from=date_from,
+        date_to=date_to,
+        category_id=category_id,
+        amount_min=amount_min,
+        amount_max=amount_max,
+        payment_mode=payment_mode,
+        sort_by=sort_by,
+        sort_dir=sort_dir,
+    )
+    csv_content = ExpenseService.generate_csv(expenses)
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    filename = f"fintrack_expenses_{timestamp}.csv"
+    return Response(
+        content=csv_content,
+        media_type="text/csv",
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"',
+            "Access-Control-Expose-Headers": "Content-Disposition",
+        },
+    )
+
+
+@router.get(
+    "/export/json",
+    summary="Export expenses matching active filters as JSON (FR-29)",
+)
+async def export_expenses_json(
+    search: Optional[str] = Query(None, description="Search term"),
+    date_from: Optional[date] = Query(None, description="Start date"),
+    date_to: Optional[date] = Query(None, description="End date"),
+    category_id: Optional[uuid.UUID] = Query(None, description="Filter by category"),
+    amount_min: Optional[Decimal] = Query(None, ge=0, description="Min amount"),
+    amount_max: Optional[Decimal] = Query(None, ge=0, description="Max amount"),
+    payment_mode: Optional[str] = Query(None, description="Payment mode"),
+    sort_by: str = Query("expense_date"),
+    sort_dir: str = Query("desc"),
+    session: AsyncSession = Depends(get_db),
+):
+    expenses = await ExpenseService.get_all_filtered(
+        session=session,
+        search=search,
+        date_from=date_from,
+        date_to=date_to,
+        category_id=category_id,
+        amount_min=amount_min,
+        amount_max=amount_max,
+        payment_mode=payment_mode,
+        sort_by=sort_by,
+        sort_dir=sort_dir,
+    )
+    data = [exp.model_dump(mode="json") for exp in expenses]
+    json_content = json.dumps(data, indent=2)
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    filename = f"fintrack_expenses_{timestamp}.json"
+    return Response(
+        content=json_content,
+        media_type="application/json",
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"',
+            "Access-Control-Expose-Headers": "Content-Disposition",
+        },
+    )
+
+
+@router.post(
+    "/import/csv",
+    response_model=ResponseEnvelope[ExpenseImportResult],
+    summary="Import expenses from CSV with validation and duplicate detection",
+)
+async def import_expenses_csv(
+    payload: ExpenseImportCsvPayload,
+    session: AsyncSession = Depends(get_db),
+):
+    result = await ExpenseService.import_from_csv(session, payload.csv_content)
+    return ResponseEnvelope(data=result)
+
+
+@router.post(
+    "/import/json",
+    response_model=ResponseEnvelope[ExpenseImportResult],
+    summary="Import expenses from JSON with validation and duplicate detection",
+)
+async def import_expenses_json(
+    payload: ExpenseImportJsonPayload,
+    session: AsyncSession = Depends(get_db),
+):
+    result = await ExpenseService.import_from_json(session, payload.items)
+    return ResponseEnvelope(data=result)
 
 
 @router.get(

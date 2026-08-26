@@ -426,8 +426,74 @@
   - Clean git status: No `.env` or credential files staged or exposed.
 
 ### 4. Exact Next Phase & Recommended Next Steps
-- **Exact Next Phase:** **Phase 6 — Data Export & Import (CSV / JSON) & Comprehensive Filtering**
-- **Recommended Next Steps for Phase 6:**
-  1. Implement CSV & JSON data export endpoints and frontend download affordances (FR-29).
-  2. Implement CSV import with schema validation and duplicate detection.
-  3. Ensure advanced date range, category, and keyword filters function seamlessly across all views.
+- **Completed:** **Phase 6 — Data Export & Import (CSV / JSON) & Comprehensive Filtering**
+
+---
+
+## Current Status: Phase 6 Completed (Data Export & Import, CSV/JSON & Comprehensive Filtering)
+
+### 1. Work Completed in Phase 6
+- **Data Export Endpoints (FR-29):**
+  - `GET /api/v1/expenses/export/csv`: Generates and streams standard CSV (`Date,Title,Category,Amount (INR),Payment Mode,Notes`) respecting all active filters (`search`, `category_id`, `date_from`, `date_to`, `amount_min`, `amount_max`, `payment_mode`, `sort_by`, `sort_dir`).
+  - `GET /api/v1/expenses/export/json`: Generates and streams formatted JSON array of expenses respecting all active filters.
+  - Custom file attachment headers with ISO timestamp (`fintrack_expenses_YYYYMMDD_HHMMSS.csv/.json`).
+- **Data Import Endpoints & Engine:**
+  - `POST /api/v1/expenses/import/csv`: Parses CSV string without third-party multipart dependencies (Rule 10), normalizes flexible header naming variations, parses multiple date formats, validates amounts > 0 and past/present dates, maps or auto-creates categories, detects duplicates (matching title, amount, date, category), and bulk inserts with SQLAlchemy 2.0 ORM.
+  - `POST /api/v1/expenses/import/json`: Structured JSON import with duplicate detection.
+  - Returns `ExpenseImportResult` with counts of imported, duplicates skipped, and specific row-level errors.
+- **Frontend Export Modal:**
+  - Created `ExportModal.jsx` allowing format selection (CSV vs JSON) and scope selection ("Filtered View (N items)" vs "All Lifetime Records").
+  - Automated browser download trigger and object URL cleanup.
+- **Frontend Import Modal:**
+  - Created `ImportModal.jsx` with file selector, drag & drop zone, and downloadable CSV template button.
+  - Displays summary statistics (Imported, Duplicates, Errors) with row-by-row error list.
+  - Triggers live synchronization across expenses, categories, and budget tracker upon successful import.
+- **Frontend Page Integration:**
+  - Added "Export" and "Import" buttons to `ExpensesPage.jsx` header.
+  - Connected `ExportModal` and `ImportModal` to live API endpoints and toast notifications.
+- **Automated Tests:**
+  - Created `backend/tests/test_export_import.py`: Tests CSV export, JSON export, CSV import, duplicate detection, and validation error reporting. (All 4 tests passed).
+  - Created `frontend/src/tests/exportImport.test.jsx`: Unit tests for `ExportModal` and `ImportModal`. (All 4 tests passed).
+
+### 2. Files Modified / Created in Phase 6
+- **Frontend:**
+  - `d:\FinTrack\frontend\src\api\endpoints\expenses.js` [MODIFIED]
+  - `d:\FinTrack\frontend\src\components\expenses\ExportModal.jsx` [NEW]
+  - `d:\FinTrack\frontend\src\components\expenses\ImportModal.jsx` [NEW]
+  - `d:\FinTrack\frontend\src\pages\ExpensesPage.jsx` [MODIFIED]
+  - `d:\FinTrack\frontend\src\tests\exportImport.test.jsx` [NEW]
+- **Backend:**
+  - `d:\FinTrack\backend\app\schemas\expense.py` [MODIFIED]
+  - `d:\FinTrack\backend\app\services\expense_service.py` [MODIFIED]
+  - `d:\FinTrack\backend\app\api\v1\endpoints\expenses.py` [MODIFIED]
+  - `d:\FinTrack\backend\tests\test_export_import.py` [NEW]
+- **Documentation:**
+  - `d:\FinTrack\PROGRESS.md` [MODIFIED]
+
+### 3. Tests & Verification Performed
+- **Backend Automated Tests (Pytest):**
+  - `test_export_csv_and_json`: PASSED
+  - `test_import_csv_and_duplicate_detection`: PASSED
+  - `test_import_csv_validation_errors`: PASSED
+  - `test_import_json`: PASSED
+  - All 13 existing budget, category, dashboard, expense, and health tests: PASSED
+  - Total: 17 of 17 passed in 8.40s.
+- **Frontend Automated Tests (Vitest):**
+  - `exportImport.test.jsx`: 4 of 4 passed.
+  - `dashboardComponents.test.jsx`: 8 of 8 passed.
+  - `schemas.test.js`: 13 of 13 passed.
+  - `App.test.jsx`: 1 of 1 passed.
+  - Total: 26 of 26 passed in 7.70s across 4 test files.
+- **Frontend Production Build (Vite):**
+  - Successfully transformed 2833 modules and built production bundle in `dist/` with 0 errors in 6.96s.
+- **Rule Compliance & Git Hygiene:**
+  - Strict compliance with AGENTS.md Rule 2: 100% Tailwind CSS classes, zero inline styles.
+  - Zero unnecessary dependencies installed (Rule 10).
+  - Clean git status: No `.env` or credential files staged or exposed (Rule 6).
+
+### 4. Exact Next Phase & Recommended Next Steps
+- **Exact Next Phase:** **Phase 7 — End-to-End Integration, Responsive Auditing, UI Polish & Final Hardening**
+- **Recommended Next Steps for Phase 7:**
+  1. Audit mobile, tablet, and desktop responsiveness across Dashboard, Expenses, Categories, and Budget views.
+  2. Verify keyboard navigation, accessibility standards, and clean error states.
+  3. Validate full end-to-end database-to-UI data consistency and finalize deployment readiness.

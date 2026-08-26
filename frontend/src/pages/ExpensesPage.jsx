@@ -15,7 +15,9 @@ import {
   Calendar,
   DollarSign,
   XCircle,
-  SlidersHorizontal
+  SlidersHorizontal,
+  Download,
+  Upload
 } from 'lucide-react';
 import { useExpenseStore } from '../store/useExpenseStore';
 import { useCategoryStore } from '../store/useCategoryStore';
@@ -27,6 +29,8 @@ import { TableRowSkeleton } from '../components/common/Skeleton';
 import ExpenseModal from '../components/expenses/ExpenseModal';
 import CategoryManageModal from '../components/categories/CategoryManageModal';
 import DeleteConfirmModal from '../components/common/DeleteConfirmModal';
+import ExportModal from '../components/expenses/ExportModal';
+import ImportModal from '../components/expenses/ImportModal';
 
 export const ExpensesPage = () => {
   const {
@@ -51,6 +55,14 @@ export const ExpensesPage = () => {
   const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
   const [expenseToEdit, setExpenseToEdit] = useState(null);
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+
+  const handleImportSuccess = async () => {
+    await fetchExpenses();
+    await fetchCategories();
+    useBudgetStore.getState().fetchAll();
+  };
 
   // Deletion state
   const [expenseToDelete, setExpenseToDelete] = useState(null);
@@ -166,7 +178,23 @@ export const ExpensesPage = () => {
             Search, filter, and track all your logged transactions with instant PostgreSQL sync.
           </p>
         </div>
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-2.5 flex-wrap">
+          <Button
+            variant="secondary"
+            icon={Download}
+            size="md"
+            onClick={() => setIsExportModalOpen(true)}
+          >
+            Export
+          </Button>
+          <Button
+            variant="secondary"
+            icon={Upload}
+            size="md"
+            onClick={() => setIsImportModalOpen(true)}
+          >
+            Import
+          </Button>
           <Button
             variant="secondary"
             icon={Tag}
@@ -536,6 +564,20 @@ export const ExpensesPage = () => {
             : ''
         }
         isLoading={isDeleting}
+      />
+      {/* Export Modal */}
+      <ExportModal
+        isOpen={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
+        activeFilters={filters}
+        filteredCount={pagination.total}
+      />
+
+      {/* Import Modal */}
+      <ImportModal
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        onSuccess={handleImportSuccess}
       />
     </div>
   );
