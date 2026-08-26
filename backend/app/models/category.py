@@ -37,14 +37,16 @@ class Category(Base):
         onupdate=lambda: datetime.now(timezone.utc),
     )
 
-    # Relationships (lazy="selectin" to avoid N+1 queries)
+    # Relationships (lazy="selectin" to avoid N+1 queries, passive_deletes=True delegates to DB constraints)
     expenses: Mapped[List["Expense"]] = relationship(
         "Expense",
         back_populates="category",
         lazy="selectin",
+        passive_deletes=True,
     )
     budgets: Mapped[List["Budget"]] = relationship(
         "Budget",
         back_populates="category",
         lazy="selectin",
+        passive_deletes=True,
     )

@@ -10,13 +10,22 @@ import {
   ArrowUpDown,
   CreditCard,
   Banknote,
-  Smartphone
+  Smartphone,
+  Tag,
+  Calendar,
+  DollarSign,
+  XCircle,
+  SlidersHorizontal
 } from 'lucide-react';
 import { useExpenseStore } from '../store/useExpenseStore';
 import { useCategoryStore } from '../store/useCategoryStore';
+import { useUIStore } from '../store/useUIStore';
 import Button from '../components/common/Button';
 import EmptyState from '../components/common/EmptyState';
 import { TableRowSkeleton } from '../components/common/Skeleton';
+import ExpenseModal from '../components/expenses/ExpenseModal';
+import CategoryManageModal from '../components/categories/CategoryManageModal';
+import DeleteConfirmModal from '../components/common/DeleteConfirmModal';
 
 export const ExpensesPage = () => {
   const {
@@ -24,7 +33,6 @@ export const ExpensesPage = () => {
     pagination,
     filters,
     isLoading,
-    error,
     fetchExpenses,
     setFilters,
     setPage,
@@ -32,7 +40,20 @@ export const ExpensesPage = () => {
   } = useExpenseStore();
 
   const { categories, fetchCategories } = useCategoryStore();
+  const { addToast } = useUIStore();
+
+  // Local search input state (to allow smooth typing before submitting)
   const [searchTerm, setSearchTerm] = useState(filters.search || '');
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+
+  // Modals state
+  const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
+  const [expenseToEdit, setExpenseToEdit] = useState(null);
+  const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
+
+  // Deletion state
+  const [expenseToDelete, setExpenseToDelete] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     fetchCategories();
@@ -41,7 +62,12 @@ export const ExpensesPage = () => {
 
   const handleSearchSubmit = (e) => {
     e.preventDefault();
-    setFilters({ search: searchTerm });
+    setFilters({ search: searchTerm.trim() });
+  };
+
+  const handleClearSearch = () => {
+    setSearchTerm('');
+    setFilters({ search: '' });
   };
 
   const handleCategoryFilter = (e) => {
@@ -54,13 +80,64 @@ export const ExpensesPage = () => {
     setFilters({ sortBy, sortDir });
   };
 
+  const handleResetFilters = () => {
+    setSearchTerm('');
+    setFilters({
+      search: '',
+      dateFrom: null,
+      dateTo: null,
+      categoryId: null,
+      amountMin: null,
+      amountMax: null,
+      paymentMode: null,
+      sortBy: 'expense_date',
+      sortDir: 'desc',
+    });
+  };
+
+  // Count active non-default filters
+  const activeFiltersCount = [
+    Boolean(filters.search),
+    Boolean(filters.categoryId),
+    Boolean(filters.paymentMode),
+    Boolean(filters.dateFrom),
+    Boolean(filters.dateTo),
+    Boolean(filters.amountMin),
+    Boolean(filters.amountMax),
+  ].filter(Boolean).length;
+
+  const handleOpenAddExpense = () => {
+    setExpenseToEdit(null);
+    setIsExpenseModalOpen(true);
+  };
+
+  const handleOpenEditExpense = (expense) => {
+    setExpenseToEdit(expense);
+    setIsExpenseModalOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!expenseToDelete) return;
+    setIsDeleting(true);
+    try {
+      await deleteExpense(expenseToDelete.id);
+      addToast({ type: 'success', message: 'Expense deleted successfully.' });
+      setExpenseToDelete(null);
+      await fetchCategories(); // Update category expense count
+    } catch (err) {
+      addToast({ type: 'error', message: err.message || 'Failed to delete expense.' });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   const formatCurrency = (val) => {
     const num = Number(val || 0);
     return '₹' + num.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   };
 
   const renderPaymentModeBadge = (mode) => {
-    if (!mode) return null;
+    if (!mode) return <span className="text-slate-400 text-xs">—</span>;
     const icons = {
       cash: Banknote,
       card: CreditCard,
@@ -68,7 +145,7 @@ export const ExpensesPage = () => {
     };
     const Icon = icons[mode.toLowerCase()] || CreditCard;
     return (
-      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium bg-slate-100 text-slate-700">
+      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700">
         <Icon className="w-3 h-3" />
         <span className="capitalize">{mode}</span>
       </span>
@@ -84,18 +161,30 @@ export const ExpensesPage = () => {
             Expense Management
           </h1>
           <p className="text-sm text-slate-500 mt-1">
-            Search, filter, and track all your logged transactions.
+            Search, filter, and track all your logged transactions with instant PostgreSQL sync.
           </p>
         </div>
-        <div>
-          <Button icon={Plus} size="md">
+        <div className="flex items-center gap-2.5">
+          <Button
+            variant="secondary"
+            icon={Tag}
+            size="md"
+            onClick={() => setIsCategoryModalOpen(true)}
+          >
+            Categories
+          </Button>
+          <Button
+            icon={Plus}
+            size="md"
+            onClick={handleOpenAddExpense}
+          >
             Add Expense
           </Button>
         </div>
       </div>
 
       {/* Search & Filter Bar */}
-      <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm space-y-4">
+      <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-sm space-y-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           {/* Search Input */}
           <form onSubmit={handleSearchSubmit} className="relative">
@@ -105,8 +194,17 @@ export const ExpensesPage = () => {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Search title or notes..."
-              className="w-full pl-9 pr-3 py-2 text-sm rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+              className="w-full pl-9 pr-8 py-2 text-sm rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
             />
+            {searchTerm && (
+              <button
+                type="button"
+                onClick={handleClearSearch}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+              >
+                <XCircle className="w-4 h-4" />
+              </button>
+            )}
           </form>
 
           {/* Category Filter */}
@@ -114,12 +212,12 @@ export const ExpensesPage = () => {
             <select
               value={filters.categoryId || ''}
               onChange={handleCategoryFilter}
-              className="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-white"
+              className="w-full px-3 py-2 text-sm rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-white"
             >
               <option value="">All Categories</option>
               {categories.map((cat) => (
                 <option key={cat.id} value={cat.id}>
-                  {cat.name}
+                  {cat.name} ({cat.expense_count || 0})
                 </option>
               ))}
             </select>
@@ -130,7 +228,7 @@ export const ExpensesPage = () => {
             <select
               value={filters.paymentMode || ''}
               onChange={(e) => setFilters({ paymentMode: e.target.value || null })}
-              className="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-white"
+              className="w-full px-3 py-2 text-sm rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-white"
             >
               <option value="">All Payment Modes</option>
               <option value="cash">Cash</option>
@@ -144,7 +242,7 @@ export const ExpensesPage = () => {
             <select
               value={`${filters.sortBy}:${filters.sortDir}`}
               onChange={handleSortChange}
-              className="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-white"
+              className="w-full px-3 py-2 text-sm rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-white"
             >
               <option value="expense_date:desc">Newest Date First</option>
               <option value="expense_date:asc">Oldest Date First</option>
@@ -154,6 +252,92 @@ export const ExpensesPage = () => {
             </select>
           </div>
         </div>
+
+        {/* Advanced Filters Toggle & Reset Bar */}
+        <div className="flex items-center justify-between pt-1 border-t border-slate-100 text-xs">
+          <button
+            type="button"
+            onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+            className="inline-flex items-center gap-1.5 font-medium text-slate-600 hover:text-slate-900 focus:outline-none"
+          >
+            <SlidersHorizontal className="w-3.5 h-3.5" />
+            <span>{showAdvancedFilters ? 'Hide Date & Amount Filters' : 'More Filters'}</span>
+            {activeFiltersCount > 0 && (
+              <span className="px-1.5 py-0.2 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold">
+                {activeFiltersCount}
+              </span>
+            )}
+          </button>
+
+          {activeFiltersCount > 0 && (
+            <button
+              type="button"
+              onClick={handleResetFilters}
+              className="text-emerald-600 hover:text-emerald-700 font-medium"
+            >
+              Reset All Filters
+            </button>
+          )}
+        </div>
+
+        {/* Collapsible Advanced Filters (Date Range & Amount Range) */}
+        {showAdvancedFilters && (
+          <div className="pt-3 border-t border-slate-100 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            <div>
+              <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1">
+                From Date
+              </label>
+              <input
+                type="date"
+                value={filters.dateFrom || ''}
+                onChange={(e) => setFilters({ dateFrom: e.target.value || null })}
+                className="w-full px-3 py-1.5 text-xs rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
+              />
+            </div>
+
+            <div>
+              <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1">
+                To Date
+              </label>
+              <input
+                type="date"
+                value={filters.dateTo || ''}
+                onChange={(e) => setFilters({ dateTo: e.target.value || null })}
+                className="w-full px-3 py-1.5 text-xs rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
+              />
+            </div>
+
+            <div>
+              <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1">
+                Min Amount (₹)
+              </label>
+              <input
+                type="number"
+                min="0"
+                step="1"
+                placeholder="0"
+                value={filters.amountMin ?? ''}
+                onChange={(e) => setFilters({ amountMin: e.target.value !== '' ? e.target.value : null })}
+                className="w-full px-3 py-1.5 text-xs rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1">
+                Max Amount (₹)
+              </label>
+              <input
+                type="number"
+                min="0"
+                step="1"
+                placeholder="No limit"
+                value={filters.amountMax ?? ''}
+                onChange={(e) => setFilters({ amountMax: e.target.value !== '' ? e.target.value : null })}
+                className="w-full px-3 py-1.5 text-xs rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              />
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Expenses Table / Cards */}
@@ -166,12 +350,16 @@ export const ExpensesPage = () => {
             <TableRowSkeleton />
           </div>
         ) : expenses.length === 0 ? (
-          <div className="p-6">
+          <div className="p-8">
             <EmptyState
               title="No expenses found"
-              description="No transactions match your current filters. Add an expense or adjust your search."
-              actionLabel="Add Expense"
-              onAction={() => {}}
+              description={
+                activeFiltersCount > 0
+                  ? "No transactions match your active filters. Try adjusting your filters or clearing search."
+                  : "You haven't recorded any expenses yet. Start tracking by adding your first transaction."
+              }
+              actionLabel={activeFiltersCount > 0 ? "Clear Filters" : "Add Expense"}
+              onAction={activeFiltersCount > 0 ? handleResetFilters : handleOpenAddExpense}
             />
           </div>
         ) : (
@@ -184,7 +372,7 @@ export const ExpensesPage = () => {
                     <th className="px-6 py-3.5">Title</th>
                     <th className="px-6 py-3.5">Category</th>
                     <th className="px-6 py-3.5">Date</th>
-                    <th className="px-6 py-3.5">Mode</th>
+                    <th className="px-6 py-3.5">Payment Mode</th>
                     <th className="px-6 py-3.5 text-right">Amount</th>
                     <th className="px-6 py-3.5 text-right">Actions</th>
                   </tr>
@@ -193,9 +381,11 @@ export const ExpensesPage = () => {
                   {expenses.map((expense) => (
                     <tr key={expense.id} className="hover:bg-slate-50/50 transition-colors">
                       <td className="px-6 py-4 font-medium text-slate-900">
-                        {expense.title}
+                        <div>{expense.title}</div>
                         {expense.notes && (
-                          <p className="text-xs text-slate-400 font-normal">{expense.notes}</p>
+                          <p className="text-xs text-slate-400 font-normal mt-0.5 line-clamp-1">
+                            {expense.notes}
+                          </p>
                         )}
                       </td>
                       <td className="px-6 py-4">
@@ -203,19 +393,32 @@ export const ExpensesPage = () => {
                           {expense.category_name}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-slate-500">{expense.expense_date}</td>
-                      <td className="px-6 py-4">{renderPaymentModeBadge(expense.payment_mode)}</td>
-                      <td className="px-6 py-4 text-right font-bold text-slate-900">
+                      <td className="px-6 py-4 text-slate-500 whitespace-nowrap">
+                        {expense.expense_date}
+                      </td>
+                      <td className="px-6 py-4">
+                        {renderPaymentModeBadge(expense.payment_mode)}
+                      </td>
+                      <td className="px-6 py-4 text-right font-bold text-slate-900 whitespace-nowrap">
                         {formatCurrency(expense.amount)}
                       </td>
-                      <td className="px-6 py-4 text-right space-x-2">
-                        <button
-                          onClick={() => deleteExpense(expense.id)}
-                          className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition-colors"
-                          title="Delete expense"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                      <td className="px-6 py-4 text-right whitespace-nowrap">
+                        <div className="flex items-center justify-end gap-1">
+                          <button
+                            onClick={() => handleOpenEditExpense(expense)}
+                            className="p-1.5 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-100 transition-colors"
+                            title="Edit expense"
+                          >
+                            <Edit3 className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => setExpenseToDelete(expense)}
+                            className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition-colors"
+                            title="Delete expense"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -226,18 +429,45 @@ export const ExpensesPage = () => {
             {/* Mobile Cards View */}
             <div className="md:hidden divide-y divide-slate-100">
               {expenses.map((expense) => (
-                <div key={expense.id} className="p-4 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="font-semibold text-slate-900">{expense.title}</span>
-                    <span className="font-bold text-slate-900">{formatCurrency(expense.amount)}</span>
+                <div key={expense.id} className="p-4 space-y-2.5">
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <span className="font-semibold text-slate-900">{expense.title}</span>
+                      {expense.notes && (
+                        <p className="text-xs text-slate-400 mt-0.5">{expense.notes}</p>
+                      )}
+                    </div>
+                    <span className="font-bold text-slate-900 shrink-0">
+                      {formatCurrency(expense.amount)}
+                    </span>
                   </div>
+
                   <div className="flex items-center justify-between text-xs text-slate-500">
-                    <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200/60">
+                    <span className="px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200/60 font-medium">
                       {expense.category_name}
                     </span>
-                    <span>{expense.expense_date}</span>
+                    <div className="flex items-center gap-2">
+                      {renderPaymentModeBadge(expense.payment_mode)}
+                      <span>{expense.expense_date}</span>
+                    </div>
                   </div>
-                  {expense.notes && <p className="text-xs text-slate-400">{expense.notes}</p>}
+
+                  <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+                    <button
+                      onClick={() => handleOpenEditExpense(expense)}
+                      className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200 transition-colors"
+                    >
+                      <Edit3 className="w-3.5 h-3.5" />
+                      <span>Edit</span>
+                    </button>
+                    <button
+                      onClick={() => setExpenseToDelete(expense)}
+                      className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-rose-600 bg-rose-50 rounded-lg hover:bg-rose-100 transition-colors"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      <span>Delete</span>
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -248,7 +478,7 @@ export const ExpensesPage = () => {
                 <span className="text-xs text-slate-500">
                   Showing {(pagination.page - 1) * pagination.pageSize + 1} to{' '}
                   {Math.min(pagination.page * pagination.pageSize, pagination.total)} of{' '}
-                  {pagination.total} results
+                  {pagination.total} transactions
                 </span>
                 <div className="flex items-center gap-2">
                   <Button
@@ -259,8 +489,8 @@ export const ExpensesPage = () => {
                   >
                     <ChevronLeft className="w-4 h-4" />
                   </Button>
-                  <span className="text-xs font-semibold px-2">
-                    {pagination.page} / {pagination.totalPages}
+                  <span className="text-xs font-semibold px-2 text-slate-700">
+                    Page {pagination.page} of {pagination.totalPages}
                   </span>
                   <Button
                     variant="secondary"
@@ -276,6 +506,35 @@ export const ExpensesPage = () => {
           </>
         )}
       </div>
+
+      {/* Expense Modal (Add / Edit) */}
+      <ExpenseModal
+        isOpen={isExpenseModalOpen}
+        onClose={() => setIsExpenseModalOpen(false)}
+        expenseToEdit={expenseToEdit}
+      />
+
+      {/* Category Management Modal */}
+      <CategoryManageModal
+        isOpen={isCategoryModalOpen}
+        onClose={() => setIsCategoryModalOpen(false)}
+      />
+
+      {/* Delete Confirmation Modal */}
+      <DeleteConfirmModal
+        isOpen={Boolean(expenseToDelete)}
+        onClose={() => setExpenseToDelete(null)}
+        onConfirm={handleConfirmDelete}
+        title="Delete Expense"
+        message={
+          expenseToDelete
+            ? `Are you sure you want to permanently delete "${expenseToDelete.title}" for ${formatCurrency(
+                expenseToDelete.amount
+              )}? This action cannot be undone.`
+            : ''
+        }
+        isLoading={isDeleting}
+      />
     </div>
   );
 };

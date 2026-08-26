@@ -178,12 +178,94 @@
 - **Git Hygiene:** Verified `backend/.env` remains strictly ignored and uncommitted.
 
 ### 4. Exact Next Phase & Recommended Next Steps
-- **Exact Next Phase:** **Phase 3 — Core Expense CRUD, Categories Management & Live Frontend Integration**
-- **Recommended Next Steps for Phase 3:**
-  1. Wire up React frontend stores (`useExpenseStore`, `useCategoryStore`, `useBudgetStore`) to communicate with live local FastAPI backend endpoints.
-  2. Implement Expense Add/Edit modal form with React Hook Form + Zod validation mirroring backend rules.
-  3. Implement inline category creation inside the expense form (under 30 seconds flow per FR-6).
-  4. Implement live Expense list with search, category filter, payment mode filter, and multi-field sorting (FR-11 through FR-16).
-  5. Implement safe Category deletion with conflict handling / reassignment (FR-8).
-  6. Implement Delete confirmation modal with soft spring transition (Framer Motion).
+- Completed in Phase 3.
+
+---
+
+## Phase Completed: Phase 3 — Core Expense CRUD, Categories Management & Live Frontend Integration
+
+### 1. Work Completed
+- **Expense CRUD & Fast Logging (< 30s) (FR-2, FR-4, FR-5, FR-6):**
+  - Built `ExpenseModal.jsx` powered by `react-hook-form` + `@hookform/resolvers/zod` with [expenseSchema.js](file:///d:/FinTrack/frontend/src/schemas/expenseSchema.js).
+  - Implemented inline quick category creation directly within the expense form so users can create and select a new category without breaking the logging flow (FR-6).
+  - Enforced client-side validation rules in strict parity with backend Pydantic models:
+    - Title: 1–50 characters, trimmed.
+    - Category: required valid UUID.
+    - Amount: positive number strictly greater than 0, formatted with ₹ currency prefix.
+    - Expense Date: required, defaults to today, disallows future dates.
+    - Notes: optional, max 500 characters.
+    - Payment Mode: optional pill selection (Cash, Card, UPI, None).
+  - Built Edit Expense flow pre-populating fields and updating via `updateExpense(id, payload)` and live database refresh.
+  - Built `DeleteConfirmModal.jsx` with Framer Motion spring entrance/exit, danger styling, and action confirmation (FR-5).
+- **Category Management & Safe Deletion (FR-6, FR-7, FR-8, FR-9, FR-10):**
+  - Built `CategoryManageModal.jsx` displaying all categories with live `expense_count` badges (FR-9).
+  - Inline category rename feature using `updateCategory(id, { name })` (FR-7).
+  - Safe category deletion handling (FR-8):
+    - When `expense_count == 0`, confirms and deletes directly.
+    - When `expense_count > 0`, warns the user of linked transactions and presents a replacement category dropdown selector to reassign linked expenses before deletion, preventing orphaned records or PostgreSQL foreign key violations.
+- **Search, Filtering, Sorting & Responsive UI (FR-11 to FR-16):**
+  - Search by title or notes with instant clear button (FR-11).
+  - Category filtering with active category count badges (FR-13).
+  - Payment mode filtering (Cash, Card, UPI) (FR-15).
+  - Collapsible Advanced Filters panel for Date Range (`from_date`, `to_date`) (FR-12) and Amount Range (`min_amount`, `max_amount`) (FR-14).
+  - Multi-column sorting (Date newest/oldest, Amount highest/lowest, Title A-Z) (FR-16).
+  - Desktop table view and responsive mobile cards view with edit/delete actions on each card.
+  - Active filter badge counter and "Reset All Filters" button.
+- **Backend Enhancements:**
+  - Configured `passive_deletes=True` on `Category` relationships in `app/models/category.py` to delegate foreign key constraint handling to PostgreSQL.
+  - Implemented SQLAlchemy 2.0 ORM `delete(Category).where(Category.id == category.id)` construct in `CategoryService.delete` to cleanly avoid synchronous lazy-load triggers in async sessions.
+
+### 2. Files Created / Modified
+- **Frontend:**
+  - `d:\FinTrack\frontend\src\components\expenses\ExpenseModal.jsx` [NEW]
+  - `d:\FinTrack\frontend\src\components\categories\CategoryManageModal.jsx` [NEW]
+  - `d:\FinTrack\frontend\src\components\common\DeleteConfirmModal.jsx` [NEW]
+  - `d:\FinTrack\frontend\src\pages\ExpensesPage.jsx` [MODIFIED]
+  - `d:\FinTrack\frontend\src\tests\schemas.test.js` [NEW]
+- **Backend:**
+  - `d:\FinTrack\backend\app\models\category.py` [MODIFIED]
+  - `d:\FinTrack\backend\app\services\category_service.py` [MODIFIED]
+  - `d:\FinTrack\backend\tests\conftest.py` [MODIFIED]
+  - `d:\FinTrack\backend\tests\test_categories.py` [NEW]
+  - `d:\FinTrack\backend\tests\test_expenses.py` [NEW]
+- **Documentation:**
+  - `d:\FinTrack\PROGRESS.md` [MODIFIED]
+
+### 3. Tests & Verification Performed
+- **Frontend Unit Tests (Vitest):**
+  - `schemas.test.js`: 7 of 7 passed (title length, positive amount, non-future dates, payment modes, category length).
+  - `App.test.jsx`: 1 of 1 passed.
+  - Total: 8 of 8 passed.
+- **Frontend Production Build (Vite):**
+  - `npm run build`: 2023 modules transformed, compiled in 2.66s with 0 errors.
+- **Backend Integration Tests (Pytest):**
+  - `test_list_categories`: PASSED (returns 8 starter categories with counts).
+  - `test_create_rename_and_delete_category`: PASSED (creates, renames, deletes empty category).
+  - `test_category_in_use_reassignment`: PASSED (verifies 409 conflict when in use, reassigns linked expenses to target category, and deletes successfully).
+  - `test_expense_crud_and_filters`: PASSED (creates expense, tests search/category/payment mode/amount range filters, updates expense, deletes expense).
+  - `test_root_health`: PASSED.
+  - `test_api_v1_health`: PASSED.
+  - Total: 6 of 6 passed in 2.17s.
+- **Git Hygiene:**
+  - `git status` verified no `.env` files are tracked or staged. Zero credentials exposed.
+
+### 4. Important Technical Decisions
+- **ORM Delete Construct over Instance Nullification:**
+  - In async SQLAlchemy, calling `session.delete(instance)` on an entity with loaded `lazy="selectin"` relationships can trigger synchronous lazy-loads. Using `delete(Category).where(Category.id == category.id)` with `passive_deletes=True` ensures clean, non-blocking DB execution while adhering strictly to Rule 3 (prefer ORM over raw SQL).
+- **Inline Category Quick-Create:**
+  - Integrated directly inside `ExpenseModal.jsx` so users can create a category on the fly without abandoning an in-progress expense form.
+
+### 5. Known Issues
+- None. All tests pass across frontend and backend.
+
+### 6. Exact Next Phase & Recommended Next Steps
+- **Exact Next Phase:** **Phase 4 — Budgets, Spending Limits & Overspending Warnings**
+- **Recommended Next Steps for Phase 4:**
+  1. Build Budget Set/Edit modal component with month selector (defaults to current month `YYYY-MM`), category dropdown, and monthly limit amount.
+  2. Implement Budget list view showing visual progress bars with three status tiers:
+     - On Track (≤ 80%): Emerald green
+     - Near Limit (80%–100%): Amber warning
+     - Exceeded (> 100%): Rose danger
+  3. Wire up `/api/v1/budgets` endpoints with live calculations comparing monthly expenses to active budget limits.
+  4. Display overspending banner notifications when any category limit is breached.
 

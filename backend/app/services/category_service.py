@@ -1,6 +1,6 @@
 import uuid
 from typing import List, Optional, Tuple
-from sqlalchemy import select, func
+from sqlalchemy import select, func, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.category import Category
 from app.models.expense import Expense
@@ -82,6 +82,7 @@ class CategoryService:
                     .values(category_id=reassign_to)
                 )
                 await session.execute(update_stmt)
+                await session.flush()
             elif cascade:
                 # Delete linked expenses
                 delete_stmt = (
@@ -89,9 +90,12 @@ class CategoryService:
                     .where(Expense.category_id == category.id)
                 )
                 await session.execute(delete_stmt)
+                await session.flush()
             else:
                 return False, f"Category is in use by {count} expenses. Specify reassignment or cascade."
 
-        await session.delete(category)
+        # Delete category using SQLAlchemy 2.0 ORM delete construct
+        del_stmt = delete(Category).where(Category.id == category.id)
+        await session.execute(del_stmt)
         await session.commit()
         return True, None
