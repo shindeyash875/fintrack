@@ -594,6 +594,26 @@
 - `PROGRESS.md` [MODIFIED]
 
 ---
+
+## Milestone Completed: Frontend Chart Rendering Robustness & Pie/Donut Toggle
+
+### 1. Work Completed
+- **Recharts Numeric Sanitization:**
+  - Resolved string-to-number summation bug in `CategoryPieChart.jsx` where Decimal string outputs (`"150000.00"`) caused angle math in Recharts `<Pie>` to evaluate to `NaN`, preventing SVG slice rendering.
+  - Sanitized incoming data using `Number(item.amount || 0)` and `Number(item.percentage || 0)`.
+  - Normalized amounts in `SpendingTrendChart.jsx` as well for robust Bar and Area trajectories.
+- **Enhanced Visual Presentation:**
+  - Added a segmented toggle in `CategoryPieChart.jsx` header allowing instant switching between classic solid **Pie** (`innerRadius={0}`) and modern **Donut** (`innerRadius={65}`).
+  - Added a formatted total spend header badge ensuring total spent amount is always prominently displayed in both views.
+- **Verification:**
+  - All 26 frontend Vitest tests pass.
+  - All 18 backend Pytest tests pass against `fintrack_test`.
+  - Successfully committed and pushed to `origin/main` (`8665575`).
+
+### 2. Files Modified
+- `frontend/src/components/dashboard/CategoryPieChart.jsx` [MODIFIED]
+- `frontend/src/components/dashboard/SpendingTrendChart.jsx` [MODIFIED]
+- `PROGRESS.md` [MODIFIED]
+
+---
 **The FinTrack MVP is feature-complete, strictly isolated, and verified end-to-end.**
-
-
