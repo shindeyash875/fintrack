@@ -565,6 +565,35 @@
 - **Phase 5: Dashboard Visualizations, Reports & Chart Breakdowns** — COMPLETED
 - **Phase 6: Data Export & Import (CSV / JSON) & Comprehensive Filtering** — COMPLETED
 - **Phase 7: End-to-End Integration, Responsive Auditing, UI Polish & Final Hardening** — COMPLETED
+- **Post-Phase Hardening: Test Database Isolation & Dev Database Cleanup** — COMPLETED
 
-**The FinTrack MVP is feature-complete, verified end-to-end, and ready for production deployment.**
+---
+
+## Milestone Completed: Test Database Isolation & Development Database Cleanup
+
+### 1. Work Completed
+- **Test Database Isolation Architecture:**
+  - Added `TEST_DB_NAME: str = Field(default="fintrack_test", ...)` and dynamic `test_database_url` in `backend/app/core/config.py`.
+  - Configured `backend/tests/conftest.py` to auto-check and create `fintrack_test` in local PostgreSQL.
+  - Implemented `poolclass=NullPool` on test engines to prevent event-loop mismatch and closure errors under Windows asyncio.
+  - Configured FastAPI dependency override `app.dependency_overrides[get_db]` and patched `db_session.engine` and `db_session.async_session_factory` so all test requests and background jobs route exclusively to `fintrack_test`.
+- **Safe Development Database Cleanup:**
+  - Created `backend/scripts/clean_test_data.py` to purge confirmed test-generated records from `fintrack`.
+  - Removed 10 test categories (`SourceCat_*`, `TargetCat_*`, `E2E Cat *`, and test `Travel`), 22 test expenses, and 1 test budget.
+  - Preserved all 8 starter categories (`Entertainment`, `Food`, `Health`, `Other`, `Rent`, `Shopping`, `Transport`, `Utilities`) and zero legitimate user data was touched.
+- **Verification:**
+  - Ran pytest suite: all 18 backend tests passed against `fintrack_test` in 43.37s.
+  - Inspected `fintrack` development database: verified zero records written during test execution.
+  - Ran frontend test suite: all 26 vitest tests passed.
+  - Live API validation: verified `/api/v1/categories` returns only starter categories and `/api/v1/expenses` returns empty list.
+
+### 2. Files Modified / Created
+- `backend/app/core/config.py` [MODIFIED]
+- `backend/tests/conftest.py` [MODIFIED]
+- `backend/scripts/clean_test_data.py` [NEW]
+- `PROGRESS.md` [MODIFIED]
+
+---
+**The FinTrack MVP is feature-complete, strictly isolated, and verified end-to-end.**
+
 

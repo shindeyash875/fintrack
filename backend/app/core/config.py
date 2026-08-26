@@ -22,6 +22,8 @@ class Settings(BaseSettings):
         description="Async PostgreSQL connection string (auto-constructed from DB_* params if omitted)",
     )
 
+    TEST_DB_NAME: str = Field(default="fintrack_test", description="PostgreSQL test database name")
+
     # CORS
     CORS_ORIGINS: str = "http://localhost:5173,http://127.0.0.1:5173,https://fintrack.vercel.app"
 
@@ -31,6 +33,12 @@ class Settings(BaseSettings):
     @property
     def cors_origins_list(self) -> List[str]:
         return [origin.strip() for origin in self.CORS_ORIGINS.split(",") if origin.strip()]
+
+    @property
+    def test_database_url(self) -> str:
+        encoded_password = quote_plus(self.DB_PASSWORD) if self.DB_PASSWORD else ""
+        auth = f"{self.DB_USER}:{encoded_password}" if self.DB_PASSWORD else self.DB_USER
+        return f"postgresql+asyncpg://{auth}@{self.DB_HOST}:{self.DB_PORT}/{self.TEST_DB_NAME}"
 
     @model_validator(mode="after")
     def assemble_database_url(self) -> "Settings":
