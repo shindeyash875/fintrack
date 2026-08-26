@@ -7,6 +7,7 @@ import Button from '../common/Button';
 import { expenseSchema } from '../../schemas/expenseSchema';
 import { useExpenseStore } from '../../store/useExpenseStore';
 import { useCategoryStore } from '../../store/useCategoryStore';
+import { useBudgetStore } from '../../store/useBudgetStore';
 import { useUIStore } from '../../store/useUIStore';
 
 export const ExpenseModal = ({ isOpen, onClose, expenseToEdit = null }) => {
@@ -111,6 +112,7 @@ export const ExpenseModal = ({ isOpen, onClose, expenseToEdit = null }) => {
       }
 
       await fetchCategories();
+      useBudgetStore.getState().fetchAll();
       onClose();
     } catch (err) {
       addToast({ type: 'error', message: err.message || 'Failed to save expense.' });

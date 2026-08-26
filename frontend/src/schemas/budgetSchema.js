@@ -2,10 +2,10 @@ import { z } from 'zod';
 
 export const budgetSchema = z.object({
   category_id: z
-    .string()
-    .uuid()
-    .optional()
-    .nullable(),
+    .preprocess(
+      (val) => (val === '' || val === undefined ? null : val),
+      z.string().uuid('Category must be a valid ID').nullable().optional()
+    ),
   period_month: z
     .string()
     .min(1, 'Period month is required'),

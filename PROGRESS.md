@@ -259,13 +259,92 @@
 - None. All tests pass across frontend and backend.
 
 ### 6. Exact Next Phase & Recommended Next Steps
-- **Exact Next Phase:** **Phase 4 — Budgets, Spending Limits & Overspending Warnings**
-- **Recommended Next Steps for Phase 4:**
-  1. Build Budget Set/Edit modal component with month selector (defaults to current month `YYYY-MM`), category dropdown, and monthly limit amount.
-  2. Implement Budget list view showing visual progress bars with three status tiers:
-     - On Track (≤ 80%): Emerald green
-     - Near Limit (80%–100%): Amber warning
-     - Exceeded (> 100%): Rose danger
-  3. Wire up `/api/v1/budgets` endpoints with live calculations comparing monthly expenses to active budget limits.
-  4. Display overspending banner notifications when any category limit is breached.
+- Completed in Phase 4.
 
+---
+
+## Phase Completed: Phase 4 — Budgets, Spending Limits & Overspending Warnings
+
+### 1. Work Completed
+- **Budget Goal Setting & Upsert Flow (FR-26, SRS 3.2):**
+  - Implemented `BudgetModal.jsx` powered by `react-hook-form` and `@hookform/resolvers/zod` with [budgetSchema.js](file:///d:/FinTrack/frontend/src/schemas/budgetSchema.js).
+  - Supported setting and updating (upserting) overall monthly budget goals (`category_id = null`) and per-category limits (`category_id = UUID`).
+  - Month selection with native month picker and month normalization to 1st of month (`YYYY-MM-01`).
+  - Strict validation enforcing positive numeric limit amounts (`limit_amount > 0`) with ₹ currency formatting.
+  - Added ability to view, edit, and delete active budget limits for the selected month directly within the modal.
+  - Implemented `DELETE /api/v1/budgets/{id}` endpoint and `BudgetService.delete` with clean SQLAlchemy ORM `delete` constructs.
+- **Live Remaining-Balance Tracking (FR-27):**
+  - Dynamically computes `remaining_amount = limit_amount - spent_amount` and `percentage_used = (spent_amount / limit_amount) * 100`.
+  - Integrated real-time budget synchronization across frontend store: whenever an expense is added, edited, or deleted in `ExpenseModal.jsx` or `ExpensesPage.jsx`, `useBudgetStore.getState().fetchAll()` is triggered to update remaining balances live.
+- **Three-Tier Status Indicators & Visual Progress (FR-28, SRS 4.3):**
+  - Implemented `BudgetTracker.jsx` featuring:
+    - Month navigation controls (Previous Month, Current Month, Next Month) with synchronized state.
+    - Overall Monthly Budget Card with spent vs target figures, remaining balance, and animated progress bar.
+    - Category-specific spending limit cards showing individual category progress, spent amount, limit, and status.
+    - Color-coded status tiers:
+      - **On Track** (≤ 80% used): Emerald green (`bg-emerald-500`, border `border-emerald-200`, text `text-emerald-700`).
+      - **Near Limit** (80%–100% used): Amber warning (`bg-amber-500`, border `border-amber-200`, text `text-amber-700`).
+      - **Over Budget / Exceeded** (> 100% used): Rose danger (`bg-rose-500`, border `border-rose-200`, text `text-rose-700`).
+    - Smooth Framer Motion entrance animations and progress bar fill transitions.
+    - Honest empty state when no budget goals have been set for the selected month.
+- **Overspending Banner Alerts (FR-28):**
+  - Implemented `OverspendingBanner.jsx` displayed prominently on the dashboard.
+  - Automatically identifies breached budgets (`over_budget`) and near-capacity limits (`near_limit`).
+  - Informs the user of the exact overrun amount and percentage used, with a direct "Review Limits" action button and session dismiss option.
+- **Dashboard Integration (FR-21):**
+  - Integrated `OverspendingBanner` and `BudgetTracker` into `DashboardPage.jsx`.
+  - Enhanced the "Remaining Budget" metric card with real-time status and interactive click affordance to open the `BudgetModal`.
+  - Added "Set Budget" action button in the dashboard top header.
+
+### 2. Files Created / Modified
+- **Frontend:**
+  - `d:\FinTrack\frontend\src\components\budgets\BudgetModal.jsx` [NEW]
+  - `d:\FinTrack\frontend\src\components\budgets\BudgetTracker.jsx` [NEW]
+  - `d:\FinTrack\frontend\src\components\budgets\OverspendingBanner.jsx` [NEW]
+  - `d:\FinTrack\frontend\src\api\endpoints\budgets.js` [MODIFIED]
+  - `d:\FinTrack\frontend\src\schemas\budgetSchema.js` [MODIFIED]
+  - `d:\FinTrack\frontend\src\store\useBudgetStore.js` [MODIFIED]
+  - `d:\FinTrack\frontend\src\pages\DashboardPage.jsx` [MODIFIED]
+  - `d:\FinTrack\frontend\src\components\expenses\ExpenseModal.jsx` [MODIFIED]
+  - `d:\FinTrack\frontend\src\pages\ExpensesPage.jsx` [MODIFIED]
+  - `d:\FinTrack\frontend\src\tests\schemas.test.js` [MODIFIED]
+- **Backend:**
+  - `d:\FinTrack\backend\app\services\budget_service.py` [MODIFIED]
+  - `d:\FinTrack\backend\app\api\v1\endpoints\budgets.py` [MODIFIED]
+  - `d:\FinTrack\backend\tests\test_budgets.py` [NEW]
+- **Documentation:**
+  - `d:\FinTrack\PROGRESS.md` [MODIFIED]
+
+### 3. Tests & Verification Performed
+- **Backend Automated Tests (Pytest):**
+  - `test_overall_budget_crud_and_status`: PASSED (creates overall budget, verifies list, verifies status calculation, tests 85% near-limit trigger, tests 105% over-budget trigger, verifies negative remaining amount, cleans up).
+  - `test_category_budget_crud_and_status`: PASSED (creates category budget, updates limit, verifies status calculation, tests category expense tracking, deletes budget).
+  - `test_budget_validation`: PASSED (validates zero and negative limits return 422).
+  - Existing tests: `test_list_categories`, `test_create_rename_and_delete_category`, `test_category_in_use_reassignment`, `test_expense_crud_and_filters`, `test_root_health`, `test_api_v1_health` all PASSED.
+  - Total: 9 of 9 passed in 2.79s.
+- **Frontend Automated Tests (Vitest):**
+  - `schemas.test.js`: 13 of 13 passed (including 6 new tests for `budgetSchema` covering overall budgets, category budgets, empty string category normalization, negative amounts, invalid UUIDs, and missing period months).
+  - `App.test.jsx`: 1 of 1 passed.
+  - Total: 14 of 14 passed.
+- **Frontend Production Build (Vite):**
+  - Successfully transformed 2029 modules and generated production bundle in `dist/` with 0 warnings or errors in 2.88s.
+- **Rule Compliance & Git Hygiene:**
+  - Strict compliance with AGENTS.md Rule 2: 100% Tailwind CSS classes, zero inline styles.
+  - `git status` confirmed clean hygiene: no `.env` or credential files staged or exposed.
+
+### 4. Important Technical Decisions
+- **Zod Preprocessing for Overall Budgets:**
+  - When the user selects "Overall Monthly Budget" from a HTML `<select>`, the submitted value is `""`. Using `z.preprocess((val) => (val === '' || val === undefined ? null : val), ...)` cleanly maps empty values to `null` before UUID validation, ensuring frontend-to-backend schema parity.
+- **Dedicated Isolation for Budget Integration Tests:**
+  - Budget tests use dedicated test months with `try...finally` teardown to ensure zero cross-test interference and 100% cleanup even if an assertion fails.
+
+### 5. Known Issues
+- None. All 9 backend tests and 14 frontend tests pass.
+
+### 6. Exact Next Phase & Recommended Next Steps
+- **Exact Next Phase:** **Phase 5 — Dashboard Visualizations, Reports & Chart Breakdowns**
+- **Recommended Next Steps for Phase 5:**
+  1. Build Interactive Spending Breakdown chart using Recharts (donut/pie chart for category spend, FR-19).
+  2. Implement Spending Trends chart (bar/line chart for spend over time, FR-20, with daily/weekly/monthly toggles, FR-22).
+  3. Implement Month-over-Month comparison with percentage change indicator (FR-23).
+  4. Build ranked Top Categories view (FR-24) and ensure honest empty states across all chart components.

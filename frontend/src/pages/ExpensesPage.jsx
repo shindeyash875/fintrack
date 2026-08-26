@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { useExpenseStore } from '../store/useExpenseStore';
 import { useCategoryStore } from '../store/useCategoryStore';
+import { useBudgetStore } from '../store/useBudgetStore';
 import { useUIStore } from '../store/useUIStore';
 import Button from '../components/common/Button';
 import EmptyState from '../components/common/EmptyState';
@@ -124,6 +125,7 @@ export const ExpensesPage = () => {
       addToast({ type: 'success', message: 'Expense deleted successfully.' });
       setExpenseToDelete(null);
       await fetchCategories(); // Update category expense count
+      useBudgetStore.getState().fetchAll();
     } catch (err) {
       addToast({ type: 'error', message: err.message || 'Failed to delete expense.' });
     } finally {

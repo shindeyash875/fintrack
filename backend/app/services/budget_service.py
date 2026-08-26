@@ -2,7 +2,7 @@ import uuid
 from datetime import date
 from decimal import Decimal
 from typing import List, Optional
-from sqlalchemy import select, func, and_
+from sqlalchemy import select, func, and_, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.budget import Budget
 from app.models.category import Category
@@ -50,9 +50,14 @@ class BudgetService:
     ) -> BudgetRead:
         normalized = data.period_month.replace(day=1)
         # Check existing budget for same category and month
+        category_filter = (
+            Budget.category_id.is_(None)
+            if data.category_id is None
+            else Budget.category_id == data.category_id
+        )
         stmt = select(Budget).where(
             and_(
-                Budget.category_id == data.category_id,
+                category_filter,
                 Budget.period_month == normalized,
             )
         )
@@ -88,6 +93,21 @@ class BudgetService:
             created_at=budget.created_at,
             updated_at=budget.updated_at,
         )
+
+    @staticmethod
+    async def delete(
+        session: AsyncSession,
+        budget_id: uuid.UUID,
+    ) -> bool:
+        stmt = select(Budget).where(Budget.id == budget_id)
+        result = await session.execute(stmt)
+        budget = result.scalar_one_or_none()
+        if not budget:
+            return False
+
+        await session.execute(delete(Budget).where(Budget.id == budget_id))
+        await session.commit()
+        return True
 
     @staticmethod
     async def get_status(

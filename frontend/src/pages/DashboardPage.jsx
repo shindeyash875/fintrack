@@ -8,24 +8,32 @@ import {
   AlertTriangle,
   ArrowUpRight,
   ArrowDownRight,
-  Plus
+  Plus,
+  Target
 } from 'lucide-react';
 import { dashboardApi } from '../api/endpoints/dashboard';
 import { CardSkeleton } from '../components/common/Skeleton';
 import EmptyState from '../components/common/EmptyState';
 import Button from '../components/common/Button';
 import { useNavigate } from 'react-router-dom';
+import BudgetTracker from '../components/budgets/BudgetTracker';
+import OverspendingBanner from '../components/budgets/OverspendingBanner';
+import BudgetModal from '../components/budgets/BudgetModal';
+import { useBudgetStore } from '../store/useBudgetStore';
 
 export const DashboardPage = () => {
   const navigate = useNavigate();
   const [summary, setSummary] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [isBudgetModalOpen, setIsBudgetModalOpen] = useState(false);
+  const { fetchAll, status } = useBudgetStore();
 
   useEffect(() => {
     let isMounted = true;
     const fetchDashboard = async () => {
       try {
+        fetchAll();
         const res = await dashboardApi.getSummary();
         if (isMounted) {
           setSummary(res.data);
@@ -42,7 +50,7 @@ export const DashboardPage = () => {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [fetchAll]);
 
   const formatCurrency = (val) => {
     const num = Number(val || 0);
@@ -62,11 +70,17 @@ export const DashboardPage = () => {
           </p>
         </div>
         <div className="flex items-center gap-3">
+          <Button onClick={() => setIsBudgetModalOpen(true)} icon={Target} variant="secondary" size="md">
+            Set Budget
+          </Button>
           <Button onClick={() => navigate('/expenses')} icon={Plus} size="md">
             Add Expense
           </Button>
         </div>
       </div>
+
+      {/* Overspending Banner Alerts */}
+      <OverspendingBanner onManageBudgets={() => setIsBudgetModalOpen(true)} />
 
       {/* Error state */}
       {error && (
@@ -120,27 +134,53 @@ export const DashboardPage = () => {
             <p className="mt-1 text-xs text-slate-500">All recorded transactions</p>
           </div>
 
-          {/* Card 3: Budget Status */}
-          <div className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-sm hover:shadow-md transition-shadow">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-                Remaining Budget
-              </span>
-              <div className="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
-                <Calendar className="w-5 h-5" />
+          {/* Card 3: Budget Status (Interactive) */}
+          {(() => {
+            const liveOverall = status?.overall || summary?.overall_budget_status;
+            const isOver = liveOverall && Number(liveOverall.remaining_amount) < 0;
+            const isNear = liveOverall && liveOverall.status === 'near_limit';
+
+            return (
+              <div
+                onClick={() => setIsBudgetModalOpen(true)}
+                className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-sm hover:shadow-md hover:border-emerald-300 transition-all cursor-pointer group"
+                title="Click to manage budget goals"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 group-hover:text-emerald-700 transition-colors">
+                    Remaining Budget
+                  </span>
+                  <div
+                    className={`w-9 h-9 rounded-xl flex items-center justify-center ${
+                      isOver
+                        ? 'bg-rose-50 text-rose-600'
+                        : isNear
+                        ? 'bg-amber-50 text-amber-600'
+                        : 'bg-emerald-50 text-emerald-600'
+                    }`}
+                  >
+                    <Target className="w-5 h-5" />
+                  </div>
+                </div>
+                <p
+                  className={`mt-3 text-2xl font-bold font-['Outfit'] ${
+                    isOver ? 'text-rose-600' : 'text-slate-900'
+                  }`}
+                >
+                  {liveOverall
+                    ? isOver
+                      ? `- ${formatCurrency(Math.abs(Number(liveOverall.remaining_amount)))}`
+                      : formatCurrency(liveOverall.remaining_amount)
+                    : 'No Goal Set'}
+                </p>
+                <p className="mt-1 text-xs text-slate-500">
+                  {liveOverall
+                    ? `${liveOverall.percentage_used}% used (${liveOverall.status.replace('_', ' ')})`
+                    : 'Click to set monthly goal →'}
+                </p>
               </div>
-            </div>
-            <p className="mt-3 text-2xl font-bold text-slate-900 font-['Outfit']">
-              {summary?.overall_budget_status
-                ? formatCurrency(summary.overall_budget_status.remaining_amount)
-                : 'No Goal Set'}
-            </p>
-            <p className="mt-1 text-xs text-slate-500">
-              {summary?.overall_budget_status
-                ? `${summary.overall_budget_status.percentage_used}% used (${summary.overall_budget_status.status.replace('_', ' ')})`
-                : 'Set a monthly budget goal'}
-            </p>
-          </div>
+            );
+          })()}
 
           {/* Card 4: Weekly Pace */}
           <div className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-sm hover:shadow-md transition-shadow">
@@ -159,6 +199,9 @@ export const DashboardPage = () => {
           </div>
         </div>
       )}
+
+      {/* Phase 4: Interactive Budget Tracker */}
+      <BudgetTracker />
 
       {/* Main Grid: Charts & Recent Expenses */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -229,6 +272,12 @@ export const DashboardPage = () => {
           </div>
         </div>
       </div>
+
+      {/* Budget Modal */}
+      <BudgetModal
+        isOpen={isBudgetModalOpen}
+        onClose={() => setIsBudgetModalOpen(false)}
+      />
     </div>
   );
 };

@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { expenseSchema } from '../schemas/expenseSchema';
 import { categorySchema } from '../schemas/categorySchema';
+import { budgetSchema } from '../schemas/budgetSchema';
 
 describe('expenseSchema validation', () => {
   const validUUID = '123e4567-e89b-12d3-a456-426614174000';
@@ -96,3 +97,81 @@ describe('categorySchema validation', () => {
     expect(categorySchema.safeParse({ name: 'A'.repeat(51) }).success).toBe(false);
   });
 });
+
+describe('budgetSchema validation', () => {
+  const validUUID = '123e4567-e89b-12d3-a456-426614174000';
+
+  it('validates a valid overall monthly budget payload', () => {
+    const overallBudget = {
+      category_id: null,
+      period_month: '2026-08-01',
+      limit_amount: 25000,
+    };
+    const res = budgetSchema.safeParse(overallBudget);
+    expect(res.success).toBe(true);
+    expect(res.data.category_id).toBe(null);
+    expect(res.data.limit_amount).toBe(25000);
+  });
+
+  it('converts empty string category_id to null for overall budget', () => {
+    const overallBudget = {
+      category_id: '',
+      period_month: '2026-08-01',
+      limit_amount: 15000,
+    };
+    const res = budgetSchema.safeParse(overallBudget);
+    expect(res.success).toBe(true);
+    expect(res.data.category_id).toBe(null);
+  });
+
+  it('validates a valid category-specific budget payload', () => {
+    const catBudget = {
+      category_id: validUUID,
+      period_month: '2026-08-01',
+      limit_amount: 4500.5,
+    };
+    const res = budgetSchema.safeParse(catBudget);
+    expect(res.success).toBe(true);
+    expect(res.data.category_id).toBe(validUUID);
+    expect(res.data.limit_amount).toBe(4500.5);
+  });
+
+  it('fails when limit_amount is 0 or negative', () => {
+    expect(
+      budgetSchema.safeParse({
+        category_id: null,
+        period_month: '2026-08-01',
+        limit_amount: 0,
+      }).success
+    ).toBe(false);
+
+    expect(
+      budgetSchema.safeParse({
+        category_id: null,
+        period_month: '2026-08-01',
+        limit_amount: -500,
+      }).success
+    ).toBe(false);
+  });
+
+  it('fails when category_id is an invalid UUID string', () => {
+    expect(
+      budgetSchema.safeParse({
+        category_id: 'not-a-uuid',
+        period_month: '2026-08-01',
+        limit_amount: 1000,
+      }).success
+    ).toBe(false);
+  });
+
+  it('fails when period_month is missing or empty', () => {
+    expect(
+      budgetSchema.safeParse({
+        category_id: null,
+        period_month: '',
+        limit_amount: 1000,
+      }).success
+    ).toBe(false);
+  });
+});
+
