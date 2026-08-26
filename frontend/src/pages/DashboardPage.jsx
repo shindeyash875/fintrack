@@ -1,56 +1,90 @@
-import React, { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
+import React, { useEffect, useState, useCallback } from 'react';
 import { 
   TrendingUp, 
   Wallet, 
   CreditCard, 
-  Calendar,
   AlertTriangle,
-  ArrowUpRight,
-  ArrowDownRight,
   Plus,
   Target
 } from 'lucide-react';
 import { dashboardApi } from '../api/endpoints/dashboard';
 import { CardSkeleton } from '../components/common/Skeleton';
-import EmptyState from '../components/common/EmptyState';
 import Button from '../components/common/Button';
 import { useNavigate } from 'react-router-dom';
 import BudgetTracker from '../components/budgets/BudgetTracker';
 import OverspendingBanner from '../components/budgets/OverspendingBanner';
 import BudgetModal from '../components/budgets/BudgetModal';
+import CategoryPieChart from '../components/dashboard/CategoryPieChart';
+import SpendingTrendChart from '../components/dashboard/SpendingTrendChart';
+import MonthCompareWidget from '../components/dashboard/MonthCompareWidget';
+import TopCategoriesList from '../components/dashboard/TopCategoriesList';
 import { useBudgetStore } from '../store/useBudgetStore';
 
 export const DashboardPage = () => {
   const navigate = useNavigate();
   const [summary, setSummary] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [categoryChartData, setCategoryChartData] = useState([]);
+  const [trendData, setTrendData] = useState([]);
+  const [compareData, setCompareData] = useState(null);
+  const [granularity, setGranularity] = useState('daily');
+
+  const [isLoadingSummary, setIsLoadingSummary] = useState(true);
+  const [isLoadingCategoryChart, setIsLoadingCategoryChart] = useState(true);
+  const [isLoadingTrend, setIsLoadingTrend] = useState(true);
+  const [isLoadingCompare, setIsLoadingCompare] = useState(true);
   const [error, setError] = useState(null);
+
   const [isBudgetModalOpen, setIsBudgetModalOpen] = useState(false);
   const { fetchAll, status } = useBudgetStore();
 
-  useEffect(() => {
-    let isMounted = true;
-    const fetchDashboard = async () => {
-      try {
-        fetchAll();
-        const res = await dashboardApi.getSummary();
-        if (isMounted) {
-          setSummary(res.data);
-          setIsLoading(false);
-        }
-      } catch (err) {
-        if (isMounted) {
-          setError(err.message || 'Could not connect to live backend.');
-          setIsLoading(false);
-        }
-      }
-    };
-    fetchDashboard();
-    return () => {
-      isMounted = false;
-    };
+  // Fetch Summary & MoM comparison
+  const fetchOverview = useCallback(async () => {
+    try {
+      fetchAll();
+      const [sumRes, compRes, catRes] = await Promise.all([
+        dashboardApi.getSummary(),
+        dashboardApi.getCompare(),
+        dashboardApi.getByCategory(),
+      ]);
+
+      setSummary(sumRes.data);
+      setCompareData(compRes.data);
+      setCategoryChartData(catRes.data || []);
+      setIsLoadingSummary(false);
+      setIsLoadingCompare(false);
+      setIsLoadingCategoryChart(false);
+    } catch (err) {
+      setError(err.message || 'Could not connect to live backend.');
+      setIsLoadingSummary(false);
+      setIsLoadingCompare(false);
+      setIsLoadingCategoryChart(false);
+    }
   }, [fetchAll]);
+
+  // Fetch Time-series Trend Data with Granularity (daily/weekly/monthly)
+  const fetchTrends = useCallback(async (gran) => {
+    setIsLoadingTrend(true);
+    try {
+      const res = await dashboardApi.getOverTime({ granularity: gran });
+      setTrendData(res.data || []);
+    } catch (err) {
+      console.error('Failed to load spending trend:', err);
+    } finally {
+      setIsLoadingTrend(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchOverview();
+  }, [fetchOverview]);
+
+  useEffect(() => {
+    fetchTrends(granularity);
+  }, [fetchTrends, granularity]);
+
+  const handleGranularityChange = (newGran) => {
+    setGranularity(newGran);
+  };
 
   const formatCurrency = (val) => {
     const num = Number(val || 0);
@@ -66,7 +100,7 @@ export const DashboardPage = () => {
             Financial Dashboard
           </h1>
           <p className="text-sm text-slate-500 mt-1">
-            Real-time spending overview & live budget goal tracker.
+            Real-time spending overview, interactive charts & budget goal tracking.
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -79,10 +113,10 @@ export const DashboardPage = () => {
         </div>
       </div>
 
-      {/* Overspending Banner Alerts */}
+      {/* Overspending Alert Banner */}
       <OverspendingBanner onManageBudgets={() => setIsBudgetModalOpen(true)} />
 
-      {/* Error state */}
+      {/* Error state alert */}
       {error && (
         <div className="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-sm flex items-center gap-3">
           <AlertTriangle className="w-5 h-5 shrink-0 text-rose-600" />
@@ -90,8 +124,8 @@ export const DashboardPage = () => {
         </div>
       )}
 
-      {/* Metric Cards */}
-      {isLoading ? (
+      {/* Metric Cards (FR-17, FR-25) */}
+      {isLoadingSummary ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <CardSkeleton />
           <CardSkeleton />
@@ -118,7 +152,7 @@ export const DashboardPage = () => {
             </p>
           </div>
 
-          {/* Card 2: Overall Spend */}
+          {/* Card 2: Overall Lifetime Spend */}
           <div className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-sm hover:shadow-md transition-shadow">
             <div className="flex items-center justify-between">
               <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
@@ -134,7 +168,7 @@ export const DashboardPage = () => {
             <p className="mt-1 text-xs text-slate-500">All recorded transactions</p>
           </div>
 
-          {/* Card 3: Budget Status (Interactive) */}
+          {/* Card 3: Budget Goal Status */}
           {(() => {
             const liveOverall = status?.overall || summary?.overall_budget_status;
             const isOver = liveOverall && Number(liveOverall.remaining_amount) < 0;
@@ -200,74 +234,82 @@ export const DashboardPage = () => {
         </div>
       )}
 
+      {/* Month-over-Month Comparison Widget (FR-23) */}
+      <MonthCompareWidget compareData={compareData} isLoading={isLoadingCompare} />
+
+      {/* Phase 5: Visual Charts Grid (FR-19, FR-20, FR-22) */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* Spending Trends: Bar/Area Chart with Granularity (7 cols) */}
+        <div className="lg:col-span-7">
+          <SpendingTrendChart
+            data={trendData}
+            granularity={granularity}
+            onGranularityChange={handleGranularityChange}
+            isLoading={isLoadingTrend}
+          />
+        </div>
+
+        {/* Category Breakdown: Interactive Donut Chart (5 cols) */}
+        <div className="lg:col-span-5">
+          <CategoryPieChart
+            data={categoryChartData}
+            isLoading={isLoadingCategoryChart}
+          />
+        </div>
+      </div>
+
       {/* Phase 4: Interactive Budget Tracker */}
       <BudgetTracker />
 
-      {/* Main Grid: Charts & Recent Expenses */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left 2 Cols: Visual Charts Breakdown */}
-        <div className="lg:col-span-2 space-y-6">
-          <div className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-sm">
-            <h2 className="text-lg font-bold text-slate-900 font-['Outfit'] mb-4">
-              Spending Breakdown
-            </h2>
-            {summary && summary.top_categories.length > 0 ? (
-              <div className="space-y-4">
-                {summary.top_categories.map((cat) => (
-                  <div key={cat.category_id} className="space-y-1.5">
-                    <div className="flex justify-between text-sm">
-                      <span className="font-medium text-slate-700">{cat.category_name}</span>
-                      <span className="font-semibold text-slate-900">
-                        {formatCurrency(cat.total_amount)} ({cat.percentage}%)
-                      </span>
-                    </div>
-                    <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-emerald-500 rounded-full transition-all duration-500"
-                        role="progressbar"
-                        aria-valuenow={cat.percentage}
-                        aria-valuemin={0}
-                        aria-valuemax={100}
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <EmptyState
-                title="No category spending yet"
-                description="Expenses logged will populate real category breakdowns and trends automatically."
-                actionLabel="Log First Expense"
-                onAction={() => navigate('/expenses')}
-              />
-            )}
-          </div>
-        </div>
+      {/* Deep-Dive Grid: Ranked Top Categories & Recent Transactions (FR-18, FR-24) */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Top Categories Ranked List */}
+        <TopCategoriesList
+          categories={summary?.top_categories || []}
+          isLoading={isLoadingSummary}
+        />
 
-        {/* Right Col: Recent Activity */}
-        <div className="space-y-6">
-          <div className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-sm">
-            <h2 className="text-lg font-bold text-slate-900 font-['Outfit'] mb-4">
-              Recent Transactions
-            </h2>
+        {/* Recent Transactions List */}
+        <div className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-sm flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="text-base font-bold text-slate-900 font-['Outfit']">
+                  Recent Transactions
+                </h3>
+                <p className="text-xs text-slate-500 font-medium">
+                  Latest activity logged
+                </p>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => navigate('/expenses')}
+              >
+                View All
+              </Button>
+            </div>
+
             {summary && summary.recent_expenses.length > 0 ? (
               <div className="divide-y divide-slate-100">
                 {summary.recent_expenses.map((exp) => (
                   <div key={exp.id} className="py-3 flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-slate-900">{exp.title}</p>
-                      <p className="text-xs text-slate-500">{exp.category_name} • {exp.expense_date}</p>
+                      <p className="text-sm font-semibold text-slate-800">{exp.title}</p>
+                      <p className="text-xs text-slate-400">
+                        {exp.category_name} • {exp.expense_date}
+                      </p>
                     </div>
-                    <span className="text-sm font-bold text-slate-900">
+                    <span className="text-sm font-bold text-slate-900 font-['Outfit']">
                       {formatCurrency(exp.amount)}
                     </span>
                   </div>
                 ))}
               </div>
             ) : (
-              <p className="text-sm text-slate-500 text-center py-8">
+              <div className="py-8 text-center text-slate-400 text-xs">
                 No recent transactions found.
-              </p>
+              </div>
             )}
           </div>
         </div>

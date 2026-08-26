@@ -1,7 +1,7 @@
 from datetime import date, timedelta
 from decimal import Decimal
 from typing import List, Optional
-from sqlalchemy import select, func, and_
+from sqlalchemy import select, func, and_, cast, Date
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.category import Category
 from app.models.expense import Expense
@@ -147,13 +147,24 @@ class DashboardService:
         today = date.today()
         if not date_to:
             date_to = today
-        if not date_from:
-            date_from = date_to - timedelta(days=30)
+
+        if granularity == "monthly":
+            trunc_field = cast(func.date_trunc("month", Expense.expense_date), Date)
+            if not date_from:
+                date_from = (date_to.replace(day=1) - timedelta(days=180)).replace(day=1)
+        elif granularity == "weekly":
+            trunc_field = cast(func.date_trunc("week", Expense.expense_date), Date)
+            if not date_from:
+                date_from = date_to - timedelta(weeks=12)
+        else:
+            trunc_field = Expense.expense_date
+            if not date_from:
+                date_from = date_to - timedelta(days=30)
 
         query = (
             select(
-                Expense.expense_date,
-                func.coalesce(func.sum(Expense.amount), Decimal("0.00")).label("day_total"),
+                trunc_field.label("period"),
+                func.coalesce(func.sum(Expense.amount), Decimal("0.00")).label("period_total"),
             )
             .where(
                 and_(
@@ -161,18 +172,29 @@ class DashboardService:
                     Expense.expense_date <= date_to,
                 )
             )
-            .group_by(Expense.expense_date)
-            .order_by(Expense.expense_date.asc())
+            .group_by(trunc_field)
+            .order_by(trunc_field.asc())
         )
         rows = (await session.execute(query)).all()
-        return [
-            TimeSeriesChartItem(
-                label=r[0].strftime("%Y-%m-%d"),
-                date_start=r[0],
-                amount=r[1],
+
+        items = []
+        for r in rows:
+            period_date = r[0]
+            if granularity == "monthly":
+                label = period_date.strftime("%b %Y")
+            elif granularity == "weekly":
+                label = f"Wk of {period_date.strftime('%b %d')}"
+            else:
+                label = period_date.strftime("%b %d")
+
+            items.append(
+                TimeSeriesChartItem(
+                    label=label,
+                    date_start=period_date,
+                    amount=r[1],
+                )
             )
-            for r in rows
-        ]
+        return items
 
     @staticmethod
     async def get_compare(
