@@ -40,7 +40,12 @@ export const SpendingTrendChart = ({
   const [chartType, setChartType] = useState('bar');
   const navigate = useNavigate();
 
-  const totalPeriodSpend = data.reduce((acc, curr) => acc + Number(curr.amount || 0), 0);
+  const chartData = (data || []).map((item) => ({
+    ...item,
+    amount: Number(item.amount || 0),
+  }));
+
+  const totalPeriodSpend = chartData.reduce((acc, curr) => acc + curr.amount, 0);
 
   const formatYAxis = (val) => {
     if (val >= 100000) return `₹${(val / 100000).toFixed(1)}L`;
@@ -126,7 +131,7 @@ export const SpendingTrendChart = ({
         <div className="h-64 w-full">
           <ResponsiveContainer width="100%" height="100%">
             {chartType === 'bar' ? (
-              <BarChart data={data} margin={{ top: 10, right: 10, left: -15, bottom: 0 }}>
+              <BarChart data={chartData} margin={{ top: 10, right: 10, left: -15, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                 <XAxis
                   dataKey="label"
@@ -151,7 +156,7 @@ export const SpendingTrendChart = ({
                 />
               </BarChart>
             ) : (
-              <AreaChart data={data} margin={{ top: 10, right: 10, left: -15, bottom: 0 }}>
+              <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -15, bottom: 0 }}>
                 <defs>
                   <linearGradient id="trendGradient" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#10b981" stopOpacity={0.4} />

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from 'recharts';
 import { PieChart as PieIcon } from 'lucide-react';
 import EmptyState from '../common/EmptyState';
@@ -45,9 +45,17 @@ const CustomTooltip = ({ active, payload }) => {
 };
 
 export const CategoryPieChart = ({ data = [], isLoading = false }) => {
+  const [chartType, setChartType] = useState('pie'); // 'pie' or 'donut'
   const navigate = useNavigate();
 
-  const totalAmount = data.reduce((acc, curr) => acc + Number(curr.amount || 0), 0);
+  // Normalize data ensuring amount and percentage are valid numbers (prevents Recharts NaN angles)
+  const chartData = (data || []).map((item) => ({
+    ...item,
+    amount: Number(item.amount || 0),
+    percentage: Number(item.percentage || 0),
+  }));
+
+  const totalAmount = chartData.reduce((acc, curr) => acc + curr.amount, 0);
   const formattedTotal = '₹' + totalAmount.toLocaleString('en-IN', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
@@ -61,7 +69,7 @@ export const CategoryPieChart = ({ data = [], isLoading = false }) => {
     );
   }
 
-  if (!data || data.length === 0 || totalAmount === 0) {
+  if (!chartData || chartData.length === 0 || totalAmount === 0) {
     return (
       <div className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-sm">
         <div className="flex items-center gap-2 mb-4">
@@ -86,33 +94,65 @@ export const CategoryPieChart = ({ data = [], isLoading = false }) => {
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <PieIcon className="w-5 h-5 text-emerald-600" />
-            <h3 className="text-base font-bold text-slate-900 font-['Outfit']">
-              Spending by Category
-            </h3>
+            <div>
+              <h3 className="text-base font-bold text-slate-900 font-['Outfit']">
+                Spending by Category
+              </h3>
+            </div>
           </div>
-          <span className="text-xs font-semibold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-lg">
-            {data.length} Categories
-          </span>
+          <div className="flex items-center gap-2">
+            {/* View Mode Toggle: Pie vs Donut */}
+            <div className="flex items-center bg-slate-100 p-0.5 rounded-lg text-xs font-semibold">
+              <button
+                type="button"
+                onClick={() => setChartType('pie')}
+                className={`px-2.5 py-1 rounded-md transition-colors ${
+                  chartType === 'pie'
+                    ? 'bg-white text-slate-900 shadow-xs'
+                    : 'text-slate-500 hover:text-slate-800'
+                }`}
+              >
+                Pie
+              </button>
+              <button
+                type="button"
+                onClick={() => setChartType('donut')}
+                className={`px-2.5 py-1 rounded-md transition-colors ${
+                  chartType === 'donut'
+                    ? 'bg-white text-slate-900 shadow-xs'
+                    : 'text-slate-500 hover:text-slate-800'
+                }`}
+              >
+                Donut
+              </button>
+            </div>
+            <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-100/60 px-2.5 py-1 rounded-lg">
+              {formattedTotal}
+            </span>
+            <span className="text-xs font-semibold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-lg">
+              {chartData.length} Categories
+            </span>
+          </div>
         </div>
 
-        {/* Donut Chart with Center Total */}
+        {/* Interactive Pie / Donut Chart */}
         <div className="relative h-64 w-full">
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
               <Tooltip content={<CustomTooltip />} />
               <Pie
-                data={data}
+                data={chartData}
                 dataKey="amount"
                 nameKey="category_name"
                 cx="50%"
                 cy="50%"
-                innerRadius={65}
+                innerRadius={chartType === 'donut' ? 65 : 0}
                 outerRadius={95}
-                paddingAngle={3}
+                paddingAngle={chartType === 'donut' ? 3 : 1}
                 stroke="#ffffff"
                 strokeWidth={2}
               >
-                {data.map((entry, index) => (
+                {chartData.map((entry, index) => (
                   <Cell
                     key={`cell-${index}`}
                     fill={PALETTE[index % PALETTE.length]}
@@ -122,21 +162,23 @@ export const CategoryPieChart = ({ data = [], isLoading = false }) => {
             </PieChart>
           </ResponsiveContainer>
 
-          {/* Center stats in donut hole */}
-          <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
-              Total Spent
-            </span>
-            <span className="text-base sm:text-lg font-bold text-slate-900 font-['Outfit']">
-              {formattedTotal}
-            </span>
-          </div>
+          {/* Center stats (when in donut mode) */}
+          {chartType === 'donut' && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                Total Spent
+              </span>
+              <span className="text-base sm:text-lg font-bold text-slate-900 font-['Outfit']">
+                {formattedTotal}
+              </span>
+            </div>
+          )}
         </div>
       </div>
 
       {/* Categorized Legend with Swatches */}
       <div className="mt-4 pt-4 border-t border-slate-100 grid grid-cols-2 gap-2 text-xs">
-        {data.slice(0, 6).map((item, idx) => (
+        {chartData.slice(0, 6).map((item, idx) => (
           <div key={item.category_id || idx} className="flex items-center gap-2 truncate">
             <span
               className={`w-2.5 h-2.5 rounded-full shrink-0 ${BG_CLASSES[idx % BG_CLASSES.length]}`}
