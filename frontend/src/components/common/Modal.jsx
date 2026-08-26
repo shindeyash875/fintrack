@@ -40,6 +40,9 @@ export const Modal = ({
 
           {/* Modal Card */}
           <motion.div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="modal-title"
             initial={{ opacity: 0, scale: 0.95, y: 12 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 12 }}
@@ -48,9 +51,10 @@ export const Modal = ({
           >
             {/* Header */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
-              <h3 className="text-lg font-semibold text-slate-800">{title}</h3>
+              <h3 id="modal-title" className="text-lg font-semibold text-slate-800">{title}</h3>
               <button
                 onClick={onClose}
+                aria-label="Close dialog"
                 className="p-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition-colors focus:outline-none"
               >
                 <X className="w-5 h-5" />

@@ -119,3 +119,20 @@ async def http_exception_handler(request: Request, exc: HTTPException):
             },
         },
     )
+
+
+# Standardized Unhandled Exception Handler (SRS Section 3.1 & 3.4)
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception):
+    return JSONResponse(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        content={
+            "success": False,
+            "error": {
+                "code": "INTERNAL_SERVER_ERROR",
+                "message": "An unexpected server error occurred.",
+                "field": None,
+            },
+        },
+    )
+
