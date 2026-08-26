@@ -1,5 +1,6 @@
-from typing import List
-from pydantic import Field
+from typing import List, Optional
+from urllib.parse import quote_plus
+from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -8,19 +9,18 @@ class Settings(BaseSettings):
     DEBUG: bool = True
     APP_VERSION: str = "1.0.0"
 
-    # Database
-    DATABASE_URL: str = Field(
-        default="postgresql+asyncpg://postgres:postgres@localhost:5432/fintrack",
-        description="Async PostgreSQL connection string (Supabase pooled or local)",
-    )
-    DIRECT_URL: str = Field(
-        default="",
-        description="Direct PostgreSQL connection string for Alembic migrations",
-    )
+    # Database connection parameters
+    DB_HOST: str = Field(default="localhost", description="PostgreSQL host")
+    DB_PORT: int = Field(default=5432, description="PostgreSQL port")
+    DB_NAME: str = Field(default="fintrack", description="PostgreSQL database name")
+    DB_USER: str = Field(default="postgres", description="PostgreSQL username")
+    DB_PASSWORD: str = Field(default="postgres", description="PostgreSQL password")
 
-    # Supabase (reserved for Phase 2+)
-    SUPABASE_URL: str = ""
-    SUPABASE_KEY: str = ""
+    # Complete database connection string (auto-assembled from DB_* parameters if not provided)
+    DATABASE_URL: Optional[str] = Field(
+        default=None,
+        description="Async PostgreSQL connection string (auto-constructed from DB_* params if omitted)",
+    )
 
     # CORS
     CORS_ORIGINS: str = "http://localhost:5173,http://127.0.0.1:5173,https://fintrack.vercel.app"
@@ -31,6 +31,14 @@ class Settings(BaseSettings):
     @property
     def cors_origins_list(self) -> List[str]:
         return [origin.strip() for origin in self.CORS_ORIGINS.split(",") if origin.strip()]
+
+    @model_validator(mode="after")
+    def assemble_database_url(self) -> "Settings":
+        if not self.DATABASE_URL:
+            encoded_password = quote_plus(self.DB_PASSWORD) if self.DB_PASSWORD else ""
+            auth = f"{self.DB_USER}:{encoded_password}" if self.DB_PASSWORD else self.DB_USER
+            self.DATABASE_URL = f"postgresql+asyncpg://{auth}@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
+        return self
 
     model_config = SettingsConfigDict(
         env_file=".env",

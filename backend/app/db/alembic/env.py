@@ -17,9 +17,8 @@ if config.config_file_name is not None:
 
 target_metadata = Base.metadata
 
-# Use DIRECT_URL if provided (preferred for migrations), otherwise DATABASE_URL
-migration_url = settings.DIRECT_URL if settings.DIRECT_URL else settings.DATABASE_URL
-config.set_main_option("sqlalchemy.url", migration_url)
+# Configure database migration URL from settings
+config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
 
 
 def run_migrations_offline() -> None:

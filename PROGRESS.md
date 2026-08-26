@@ -8,9 +8,9 @@
   - Created all 3 `.gitignore` files (`.gitignore`, `backend/.gitignore`, `frontend/.gitignore`) guaranteeing that secrets (`.env`, `.env.*`), build artifacts (`dist/`), virtual environments (`venv/`), and dependencies (`node_modules/`) are strictly excluded from version control.
   - Created root `README.md` and `docker-compose.yml` for multi-container orchestration.
 - **Backend Scaffolding (FastAPI + SQLAlchemy 2.0 Async + Alembic):**
-  - Configured `backend/.env.example` with dual PostgreSQL URLs (`DATABASE_URL` for pooled queries, `DIRECT_URL` for migrations) and CORS settings.
+  - Configured `backend/.env.example` with standard PostgreSQL async connection URL (`DATABASE_URL`) and CORS settings.
   - Implemented `app/core/config.py` using `pydantic-settings` to ensure zero hardcoded configurations.
-  - Created `app/core/security.py` as a placeholder for Phase 2 Supabase Auth.
+  - Created `app/core/security.py` as a placeholder for future authentication.
   - Set up async database layer in `app/db/session.py` and `app/db/base.py` with DeclarativeBase and `get_db` session dependency.
   - Implemented idempotent starter categories seed script `app/db/seed.py` gated behind `SEED_STARTER_CATEGORIES=true` (FR-10).
   - Scaffolded SQLAlchemy ORM models in `app/models/` (`Category`, `Expense`, `Budget`) with required check constraints (`amount > 0`, `limit_amount > 0`), unique constraints, and foreign key rules (`ON DELETE RESTRICT` for expenses).
@@ -137,11 +137,12 @@
 - Database provisioning & live migration (scheduled for Phase 2).
 
 ### 7. Exact Next Phase & Recommended Next Steps
-- **Exact Next Phase:** **Phase 2 — Database Setup, Migrations & Seed Data**
+- **Exact Next Phase:** **Phase 2 — Database Setup, Migrations & Seed Data (Local PostgreSQL)**
 - **Recommended Next Steps for Phase 2:**
-  1. Verify live connection to Supabase PostgreSQL using `DIRECT_URL` and `DATABASE_URL`.
-  2. Generate the initial Alembic migration revision (`alembic revision --autogenerate -m "initial_schema"`).
-  3. Review migration script for explicit constraints (`amount > 0`, `limit_amount > 0`, date constraints, indexes, unique constraints).
-  4. Execute migration (`alembic upgrade head`) against the live database.
-  5. Run idempotent starter categories seed (`python -m app.db.seed`) with `SEED_STARTER_CATEGORIES=true`.
-  6. Verify tables and schema live in Supabase PostgreSQL.
+  1. Verify connection to local PostgreSQL on port 5432 and ensure target database `fintrack` exists.
+  2. Configure `backend/.env` with discrete local PostgreSQL variables (`DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`), which the backend automatically assembles into the async connection string.
+  3. Generate the initial Alembic migration revision (`alembic revision --autogenerate -m "initial_schema"`).
+  4. Review migration script for explicit constraints (`amount > 0`, `limit_amount > 0`, date constraints, indexes, unique constraints).
+  5. Execute migration (`alembic upgrade head`) against the local database.
+  6. Run idempotent starter categories seed (`python -m app.db.seed`) with `SEED_STARTER_CATEGORIES=true`.
+  7. Verify tables and schema live in local PostgreSQL.

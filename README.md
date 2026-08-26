@@ -6,15 +6,15 @@ FinTrack is a personal finance web application that lets a user log daily expens
 
 - **Frontend:** React 18, Vite, Tailwind CSS, Framer Motion, Recharts, React Router v6, Zustand, React Hook Form + Zod, Axios.
 - **Backend:** FastAPI (Python 3.11+ / 3.13), Uvicorn, SQLAlchemy 2.0 (Async), Alembic, Pydantic v2 schemas.
-- **Database:** PostgreSQL (hosted on Supabase or local container).
-- **Deployment:** Render (Backend Web Service), Vercel (Frontend SPA), Supabase (Database).
+- **Database:** PostgreSQL (local PostgreSQL during development or hosted in production).
+- **Deployment:** Render (Backend Web Service), Vercel (Frontend SPA), PostgreSQL Database.
 
 ## Architecture & Conventions
 
 - **Zero Mock / Dummy Data:** All screens render from actual database queries. No demo expenses or fake charts.
 - **Strict Separation of Concerns:** React communicates exclusively with FastAPI via `/api/v1`. React never directly connects to PostgreSQL.
 - **Styling:** Utility-first Tailwind CSS without inline styles.
-- **Security:** `.env` files are strictly excluded from version control. Configuration is loaded via environment variables.
+- **Security:** `.env` files are strictly excluded from version control. Configuration is loaded via environment variables (`DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`), with the backend dynamically assembling the async database connection string.
 
 ## Project Structure
 

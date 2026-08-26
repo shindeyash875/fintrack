@@ -1,4 +1,4 @@
 """
 Security utilities and placeholders.
-Authentication and authorization logic will be integrated in Phase 2 (Supabase Auth).
+Authentication and authorization logic will be integrated in future phases.
 """

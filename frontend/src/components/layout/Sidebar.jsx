@@ -73,7 +73,7 @@ export const Sidebar = () => {
         <div className="p-4 border-t border-slate-800/80">
           <div className="bg-slate-800/50 rounded-xl p-3 text-xs text-slate-400">
             <p className="font-semibold text-slate-300">FinTrack v1.0 (MVP)</p>
-            <p className="mt-0.5 text-slate-500">Live Supabase Postgres</p>
+            <p className="mt-0.5 text-slate-500">PostgreSQL Database</p>
           </div>
         </div>
       </aside>
