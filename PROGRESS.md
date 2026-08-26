@@ -134,15 +134,56 @@
 - None.
 
 ### 6. Pending Work
-- Database provisioning & live migration (scheduled for Phase 2).
+- None from Phase 1 or Phase 2.
 
-### 7. Exact Next Phase & Recommended Next Steps
-- **Exact Next Phase:** **Phase 2 — Database Setup, Migrations & Seed Data (Local PostgreSQL)**
-- **Recommended Next Steps for Phase 2:**
-  1. Verify connection to local PostgreSQL on port 5432 and ensure target database `fintrack` exists.
-  2. Configure `backend/.env` with discrete local PostgreSQL variables (`DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`), which the backend automatically assembles into the async connection string.
-  3. Generate the initial Alembic migration revision (`alembic revision --autogenerate -m "initial_schema"`).
-  4. Review migration script for explicit constraints (`amount > 0`, `limit_amount > 0`, date constraints, indexes, unique constraints).
-  5. Execute migration (`alembic upgrade head`) against the local database.
-  6. Run idempotent starter categories seed (`python -m app.db.seed`) with `SEED_STARTER_CATEGORIES=true`.
-  7. Verify tables and schema live in local PostgreSQL.
+---
+
+## Phase Completed: Phase 2 — Database Setup, Migrations & Starter Seed Data (Local PostgreSQL)
+
+### 1. Work Completed
+- **Local PostgreSQL Provisioning & Verification:**
+  - Connected to local PostgreSQL 18 on port 5432 using discrete environment variables (`DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`).
+  - Idempotently checked and created the target `fintrack` database.
+  - Strictly respected security guidelines: `.env` was read locally, never committed, never staged, and no credentials exposed.
+- **Alembic Database Migration:**
+  - Generated initial migration revision `backend/app/db/alembic/versions/449007dda940_initial_schema.py` from declarative SQLAlchemy 2.0 models.
+  - Verified constraints:
+    - Check constraint `amount > 0` on `expenses`.
+    - Check constraint `limit_amount > 0` on `budgets`.
+    - Unique constraint on `budgets(category_id, period_month)`.
+    - Foreign key rule `ON DELETE RESTRICT` on `expenses.category_id`.
+    - Foreign key rule `ON DELETE CASCADE` on `budgets.category_id`.
+    - Indexes on `categories(name)`, `expenses(expense_date)`, `expenses(category_id)`, `expenses(payment_mode)`.
+  - Executed `alembic upgrade head` successfully against local PostgreSQL database.
+- **Idempotent Starter Seed Data (FR-10 & FR-30):**
+  - Executed `app/db/seed.py` inserting the 8 starter categories (`Food`, `Transport`, `Rent`, `Utilities`, `Shopping`, `Health`, `Entertainment`, `Other`).
+  - Verified idempotency: consecutive runs detect existing records and skip cleanly without error or duplication.
+  - Enforced FR-30: zero dummy expenses or demo budgets were seeded; database reflects true initial state.
+- **Live Integration & Verification:**
+  - Executed deep health check probes (`/health` and `/api/v1/health`), verifying live round-trip query (`SELECT 1`) returning `200 OK` with `"database": "connected"`.
+  - Verified `/api/v1/categories` endpoint returning all 8 starter categories with `expense_count: 0`.
+  - Verified `/api/v1/dashboard/summary` endpoint returning honest empty state metrics (`total_spent: 0.00`, empty lists).
+
+### 2. Files Created / Modified
+- `d:\FinTrack\backend\app\db\alembic\versions\449007dda940_initial_schema.py`
+- `d:\FinTrack\PROGRESS.md`
+
+### 3. Tests & Verification Performed
+- **Pytest Suite:** 2 of 2 tests passed against live local database (`test_root_health`, `test_api_v1_health`).
+- **Live Endpoints Verification:**
+  - `/health` -> 200 OK, database: connected
+  - `/api/v1/categories` -> 200 OK, 8 starter categories retrieved
+  - `/api/v1/dashboard/summary` -> 200 OK, empty metrics data
+- **Vitest Suite:** 1 of 1 passed.
+- **Git Hygiene:** Verified `backend/.env` remains strictly ignored and uncommitted.
+
+### 4. Exact Next Phase & Recommended Next Steps
+- **Exact Next Phase:** **Phase 3 — Core Expense CRUD, Categories Management & Live Frontend Integration**
+- **Recommended Next Steps for Phase 3:**
+  1. Wire up React frontend stores (`useExpenseStore`, `useCategoryStore`, `useBudgetStore`) to communicate with live local FastAPI backend endpoints.
+  2. Implement Expense Add/Edit modal form with React Hook Form + Zod validation mirroring backend rules.
+  3. Implement inline category creation inside the expense form (under 30 seconds flow per FR-6).
+  4. Implement live Expense list with search, category filter, payment mode filter, and multi-field sorting (FR-11 through FR-16).
+  5. Implement safe Category deletion with conflict handling / reassignment (FR-8).
+  6. Implement Delete confirmation modal with soft spring transition (Framer Motion).
+
