@@ -31,10 +31,12 @@ if ('serviceWorker' in navigator && process.env.NODE_ENV !== 'test') {
     navigator.serviceWorker
       .register('/sw.js')
       .then((registration) => {
-        console.log('[PWA] ServiceWorker registered successfully:', registration.scope);
+        // Trigger immediate check for new versions on deploy
+        registration.update();
+        console.log('[PWA] ServiceWorker active and registered:', registration.scope);
       })
       .catch((error) => {
-        console.warn('[PWA] ServiceWorker registration failed:', error);
+        console.warn('[PWA] ServiceWorker registration notice:', error);
       });
   });
 }

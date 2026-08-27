@@ -1,5 +1,5 @@
-// FinTrack PWA Service Worker (v1.0.0)
-const CACHE_NAME = 'fintrack-shell-v1';
+// FinTrack PWA Service Worker (v2.0.0)
+const CACHE_NAME = 'fintrack-shell-v2';
 
 // Critical app shell assets to precache on install
 const PRECACHE_ASSETS = [
@@ -15,7 +15,7 @@ const PRECACHE_ASSETS = [
   '/icons/favicon.svg',
 ];
 
-// Install Event — precache core app shell
+// Install Event — precache core app shell and immediately take over
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches
@@ -29,7 +29,7 @@ self.addEventListener('install', (event) => {
   );
 });
 
-// Activate Event — purge old caches & claim clients
+// Activate Event — purge old caches & claim clients immediately
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches
@@ -38,7 +38,7 @@ self.addEventListener('activate', (event) => {
         Promise.all(
           cacheNames.map((name) => {
             if (name !== CACHE_NAME) {
-              console.log('[SW] Deleting old cache:', name);
+              console.log('[SW] Purging old cache version:', name);
               return caches.delete(name);
             }
           })
@@ -53,29 +53,17 @@ self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
-  // 1. Backend API calls: Network-First to guarantee live PostgreSQL sync
+  // 1. Backend API calls: Let browser and Axios communicate directly with the live backend
+  // Only intervene when the client is explicitly offline to return cached data or an offline notice
   if (url.pathname.startsWith('/api/v1/') || url.pathname.includes('/api/')) {
-    event.respondWith(
-      fetch(request)
-        .then((response) => {
-          // If successful GET, optionally update API cache
-          if (request.method === 'GET' && response.status === 200) {
-            const clone = response.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
-          }
-          return response;
-        })
-        .catch(async () => {
-          // Network failed — if GET, try cached API response
-          if (request.method === 'GET') {
-            const cached = await caches.match(request);
-            if (cached) return cached;
-          }
-          // Return clean offline JSON payload
+    if (!navigator.onLine) {
+      event.respondWith(
+        caches.match(request).then((cached) => {
+          if (cached) return cached;
           return new Response(
             JSON.stringify({
               code: 'OFFLINE_MODE',
-              message: 'You are currently offline. Live database updates require a connection.',
+              message: 'You are currently offline. Live database updates require an internet connection.',
             }),
             {
               status: 503,
@@ -83,17 +71,26 @@ self.addEventListener('fetch', (event) => {
             }
           );
         })
-    );
+      );
+      return;
+    }
+    // When online, do not intercept — allow direct live network requests
     return;
   }
 
-  // 2. Navigation requests: Network-first falling back to SPA shell (index.html)
+  // 2. Navigation requests: Network-First so newly deployed Vercel bundles load immediately
   if (request.mode === 'navigate') {
     event.respondWith(
-      fetch(request).catch(async () => {
-        const cached = await caches.match('/index.html');
-        return cached || fetch(request);
-      })
+      fetch(request)
+        .then((networkResponse) => {
+          // Update cached index.html with the latest version
+          if (networkResponse && networkResponse.status === 200) {
+            const clone = networkResponse.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put('/index.html', clone));
+          }
+          return networkResponse;
+        })
+        .catch(() => caches.match('/index.html'))
     );
     return;
   }

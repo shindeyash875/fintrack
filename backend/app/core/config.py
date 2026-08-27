@@ -26,6 +26,10 @@ class Settings(BaseSettings):
 
     # CORS
     CORS_ORIGINS: str = "http://localhost:5173,http://127.0.0.1:5173,https://fintrack.vercel.app"
+    CORS_ORIGIN_REGEX: Optional[str] = Field(
+        default=r"^https:\/\/(.*\.)?vercel\.app$",
+        description="Regex pattern for allowed origins (matches all Vercel production and preview deployments)",
+    )
 
     # Seed
     SEED_STARTER_CATEGORIES: bool = False

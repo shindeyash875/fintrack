@@ -661,3 +661,31 @@
 ---
 **FinTrack is now a fully responsive, installable Progressive Web App (PWA) with complete offline caching, touch ergonomics, and real-time PostgreSQL synchronization.**
 
+---
+
+## Milestone Completed: Deployed Frontend Network Error Resolution & FastAPI CORS Hardening
+
+### 1. Work Completed
+- **Frontend Environment URL Resolution & Cold-Start Timeout:**
+  - Implemented `getApiBaseUrl()` in `frontend/src/api/client.js` supporting `VITE_API_BASE_URL`, `VITE_API_URL`, and `VITE_BACKEND_URL`.
+  - Automatically appends `/api/v1` if only the root domain was provided, strips trailing slashes, and enforces HTTPS for remote production hosts.
+  - Increased Axios timeout from 10s to 30s (`30000ms`) to accommodate Render free-tier instance cold starts from sleep mode.
+  - Added safe diagnostic logging showing requested URLs and error classifications.
+- **Service Worker v2 Cache Invalidation & Direct Online API Routing:**
+  - Bumped cache to `fintrack-shell-v2` in `frontend/public/sw.js` and added cache purging for older versions upon activation.
+  - Ensured online API requests bypass the Service Worker completely so live requests and CORS headers communicate directly between Axios and Render.
+  - Configured navigation requests to use Network-First, ensuring newly deployed Vercel bundles load immediately.
+  - Added `registration.update()` in `frontend/src/main.jsx` for instant service worker lifecycle updates on load.
+- **Vercel SPA Route Rewrites:**
+  - Created `frontend/vercel.json` and root `vercel.json` with rewrites to `/index.html` preventing 404s on page refreshes.
+- **Backend Dynamic Vercel CORS Support:**
+  - Added `CORS_ORIGIN_REGEX: Optional[str] = Field(default=r"^https:\/\/(.*\.)?vercel\.app$", ...)` in `backend/app/core/config.py`.
+  - Passed `allow_origin_regex=settings.CORS_ORIGIN_REGEX` into FastAPI's `CORSMiddleware` in `backend/app/main.py` allowing all Vercel production and preview deployments dynamically.
+- **Verification:**
+  - Automated tests: All 49 frontend vitest tests passed (including 7 new `apiClient.test.js` tests).
+  - Backend tests: All 23 backend pytest tests passed (including 4 new `test_cors.py` tests).
+  - Production build: Vite compiled in 3.95s with 0 errors.
+
+---
+**FinTrack deployed frontend-to-backend integration is hardened, with resilient URL resolution, dynamic Vercel CORS support, and PWA cache busting.**
+
