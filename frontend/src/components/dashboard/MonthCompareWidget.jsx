@@ -36,8 +36,8 @@ export const MonthCompareWidget = ({ compareData, isLoading = false }) => {
   const isZeroChange = diff === 0;
 
   return (
-    <div className="bg-gradient-to-br from-white to-slate-50/50 rounded-2xl p-6 border border-slate-200/80 shadow-sm relative overflow-hidden">
-      <div className="flex items-start justify-between">
+    <div className="bg-gradient-to-br from-white to-slate-50/50 rounded-2xl p-4 sm:p-6 border border-slate-200/80 shadow-sm relative overflow-hidden">
+      <div className="flex items-start justify-between gap-3">
         <div>
           <div className="flex items-center gap-2 mb-1">
             <Calendar className="w-4 h-4 text-emerald-600" />

@@ -69,8 +69,8 @@ export const OverspendingBanner = ({ onManageBudgets }) => {
             : 'bg-amber-50/90 border-amber-200/80 text-amber-950'
         }`}
       >
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex items-start gap-3.5">
+        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+          <div className="flex items-start gap-3">
             <div
               className={`p-2 rounded-xl shrink-0 ${
                 hasExceeded ? 'bg-rose-100 text-rose-600' : 'bg-amber-100 text-amber-600'
@@ -79,7 +79,7 @@ export const OverspendingBanner = ({ onManageBudgets }) => {
               {hasExceeded ? <Flame className="w-5 h-5" /> : <AlertTriangle className="w-5 h-5" />}
             </div>
 
-            <div className="space-y-1.5">
+            <div className="space-y-1.5 min-w-0">
               <h4 className="text-sm font-bold tracking-tight">
                 {hasExceeded
                   ? `Overspending Alert: ${overBudgetItems.length} budget limit${
@@ -94,7 +94,7 @@ export const OverspendingBanner = ({ onManageBudgets }) => {
               {overBudgetItems.length > 0 && (
                 <div className="text-xs text-rose-800 space-y-1">
                   {overBudgetItems.map((item, idx) => (
-                    <p key={idx} className="flex items-center gap-1.5">
+                    <p key={idx} className="flex items-center gap-1.5 flex-wrap">
                       <span className="font-semibold">{item.name}:</span>
                       <span>
                         Exceeded by <span className="font-bold">{formatCurrency(item.exceededBy)}</span> ({item.percentage}% used)
@@ -108,7 +108,7 @@ export const OverspendingBanner = ({ onManageBudgets }) => {
               {nearLimitItems.length > 0 && (
                 <div className="text-xs text-amber-800 space-y-1">
                   {nearLimitItems.map((item, idx) => (
-                    <p key={idx} className="flex items-center gap-1.5">
+                    <p key={idx} className="flex items-center gap-1.5 flex-wrap">
                       <span className="font-semibold">{item.name}:</span>
                       <span>
                         {item.percentage}% used (<span className="font-bold">{formatCurrency(item.remaining)}</span> remaining)
@@ -120,15 +120,15 @@ export const OverspendingBanner = ({ onManageBudgets }) => {
             </div>
           </div>
 
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center justify-between sm:justify-end gap-2 pt-2 sm:pt-0 border-t sm:border-t-0 border-rose-200/50">
             {onManageBudgets && (
               <button
                 type="button"
                 onClick={onManageBudgets}
-                className={`text-xs font-bold px-3 py-1.5 rounded-lg border transition-colors flex items-center gap-1 ${
+                className={`text-xs font-bold px-3 py-2 rounded-xl border transition-colors flex items-center gap-1 min-h-[38px] ${
                   hasExceeded
-                    ? 'bg-rose-600 text-white border-rose-700 hover:bg-rose-700'
-                    : 'bg-amber-600 text-white border-amber-700 hover:bg-amber-700'
+                    ? 'bg-rose-600 text-white border-rose-700 hover:bg-rose-700 active:scale-95'
+                    : 'bg-amber-600 text-white border-amber-700 hover:bg-amber-700 active:scale-95'
                 }`}
               >
                 Review Limits
@@ -138,7 +138,7 @@ export const OverspendingBanner = ({ onManageBudgets }) => {
             <button
               type="button"
               onClick={() => setIsDismissed(true)}
-              className="p-1 text-slate-400 hover:text-slate-700 rounded-lg transition-colors"
+              className="p-2 text-slate-400 hover:text-slate-700 rounded-xl transition-colors min-h-[38px] min-w-[38px] flex items-center justify-center"
               title="Dismiss for this session"
             >
               <X className="w-4 h-4" />

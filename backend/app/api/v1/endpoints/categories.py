@@ -1,3 +1,4 @@
+import logging
 import uuid
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -6,6 +7,8 @@ from app.db.session import get_db
 from app.services.category_service import CategoryService
 from app.schemas.category import CategoryCreate, CategoryUpdate, CategoryRead
 from app.schemas.common import ResponseEnvelope, ErrorEnvelope, ErrorDetail
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -41,10 +44,13 @@ async def create_category(
                 expense_count=0,
             )
         )
+    except HTTPException:
+        raise
     except Exception as exc:
+        logger.error("Unexpected error creating category: %s", exc, exc_info=True)
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Failed to create category: {str(exc)}",
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to create category. Please try again.",
         )
 
 
@@ -64,15 +70,24 @@ async def update_category(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Category not found",
         )
-    updated = await CategoryService.update(session, category, payload)
-    return ResponseEnvelope(
-        data=CategoryRead(
-            id=updated.id,
-            name=updated.name,
-            created_at=updated.created_at,
-            updated_at=updated.updated_at,
+    try:
+        updated = await CategoryService.update(session, category, payload)
+        return ResponseEnvelope(
+            data=CategoryRead(
+                id=updated.id,
+                name=updated.name,
+                created_at=updated.created_at,
+                updated_at=updated.updated_at,
+            )
         )
-    )
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.error("Unexpected error updating category: %s", exc, exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to update category. Please try again.",
+        )
 
 
 @router.delete(

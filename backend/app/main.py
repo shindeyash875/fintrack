@@ -1,3 +1,4 @@
+import logging
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from fastapi import FastAPI, HTTPException, Request, status
@@ -5,11 +6,14 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from sqlalchemy import text
+from sqlalchemy.exc import IntegrityError
 
 from app.core.config import settings
 from app.db.session import async_session_factory, engine
 from app.db.seed import seed_starter_categories
 from app.api.v1.router import api_v1_router
+
+logger = logging.getLogger("fintrack")
 
 
 @asynccontextmanager
@@ -115,6 +119,31 @@ async def http_exception_handler(request: Request, exc: HTTPException):
             "error": {
                 "code": code_map.get(exc.status_code, "ERROR"),
                 "message": str(exc.detail),
+                "field": None,
+            },
+        },
+    )
+
+
+# Standardized Database Integrity Error Handler (Shield internal DB errors)
+@app.exception_handler(IntegrityError)
+async def integrity_error_handler(request: Request, exc: IntegrityError):
+    logger.error("Database integrity error: %s", exc)
+    err_str = str(exc).lower()
+    if "category" in err_str or "ix_categories_name" in err_str:
+        msg = "Category already exists."
+    elif "unique" in err_str or "duplicate" in err_str:
+        msg = "A record with this value already exists."
+    else:
+        msg = "A database constraint conflict occurred."
+
+    return JSONResponse(
+        status_code=status.HTTP_409_CONFLICT,
+        content={
+            "success": False,
+            "error": {
+                "code": "CONFLICT",
+                "message": msg,
                 "field": None,
             },
         },

@@ -89,24 +89,24 @@ export const CategoryPieChart = ({ data = [], isLoading = false }) => {
   }
 
   return (
-    <div className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-sm flex flex-col justify-between">
+    <div className="bg-white rounded-2xl p-4 sm:p-6 border border-slate-200/80 shadow-sm flex flex-col justify-between overflow-hidden">
       <div>
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
           <div className="flex items-center gap-2">
-            <PieIcon className="w-5 h-5 text-emerald-600" />
+            <PieIcon className="w-5 h-5 text-emerald-600 shrink-0" />
             <div>
               <h3 className="text-base font-bold text-slate-900 font-['Outfit']">
                 Spending by Category
               </h3>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             {/* View Mode Toggle: Pie vs Donut */}
             <div className="flex items-center bg-slate-100 p-0.5 rounded-lg text-xs font-semibold">
               <button
                 type="button"
                 onClick={() => setChartType('pie')}
-                className={`px-2.5 py-1 rounded-md transition-colors ${
+                className={`px-2.5 py-1 rounded-md transition-colors min-h-[32px] ${
                   chartType === 'pie'
                     ? 'bg-white text-slate-900 shadow-xs'
                     : 'text-slate-500 hover:text-slate-800'
@@ -117,7 +117,7 @@ export const CategoryPieChart = ({ data = [], isLoading = false }) => {
               <button
                 type="button"
                 onClick={() => setChartType('donut')}
-                className={`px-2.5 py-1 rounded-md transition-colors ${
+                className={`px-2.5 py-1 rounded-md transition-colors min-h-[32px] ${
                   chartType === 'donut'
                     ? 'bg-white text-slate-900 shadow-xs'
                     : 'text-slate-500 hover:text-slate-800'
@@ -136,7 +136,7 @@ export const CategoryPieChart = ({ data = [], isLoading = false }) => {
         </div>
 
         {/* Interactive Pie / Donut Chart */}
-        <div className="relative h-64 w-full">
+        <div className="relative h-60 sm:h-64 w-full">
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
               <Tooltip content={<CustomTooltip />} />
@@ -146,8 +146,8 @@ export const CategoryPieChart = ({ data = [], isLoading = false }) => {
                 nameKey="category_name"
                 cx="50%"
                 cy="50%"
-                innerRadius={chartType === 'donut' ? 65 : 0}
-                outerRadius={95}
+                innerRadius={chartType === 'donut' ? 56 : 0}
+                outerRadius={84}
                 paddingAngle={chartType === 'donut' ? 3 : 1}
                 stroke="#ffffff"
                 strokeWidth={2}
@@ -165,10 +165,10 @@ export const CategoryPieChart = ({ data = [], isLoading = false }) => {
           {/* Center stats (when in donut mode) */}
           {chartType === 'donut' && (
             <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-              <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+              <span className="text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider text-slate-400">
                 Total Spent
               </span>
-              <span className="text-base sm:text-lg font-bold text-slate-900 font-['Outfit']">
+              <span className="text-sm sm:text-lg font-bold text-slate-900 font-['Outfit']">
                 {formattedTotal}
               </span>
             </div>
@@ -177,7 +177,7 @@ export const CategoryPieChart = ({ data = [], isLoading = false }) => {
       </div>
 
       {/* Categorized Legend with Swatches */}
-      <div className="mt-4 pt-4 border-t border-slate-100 grid grid-cols-2 gap-2 text-xs">
+      <div className="mt-4 pt-4 border-t border-slate-100 grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
         {chartData.slice(0, 6).map((item, idx) => (
           <div key={item.category_id || idx} className="flex items-center gap-2 truncate">
             <span

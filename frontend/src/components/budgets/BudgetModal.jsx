@@ -9,7 +9,7 @@ import { useBudgetStore } from '../../store/useBudgetStore';
 import { useCategoryStore } from '../../store/useCategoryStore';
 import { useUIStore } from '../../store/useUIStore';
 
-export const BudgetModal = ({ isOpen, onClose, initialCategoryId = null }) => {
+export const BudgetModal = ({ isOpen, onClose, initialCategoryId = null, onBudgetChange = null }) => {
   const { budgets, upsertBudget, deleteBudget, periodMonth, setPeriodMonth, fetchAll } = useBudgetStore();
   const { categories, fetchCategories } = useCategoryStore();
   const { addToast } = useUIStore();
@@ -78,30 +78,47 @@ export const BudgetModal = ({ isOpen, onClose, initialCategoryId = null }) => {
     setDeletingId(budgetId);
     try {
       await deleteBudget(budgetId);
-      addToast(`Budget goal for ${name} removed`, 'success');
+      addToast({ type: 'success', message: `Budget goal for ${name} removed.` });
       if (editingBudgetId === budgetId) {
         handleCancelEdit();
       }
+      if (onBudgetChange) {
+        onBudgetChange();
+      }
     } catch (err) {
-      addToast(err.message || 'Failed to remove budget', 'error');
+      addToast({ type: 'error', message: 'Failed to remove budget goal. Please try again.' });
     } finally {
       setDeletingId(null);
     }
   };
 
   const onSubmit = async (data) => {
-    try {
-      const payload = {
-        category_id: data.category_id ? data.category_id : null,
-        period_month: selectedMonth + '-01',
-        limit_amount: Number(data.limit_amount),
-      };
+    const targetCategoryId = data.category_id ? data.category_id : null;
+    const payload = {
+      category_id: targetCategoryId,
+      period_month: selectedMonth + '-01',
+      limit_amount: Number(data.limit_amount),
+    };
 
+    // Determine whether this operation updates an existing budget
+    const isUpdate = Boolean(
+      editingBudgetId ||
+      budgets.some((b) =>
+        targetCategoryId
+          ? b.category_id === targetCategoryId
+          : !b.category_id
+      )
+    );
+
+    try {
       await upsertBudget(payload);
-      const label = payload.category_id
-        ? categories.find((c) => c.id === payload.category_id)?.name || 'Category'
-        : 'Overall Monthly';
-      addToast(`Budget goal for ${label} set to ₹${payload.limit_amount.toLocaleString('en-IN')}`, 'success');
+
+      // Show success feedback only after backend confirmation
+      if (isUpdate) {
+        addToast({ type: 'success', message: 'Budget updated successfully.' });
+      } else {
+        addToast({ type: 'success', message: 'Budget added successfully.' });
+      }
 
       // Reset form fields while preserving current month
       setEditingBudgetId(null);
@@ -110,8 +127,13 @@ export const BudgetModal = ({ isOpen, onClose, initialCategoryId = null }) => {
         period_month: selectedMonth + '-01',
         limit_amount: '',
       });
+
+      // Refresh parent/dashboard state immediately if provided
+      if (onBudgetChange) {
+        onBudgetChange();
+      }
     } catch (err) {
-      addToast(err.message || 'Failed to save budget goal', 'error');
+      addToast({ type: 'error', message: 'Failed to add budget. Please try again.' });
     }
   };
 
@@ -140,12 +162,12 @@ export const BudgetModal = ({ isOpen, onClose, initialCategoryId = null }) => {
               <p className="text-xs text-slate-500">Budgets apply on a calendar month basis</p>
             </div>
           </div>
-          <div>
+          <div className="w-full sm:w-auto">
             <input
               type="month"
               value={selectedMonth}
               onChange={handleMonthChange}
-              className="px-3 py-1.5 text-sm font-medium bg-white border border-slate-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-slate-900"
+              className="w-full sm:w-auto px-3 py-2 text-sm font-medium bg-white border border-slate-300 rounded-xl shadow-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-slate-900 min-h-[44px]"
             />
           </div>
         </div>
@@ -161,7 +183,7 @@ export const BudgetModal = ({ isOpen, onClose, initialCategoryId = null }) => {
               <button
                 type="button"
                 onClick={handleCancelEdit}
-                className="text-xs text-slate-500 hover:text-slate-800 font-medium underline"
+                className="text-xs text-slate-500 hover:text-slate-800 font-medium underline min-h-[36px] flex items-center"
               >
                 Cancel Edit
               </button>
@@ -181,7 +203,7 @@ export const BudgetModal = ({ isOpen, onClose, initialCategoryId = null }) => {
                   errors.category_id
                     ? 'border-rose-300 focus:ring-rose-200'
                     : 'border-slate-300 focus:border-emerald-500 focus:ring-emerald-200'
-                } bg-white text-slate-900 disabled:bg-slate-100 disabled:text-slate-500`}
+                } bg-white text-slate-900 disabled:bg-slate-100 disabled:text-slate-500 min-h-[44px]`}
               >
                 <option value="">🎯 Overall Monthly Budget</option>
                 {categories.map((cat) => (
@@ -216,7 +238,7 @@ export const BudgetModal = ({ isOpen, onClose, initialCategoryId = null }) => {
                     errors.limit_amount
                       ? 'border-rose-300 focus:ring-rose-200'
                       : 'border-slate-300 focus:border-emerald-500 focus:ring-emerald-200'
-                  } bg-white text-slate-900`}
+                  } bg-white text-slate-900 min-h-[44px]`}
                 />
               </div>
               {errors.limit_amount && (
@@ -230,9 +252,10 @@ export const BudgetModal = ({ isOpen, onClose, initialCategoryId = null }) => {
           <div className="flex justify-end pt-2">
             <Button
               type="submit"
-              size="sm"
+              size="md"
               isLoading={isSubmitting}
               icon={editingBudgetId ? Edit2 : Plus}
+              className="w-full sm:w-auto"
             >
               {editingBudgetId ? 'Save Limit' : 'Set Budget'}
             </Button>
@@ -254,9 +277,9 @@ export const BudgetModal = ({ isOpen, onClose, initialCategoryId = null }) => {
                     key={b.id}
                     className="p-3 sm:p-3.5 flex items-center justify-between hover:bg-slate-50/80 transition-colors"
                   >
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2.5 sm:gap-3 flex-1 min-w-0 pr-2">
                       <div
-                        className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold ${
+                        className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold shrink-0 ${
                           isOverall
                             ? 'bg-purple-100 text-purple-700'
                             : 'bg-emerald-100 text-emerald-700'
@@ -264,19 +287,19 @@ export const BudgetModal = ({ isOpen, onClose, initialCategoryId = null }) => {
                       >
                         {isOverall ? 'ALL' : label.slice(0, 2).toUpperCase()}
                       </div>
-                      <div>
-                        <p className="text-sm font-semibold text-slate-800">{label}</p>
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-slate-800 truncate">{label}</p>
                         <p className="text-xs text-slate-500">
                           Limit: <span className="font-bold text-slate-700">{formatCurrency(b.limit_amount)}</span>
                         </p>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-1 shrink-0">
                       <button
                         type="button"
                         onClick={() => handleEditBudget(b)}
-                        className="p-1.5 text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
+                        className="p-2 text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors min-h-[38px] min-w-[38px] flex items-center justify-center"
                         title="Edit limit"
                       >
                         <Edit2 className="w-4 h-4" />
@@ -285,7 +308,7 @@ export const BudgetModal = ({ isOpen, onClose, initialCategoryId = null }) => {
                         type="button"
                         disabled={deletingId === b.id}
                         onClick={() => handleDelete(b.id, label)}
-                        className="p-1.5 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                        className="p-2 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors min-h-[38px] min-w-[38px] flex items-center justify-center"
                         title="Remove budget goal"
                       >
                         <Trash2 className="w-4 h-4" />

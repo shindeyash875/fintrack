@@ -19,7 +19,7 @@ export const ToastContainer = () => {
   };
 
   return (
-    <div className="fixed bottom-4 right-4 z-50 flex flex-col gap-2 max-w-sm w-full pointer-events-none">
+    <div className="fixed bottom-20 lg:bottom-4 right-3 sm:right-4 left-3 sm:left-auto z-50 flex flex-col gap-2 max-w-sm pointer-events-none mx-auto sm:mx-0">
       <AnimatePresence>
         {toasts.map((toast) => {
           const Icon = icons[toast.type] || Info;
@@ -32,13 +32,13 @@ export const ToastContainer = () => {
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.15 } }}
               layout
-              className={`pointer-events-auto flex items-start gap-3 p-4 rounded-xl border shadow-lg ${colorClass}`}
+              className={`pointer-events-auto flex items-start gap-3 p-3.5 sm:p-4 rounded-2xl border shadow-lg ${colorClass}`}
             >
               <Icon className="w-5 h-5 shrink-0 mt-0.5" />
-              <p className="text-sm font-medium flex-1">{toast.message}</p>
+              <p className="text-xs sm:text-sm font-medium flex-1">{toast.message}</p>
               <button
                 onClick={() => removeToast(toast.id)}
-                className="p-1 -mr-1 -mt-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-200/50 transition-colors focus:outline-none"
+                className="p-1.5 -mr-1 -mt-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-200/50 transition-colors focus:outline-none min-h-[36px] min-w-[36px] flex items-center justify-center"
               >
                 <X className="w-4 h-4" />
               </button>

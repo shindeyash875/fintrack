@@ -28,7 +28,7 @@ export const Modal = ({
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-2.5 sm:p-4 md:p-6 overflow-hidden">
           {/* Backdrop */}
           <motion.div
             initial={{ opacity: 0 }}
@@ -47,22 +47,26 @@ export const Modal = ({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 12 }}
             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-            className={`relative w-full ${maxWidth} bg-white rounded-2xl shadow-2xl border border-slate-200/80 overflow-hidden z-10`}
+            className={`relative w-full ${maxWidth} bg-white rounded-2xl sm:rounded-3xl shadow-2xl border border-slate-200/80 overflow-hidden z-10 flex flex-col max-h-[calc(100dvh-1.5rem)] sm:max-h-[88vh]`}
           >
             {/* Header */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
-              <h3 id="modal-title" className="text-lg font-semibold text-slate-800">{title}</h3>
+            <div className="shrink-0 flex items-center justify-between px-5 sm:px-6 py-3.5 sm:py-4 border-b border-slate-100 bg-white">
+              <h3 id="modal-title" className="text-base sm:text-lg font-semibold text-slate-800 font-['Outfit']">
+                {title}
+              </h3>
               <button
                 onClick={onClose}
                 aria-label="Close dialog"
-                className="p-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition-colors focus:outline-none"
+                className="p-2 -mr-1 text-slate-400 hover:text-slate-700 rounded-xl hover:bg-slate-100 transition-colors focus:outline-none min-w-[40px] min-h-[40px] flex items-center justify-center"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            {/* Content */}
-            <div className="p-6">{children}</div>
+            {/* Content with internal scroll */}
+            <div className="flex-1 overflow-y-auto p-4 sm:p-6 overscroll-contain">
+              {children}
+            </div>
           </motion.div>
         </div>
       )}

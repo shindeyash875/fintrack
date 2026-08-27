@@ -213,27 +213,28 @@ export const ImportModal = ({ isOpen, onClose, onSuccess }) => {
         )}
 
         {/* Modal Buttons */}
-        <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
+        <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
           {result ? (
             <>
-              <Button variant="secondary" onClick={handleReset}>
-                Import Another File
+              <Button variant="secondary" onClick={handleReset} className="flex-1 sm:flex-none">
+                Import Another
               </Button>
-              <Button variant="primary" onClick={onClose}>
+              <Button variant="primary" onClick={onClose} className="flex-1 sm:flex-none">
                 Done
               </Button>
             </>
           ) : (
             <>
-              <Button variant="secondary" onClick={onClose} disabled={isUploading}>
+              <Button variant="secondary" onClick={onClose} disabled={isUploading} className="flex-1 sm:flex-none">
                 Cancel
               </Button>
               <Button
                 variant="primary"
                 onClick={handleImport}
                 disabled={!file}
-                loading={isUploading}
+                isLoading={isUploading}
                 icon={Upload}
+                className="flex-1 sm:flex-none"
               >
                 Start Import
               </Button>

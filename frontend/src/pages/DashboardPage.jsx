@@ -92,22 +92,22 @@ export const DashboardPage = () => {
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 sm:space-y-8">
       {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 font-['Outfit']">
             Financial Dashboard
           </h1>
-          <p className="text-sm text-slate-500 mt-1">
+          <p className="text-xs sm:text-sm text-slate-500 mt-0.5 sm:mt-1">
             Real-time spending overview, interactive charts & budget goal tracking.
           </p>
         </div>
-        <div className="flex items-center gap-3">
-          <Button onClick={() => setIsBudgetModalOpen(true)} icon={Target} variant="secondary" size="md">
+        <div className="flex items-center gap-2.5 sm:gap-3 flex-wrap">
+          <Button onClick={() => setIsBudgetModalOpen(true)} icon={Target} variant="secondary" size="md" className="flex-1 sm:flex-none">
             Set Budget
           </Button>
-          <Button onClick={() => navigate('/expenses')} icon={Plus} size="md">
+          <Button onClick={() => navigate('/expenses')} icon={Plus} size="md" className="flex-1 sm:flex-none">
             Add Expense
           </Button>
         </div>
@@ -126,16 +126,16 @@ export const DashboardPage = () => {
 
       {/* Metric Cards (FR-17, FR-25) */}
       {isLoadingSummary ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           <CardSkeleton />
           <CardSkeleton />
           <CardSkeleton />
           <CardSkeleton />
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           {/* Card 1: Total Spend Current Month */}
-          <div className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-sm hover:shadow-md transition-shadow">
+          <div className="bg-white rounded-2xl p-4 sm:p-6 border border-slate-200/80 shadow-sm hover:shadow-md transition-shadow">
             <div className="flex items-center justify-between">
               <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
                 This Month
@@ -153,7 +153,7 @@ export const DashboardPage = () => {
           </div>
 
           {/* Card 2: Overall Lifetime Spend */}
-          <div className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-sm hover:shadow-md transition-shadow">
+          <div className="bg-white rounded-2xl p-4 sm:p-6 border border-slate-200/80 shadow-sm hover:shadow-md transition-shadow">
             <div className="flex items-center justify-between">
               <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
                 Total Lifetime
@@ -170,14 +170,14 @@ export const DashboardPage = () => {
 
           {/* Card 3: Budget Goal Status */}
           {(() => {
-            const liveOverall = status?.overall || summary?.overall_budget_status;
+            const liveOverall = status ? status.overall : summary?.overall_budget_status;
             const isOver = liveOverall && Number(liveOverall.remaining_amount) < 0;
             const isNear = liveOverall && liveOverall.status === 'near_limit';
 
             return (
               <div
                 onClick={() => setIsBudgetModalOpen(true)}
-                className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-sm hover:shadow-md hover:border-emerald-300 transition-all cursor-pointer group"
+                className="bg-white rounded-2xl p-4 sm:p-6 border border-slate-200/80 shadow-sm hover:shadow-md hover:border-emerald-300 transition-all cursor-pointer group"
                 title="Click to manage budget goals"
               >
                 <div className="flex items-center justify-between">
@@ -217,7 +217,7 @@ export const DashboardPage = () => {
           })()}
 
           {/* Card 4: Weekly Pace */}
-          <div className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-sm hover:shadow-md transition-shadow">
+          <div className="bg-white rounded-2xl p-4 sm:p-6 border border-slate-200/80 shadow-sm hover:shadow-md transition-shadow">
             <div className="flex items-center justify-between">
               <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
                 Weekly Pace
@@ -270,7 +270,7 @@ export const DashboardPage = () => {
         />
 
         {/* Recent Transactions List */}
-        <div className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-sm flex flex-col justify-between">
+        <div className="bg-white rounded-2xl p-4 sm:p-6 border border-slate-200/80 shadow-sm flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between mb-4">
               <div>
@@ -319,6 +319,7 @@ export const DashboardPage = () => {
       <BudgetModal
         isOpen={isBudgetModalOpen}
         onClose={() => setIsBudgetModalOpen(false)}
+        onBudgetChange={fetchOverview}
       />
     </div>
   );

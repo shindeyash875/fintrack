@@ -17,14 +17,15 @@ async def test_full_lifecycle_e2e(client: AsyncClient):
     7. Clean up created test entities
     """
     unique_suffix = uuid.uuid4().hex[:6]
-    cat_name = f"E2E Cat {unique_suffix}"
+    cat_name = f"End To End Cat {unique_suffix}"
 
     # 1. Create Category
     res_cat = await client.post("/api/v1/categories", json={"name": cat_name})
     assert res_cat.status_code == 201
     cat_data = res_cat.json()["data"]
     category_id = cat_data["id"]
-    assert cat_data["name"] == cat_name
+    from app.schemas.category import normalize_title_case
+    assert cat_data["name"] == normalize_title_case(cat_name)
 
     # 2. Set Monthly Budget
     res_budget = await client.post(

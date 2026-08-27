@@ -20,7 +20,7 @@ async def test_list_categories(client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_create_rename_and_delete_category(client: AsyncClient):
-    cat_name = f"TestCat_{uuid.uuid4().hex[:6]}"
+    cat_name = f"Test Cat {uuid.uuid4().hex[:6].capitalize()}"
 
     # 1. Create
     create_res = await client.post("/api/v1/categories", json={"name": cat_name})
@@ -30,7 +30,7 @@ async def test_create_rename_and_delete_category(client: AsyncClient):
     assert created_data["name"] == cat_name
 
     # 2. Rename
-    renamed = f"{cat_name}_Updated"
+    renamed = f"{cat_name} Updated"
     update_res = await client.put(f"/api/v1/categories/{cat_id}", json={"name": renamed})
     assert update_res.status_code == 200
     assert update_res.json()["data"]["name"] == renamed
@@ -43,8 +43,8 @@ async def test_create_rename_and_delete_category(client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_category_in_use_reassignment(client: AsyncClient):
-    cat_source_name = f"SourceCat_{uuid.uuid4().hex[:6]}"
-    cat_target_name = f"TargetCat_{uuid.uuid4().hex[:6]}"
+    cat_source_name = f"Source Cat {uuid.uuid4().hex[:6].capitalize()}"
+    cat_target_name = f"Target Cat {uuid.uuid4().hex[:6].capitalize()}"
 
     # Create source and target categories
     src_res = await client.post("/api/v1/categories", json={"name": cat_source_name})
@@ -85,3 +85,92 @@ async def test_category_in_use_reassignment(client: AsyncClient):
     # Clean up expense and target category
     await client.delete(f"/api/v1/expenses/{exp_id}")
     await client.delete(f"/api/v1/categories/{tgt_id}")
+
+
+@pytest.mark.asyncio
+async def test_duplicate_category_prevention_and_normalization(client: AsyncClient):
+    """
+    Test suite for Requirement 1 & 2:
+    - Case-insensitive duplicate prevention
+    - Trimming and Title Case normalization
+    - Clean 409 Conflict with 'Category already exists.' and no raw DB errors
+    """
+    unique_suffix = uuid.uuid4().hex[:6].capitalize()
+    base_name = f"Travel {unique_suffix}"
+    normalized_expected = base_name  # Already Title Case
+
+    cat_id = None
+    try:
+        # 1. Normal custom category creation with lowercase & extra spaces
+        raw_input = f"  travel {unique_suffix}  "
+        res1 = await client.post("/api/v1/categories", json={"name": raw_input})
+        assert res1.status_code == 201
+        data1 = res1.json()["data"]
+        cat_id = data1["id"]
+        # Must be normalized to Title Case without spaces
+        assert data1["name"] == normalized_expected
+
+        # 2. Duplicate category with EXACT SAME CASE
+        res_dup_same = await client.post("/api/v1/categories", json={"name": normalized_expected})
+        assert res_dup_same.status_code == 409
+        err_same = res_dup_same.json()
+        assert err_same["success"] is False
+        assert err_same["error"]["code"] == "CONFLICT"
+        assert err_same["error"]["message"] == "Category already exists."
+        # Verify NO raw DB / SQLAlchemy details are present
+        res_str = res_dup_same.text.lower()
+        assert "sqlalchemy" not in res_str
+        assert "integrityerror" not in res_str
+        assert "psycopg2" not in res_str
+        assert "unique" not in res_str
+
+        # 3. Duplicate category with DIFFERENT CASE (UPPERCASE)
+        res_dup_upper = await client.post("/api/v1/categories", json={"name": normalized_expected.upper()})
+        assert res_dup_upper.status_code == 409
+        err_upper = res_dup_upper.json()
+        assert err_upper["error"]["message"] == "Category already exists."
+
+        # 4. Duplicate category with DIFFERENT CASE (lowercase)
+        res_dup_lower = await client.post("/api/v1/categories", json={"name": normalized_expected.lower()})
+        assert res_dup_lower.status_code == 409
+        err_lower = res_dup_lower.json()
+        assert err_lower["error"]["message"] == "Category already exists."
+
+        # 5. Duplicate category with EXTRA LEADING / TRAILING SPACES
+        res_dup_spaces = await client.post("/api/v1/categories", json={"name": f"   {normalized_expected}   "})
+        assert res_dup_spaces.status_code == 409
+        err_spaces = res_dup_spaces.json()
+        assert err_spaces["error"]["message"] == "Category already exists."
+
+        # 6. Test Multi-word Title Case Normalization
+        multi_word = f"home  and   garden   {unique_suffix}"
+        res_multi = await client.post("/api/v1/categories", json={"name": multi_word})
+        assert res_multi.status_code == 201
+        data_multi = res_multi.json()["data"]
+        expected_title = f"Home And Garden {unique_suffix.capitalize()}"
+        assert data_multi["name"] == expected_title
+
+        # Clean up multi-word category
+        await client.delete(f"/api/v1/categories/{data_multi['id']}")
+
+        # 7. Test Duplicate on Rename (PUT)
+        # Create a second category
+        second_name = f"Fitness {unique_suffix}"
+        res_second = await client.post("/api/v1/categories", json={"name": second_name})
+        assert res_second.status_code == 201
+        second_id = res_second.json()["data"]["id"]
+
+        try:
+            # Try renaming second category to first category's name (different case)
+            res_rename_conflict = await client.put(
+                f"/api/v1/categories/{second_id}",
+                json={"name": normalized_expected.lower()}
+            )
+            assert res_rename_conflict.status_code == 409
+            assert res_rename_conflict.json()["error"]["message"] == "Category already exists."
+        finally:
+            await client.delete(f"/api/v1/categories/{second_id}")
+
+    finally:
+        if cat_id:
+            await client.delete(f"/api/v1/categories/{cat_id}")

@@ -20,10 +20,28 @@ apiClient.interceptors.response.use(
     return response;
   },
   (error) => {
-    const errorPayload = error.response?.data?.error || {
-      code: 'NETWORK_ERROR',
-      message: error.message || 'Network request failed. Please verify the backend is running.',
-    };
+    let errorPayload = error.response?.data?.error;
+    if (!errorPayload) {
+      errorPayload = {
+        code: 'NETWORK_ERROR',
+        message: error.message || 'Network request failed. Please verify the backend is running.',
+      };
+    } else if (typeof errorPayload.message === 'string') {
+      const msg = errorPayload.message;
+      // Shield against raw DB / ORM error exposures
+      if (
+        msg.includes('SQLAlchemy') ||
+        msg.includes('psycopg2') ||
+        msg.includes('IntegrityError') ||
+        msg.includes('UniqueViolation') ||
+        msg.includes('duplicate key')
+      ) {
+        errorPayload.message =
+          error.response?.status === 409 || errorPayload.code === 'CONFLICT'
+            ? 'Category already exists.'
+            : 'A database conflict occurred. Please try again.';
+      }
+    }
     return Promise.reject(errorPayload);
   }
 );

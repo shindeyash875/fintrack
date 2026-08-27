@@ -1,10 +1,24 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Receipt, Wallet, X } from 'lucide-react';
+import {
+  LayoutDashboard,
+  Receipt,
+  Target,
+  Tag,
+  SlidersHorizontal,
+  Wallet,
+  X,
+} from 'lucide-react';
 import { useUIStore } from '../../store/useUIStore';
 
 export const Sidebar = () => {
-  const { isSidebarOpen, closeSidebar } = useUIStore();
+  const {
+    isSidebarOpen,
+    closeSidebar,
+    openGlobalBudget,
+    openGlobalCategory,
+    openGlobalSettings,
+  } = useUIStore();
 
   const navItems = [
     { name: 'Dashboard', path: '/', icon: LayoutDashboard },
@@ -17,7 +31,7 @@ export const Sidebar = () => {
       {isSidebarOpen && (
         <div
           onClick={closeSidebar}
-          className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-40 lg:hidden transition-opacity"
+          className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-40 lg:hidden transition-opacity"
         />
       )}
 
@@ -28,7 +42,7 @@ export const Sidebar = () => {
         }`}
       >
         {/* Brand Header */}
-        <div className="flex items-center justify-between h-16 px-6 border-b border-slate-800">
+        <div className="flex items-center justify-between h-16 px-6 border-b border-slate-800 pt-safe">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-emerald-500 flex items-center justify-center text-white shadow-md shadow-emerald-500/20">
               <Wallet className="w-5 h-5" />
@@ -39,7 +53,8 @@ export const Sidebar = () => {
           </div>
           <button
             onClick={closeSidebar}
-            className="p-1 text-slate-400 hover:text-white rounded-lg lg:hidden"
+            aria-label="Close sidebar"
+            className="p-2 text-slate-400 hover:text-white rounded-xl lg:hidden min-h-[44px] min-w-[44px] flex items-center justify-center focus:outline-none"
           >
             <X className="w-5 h-5" />
           </button>
@@ -55,7 +70,7 @@ export const Sidebar = () => {
                 to={item.path}
                 onClick={() => closeSidebar()}
                 className={({ isActive }) =>
-                  `flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all ${
+                  `flex items-center gap-3 px-3.5 py-3 rounded-xl text-sm font-medium transition-all min-h-[44px] ${
                     isActive
                       ? 'bg-emerald-500 text-white shadow-md shadow-emerald-500/20'
                       : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'
@@ -67,12 +82,51 @@ export const Sidebar = () => {
               </NavLink>
             );
           })}
+
+          <div className="pt-4 mt-4 border-t border-slate-800/80">
+            <p className="px-3 text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-2">
+              Management
+            </p>
+
+            <button
+              onClick={() => {
+                closeSidebar();
+                openGlobalBudget();
+              }}
+              className="w-full flex items-center gap-3 px-3.5 py-3 rounded-xl text-sm font-medium text-slate-400 hover:bg-slate-800 hover:text-slate-200 transition-all min-h-[44px] text-left focus:outline-none"
+            >
+              <Target className="w-5 h-5 shrink-0 text-emerald-400" />
+              <span>Budget Goals</span>
+            </button>
+
+            <button
+              onClick={() => {
+                closeSidebar();
+                openGlobalCategory();
+              }}
+              className="w-full flex items-center gap-3 px-3.5 py-3 rounded-xl text-sm font-medium text-slate-400 hover:bg-slate-800 hover:text-slate-200 transition-all min-h-[44px] text-left focus:outline-none"
+            >
+              <Tag className="w-5 h-5 shrink-0 text-emerald-400" />
+              <span>Categories</span>
+            </button>
+
+            <button
+              onClick={() => {
+                closeSidebar();
+                openGlobalSettings();
+              }}
+              className="w-full flex items-center gap-3 px-3.5 py-3 rounded-xl text-sm font-medium text-slate-400 hover:bg-slate-800 hover:text-slate-200 transition-all min-h-[44px] text-left focus:outline-none"
+            >
+              <SlidersHorizontal className="w-5 h-5 shrink-0 text-slate-400" />
+              <span>App Settings</span>
+            </button>
+          </div>
         </nav>
 
         {/* Version Footer */}
-        <div className="p-4 border-t border-slate-800/80">
+        <div className="p-4 border-t border-slate-800/80 pb-safe">
           <div className="bg-slate-800/50 rounded-xl p-3 text-xs text-slate-400">
-            <p className="font-semibold text-slate-300">FinTrack v1.0 (MVP)</p>
+            <p className="font-semibold text-slate-300">FinTrack PWA v1.0</p>
             <p className="mt-0.5 text-slate-500">PostgreSQL Database</p>
           </div>
         </div>

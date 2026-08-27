@@ -615,5 +615,49 @@
 - `frontend/src/components/dashboard/SpendingTrendChart.jsx` [MODIFIED]
 - `PROGRESS.md` [MODIFIED]
 
+## Milestone Completed: Custom Category Duplicate Prevention, Error Sanitization & Budget Feedback
+
+### 1. Work Completed
+- **Backend Category Title Case & Case-Insensitive Duplicate Prevention:**
+  - Added `normalize_title_case` in `app/schemas/category.py` to auto-normalize incoming category names to consistent Title Case.
+  - Implemented case-insensitive uniqueness validation in `CategoryService.create_category` using SQLAlchemy ORM `func.lower(Category.name) == name.lower()`.
+  - Added SQLAlchemy `IntegrityError` rollback protection and friendly `409 Conflict` HTTP exceptions.
+  - Implemented a global exception handler in `app/main.py` converting any database-level unique constraint violations into clean, user-friendly JSON responses (`"A category with this name already exists."`).
+- **Frontend Error Sanitization & State Safety:**
+  - Added Title Case formatting helper in `frontend/src/schemas/categorySchema.js`.
+  - Updated Axios response interceptor in `frontend/src/api/client.js` to shield raw database/SQLAlchemy tracebacks and present clean user messages.
+  - Suppressed duplicate toast popups in `frontend/src/store/useUIStore.js`.
+  - Enhanced `BudgetModal.jsx` to accurately distinguish between "Budget added successfully." and "Budget updated successfully.", and trigger instant live store refresh.
+- **Verification:**
+  - All 19 backend pytest tests passed against `fintrack_test`.
+  - All 33 frontend vitest tests passed.
+
 ---
-**The FinTrack MVP is feature-complete, strictly isolated, and verified end-to-end.**
+
+## Milestone Completed: Mobile-Friendly Progressive Web App (PWA) Transformation
+
+### 1. Work Completed
+- **PWA Infrastructure & Web App Manifest:**
+  - Created W3C compliant `manifest.webmanifest` and `manifest.json` with standalone display mode, orientation, FinTrack emerald theme (`#059669`), and slate background (`#0f172a`).
+  - Generated high-resolution app icons in `frontend/public/icons/`: `icon-192.png`, `icon-512.png`, Android adaptive maskable icons (`icon-192-maskable.png`, `icon-512-maskable.png`), `apple-touch-icon.png`, and scalable SVG `favicon.svg`.
+  - Created PWA Service Worker (`public/sw.js`) featuring App Shell precaching, Stale-While-Revalidate for static assets, and Network-First caching with graceful offline JSON fallback for `/api/v1/` PostgreSQL sync.
+  - Integrated Service Worker registration and PWA installation prompt capture in `frontend/src/main.jsx` and `frontend/src/store/useUIStore.js`.
+- **Mobile Navigation & Ergonomics:**
+  - Created `BottomNav.jsx` with 5 navigation items (Dashboard, Expenses, elevated Quick-Add (+), Budgets, and More/Settings), hidden on desktop (`lg:`).
+  - Added `SettingsModal.jsx` with native PWA install trigger, standalone display detection, and live PostgreSQL connectivity indicator.
+  - Configured `viewport-fit=cover` and safe area insets (`.pb-safe`, `.pt-safe`) for notched and punch-hole mobile displays.
+  - Enforced minimum 16px font size on mobile inputs in `index.css` to prevent iOS Safari auto-zooming.
+  - Enhanced `Button.jsx` with minimum 44px touch targets and active scale feedback (`active:scale-[0.98]`).
+- **Viewport Containment & Responsive Redesign:**
+  - Redesigned `Modal.jsx` to use dynamic viewport units `max-h-[calc(100dvh-1.5rem)]` with internal scrolling so submit/action buttons are never pushed off-screen.
+  - Optimized `ExpenseModal.jsx` (2x2 payment mode grid, sticky footer), `BudgetModal.jsx` (touch-friendly month navigation and list items), and `CategoryManageModal.jsx` for small viewports.
+  - Made `CategoryPieChart.jsx` and `SpendingTrendChart.jsx` fully responsive without horizontal overflows or colliding labels.
+  - Optimized `DashboardPage.jsx` and `ExpensesPage.jsx` for 320px–430px mobile screens.
+- **Verification:**
+  - Automated tests: All 42 frontend tests passed (including new `pwaAndMobile.test.jsx`).
+  - Production build: Vite compiled production bundle in `dist/` with 0 errors.
+  - Backend integration: All 19 backend tests passed against live PostgreSQL database.
+
+---
+**FinTrack is now a fully responsive, installable Progressive Web App (PWA) with complete offline caching, touch ergonomics, and real-time PostgreSQL synchronization.**
+

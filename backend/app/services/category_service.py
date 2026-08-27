@@ -1,10 +1,15 @@
+import logging
 import uuid
 from typing import List, Optional, Tuple
-from sqlalchemy import select, func, delete
+from fastapi import HTTPException, status
+from sqlalchemy import select, func, and_, delete
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.category import Category
 from app.models.expense import Expense
-from app.schemas.category import CategoryCreate, CategoryUpdate, CategoryRead
+from app.schemas.category import CategoryCreate, CategoryUpdate, CategoryRead, normalize_title_case
+
+logger = logging.getLogger(__name__)
 
 
 class CategoryService:
@@ -42,18 +47,61 @@ class CategoryService:
 
     @staticmethod
     async def create(session: AsyncSession, data: CategoryCreate) -> Category:
-        category = Category(name=data.name.strip())
+        normalized_name = normalize_title_case(data.name)
+
+        # Case-insensitive duplicate check
+        stmt = select(Category).where(func.lower(Category.name) == func.lower(normalized_name))
+        existing = (await session.execute(stmt)).scalar_one_or_none()
+        if existing:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Category already exists.",
+            )
+
+        category = Category(name=normalized_name)
         session.add(category)
-        await session.commit()
-        await session.refresh(category)
-        return category
+        try:
+            await session.commit()
+            await session.refresh(category)
+            return category
+        except IntegrityError as exc:
+            await session.rollback()
+            logger.warning("IntegrityError on category create: %s", exc)
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Category already exists.",
+            )
 
     @staticmethod
     async def update(session: AsyncSession, category: Category, data: CategoryUpdate) -> Category:
-        category.name = data.name.strip()
-        await session.commit()
-        await session.refresh(category)
-        return category
+        normalized_name = normalize_title_case(data.name)
+
+        # Case-insensitive duplicate check excluding self
+        stmt = select(Category).where(
+            and_(
+                func.lower(Category.name) == func.lower(normalized_name),
+                Category.id != category.id,
+            )
+        )
+        existing = (await session.execute(stmt)).scalar_one_or_none()
+        if existing:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Category already exists.",
+            )
+
+        category.name = normalized_name
+        try:
+            await session.commit()
+            await session.refresh(category)
+            return category
+        except IntegrityError as exc:
+            await session.rollback()
+            logger.warning("IntegrityError on category update: %s", exc)
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Category already exists.",
+            )
 
     @staticmethod
     async def delete(

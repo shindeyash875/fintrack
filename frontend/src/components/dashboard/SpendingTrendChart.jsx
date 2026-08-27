@@ -54,11 +54,11 @@ export const SpendingTrendChart = ({
   };
 
   return (
-    <div className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-sm flex flex-col justify-between">
+    <div className="bg-white rounded-2xl p-4 sm:p-6 border border-slate-200/80 shadow-sm flex flex-col justify-between overflow-hidden">
       {/* Header with Granularity & Chart Type Toggles */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 sm:mb-6">
         <div className="flex items-center gap-2">
-          <TrendingUp className="w-5 h-5 text-emerald-600" />
+          <TrendingUp className="w-5 h-5 text-emerald-600 shrink-0" />
           <div>
             <h3 className="text-base font-bold text-slate-900 font-['Outfit']">
               Spending Trends
@@ -76,7 +76,7 @@ export const SpendingTrendChart = ({
               <button
                 key={gran}
                 onClick={() => onGranularityChange && onGranularityChange(gran)}
-                className={`px-3 py-1 rounded-lg text-xs font-semibold capitalize transition-all ${
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold capitalize transition-all min-h-[32px] ${
                   granularity === gran
                     ? 'bg-white text-emerald-700 shadow-sm'
                     : 'text-slate-500 hover:text-slate-800'
@@ -92,7 +92,7 @@ export const SpendingTrendChart = ({
             <button
               onClick={() => setChartType('bar')}
               title="Bar Chart"
-              className={`p-1.5 rounded-lg transition-all ${
+              className={`p-1.5 rounded-lg transition-all min-h-[32px] min-w-[32px] flex items-center justify-center ${
                 chartType === 'bar'
                   ? 'bg-white text-emerald-700 shadow-sm'
                   : 'text-slate-400 hover:text-slate-700'
@@ -103,7 +103,7 @@ export const SpendingTrendChart = ({
             <button
               onClick={() => setChartType('area')}
               title="Area Chart"
-              className={`p-1.5 rounded-lg transition-all ${
+              className={`p-1.5 rounded-lg transition-all min-h-[32px] min-w-[32px] flex items-center justify-center ${
                 chartType === 'area'
                   ? 'bg-white text-emerald-700 shadow-sm'
                   : 'text-slate-400 hover:text-slate-700'
@@ -117,7 +117,7 @@ export const SpendingTrendChart = ({
 
       {/* Chart Canvas or Loading/Empty */}
       {isLoading ? (
-        <div className="h-64 flex items-center justify-center animate-pulse">
+        <div className="h-56 sm:h-64 flex items-center justify-center animate-pulse">
           <div className="w-8 h-8 rounded-full border-4 border-slate-100 border-t-emerald-500 animate-spin" />
         </div>
       ) : !data || data.length === 0 || totalPeriodSpend === 0 ? (
@@ -128,21 +128,23 @@ export const SpendingTrendChart = ({
           onAction={() => navigate('/expenses')}
         />
       ) : (
-        <div className="h-64 w-full">
+        <div className="h-56 sm:h-64 w-full">
           <ResponsiveContainer width="100%" height="100%">
             {chartType === 'bar' ? (
-              <BarChart data={chartData} margin={{ top: 10, right: 10, left: -15, bottom: 0 }}>
+              <BarChart data={chartData} margin={{ top: 10, right: 8, left: -15, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                 <XAxis
                   dataKey="label"
                   stroke="#94a3b8"
-                  fontSize={11}
+                  fontSize={10}
                   tickLine={false}
                   axisLine={{ stroke: '#e2e8f0' }}
+                  interval="preserveStartEnd"
+                  minTickGap={10}
                 />
                 <YAxis
                   stroke="#94a3b8"
-                  fontSize={11}
+                  fontSize={10}
                   tickLine={false}
                   axisLine={false}
                   tickFormatter={formatYAxis}
@@ -152,11 +154,11 @@ export const SpendingTrendChart = ({
                   dataKey="amount"
                   fill="#10b981"
                   radius={[6, 6, 0, 0]}
-                  maxBarSize={40}
+                  maxBarSize={36}
                 />
               </BarChart>
             ) : (
-              <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -15, bottom: 0 }}>
+              <AreaChart data={chartData} margin={{ top: 10, right: 8, left: -15, bottom: 0 }}>
                 <defs>
                   <linearGradient id="trendGradient" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#10b981" stopOpacity={0.4} />
@@ -167,13 +169,15 @@ export const SpendingTrendChart = ({
                 <XAxis
                   dataKey="label"
                   stroke="#94a3b8"
-                  fontSize={11}
+                  fontSize={10}
                   tickLine={false}
                   axisLine={{ stroke: '#e2e8f0' }}
+                  interval="preserveStartEnd"
+                  minTickGap={10}
                 />
                 <YAxis
                   stroke="#94a3b8"
-                  fontSize={11}
+                  fontSize={10}
                   tickLine={false}
                   axisLine={false}
                   tickFormatter={formatYAxis}

@@ -178,12 +178,13 @@ export const ExpensesPage = () => {
             Search, filter, and track all your logged transactions with instant PostgreSQL sync.
           </p>
         </div>
-        <div className="flex items-center gap-2.5 flex-wrap">
+        <div className="flex items-center gap-2 sm:gap-2.5 flex-wrap w-full sm:w-auto">
           <Button
             variant="secondary"
             icon={Download}
             size="md"
             onClick={() => setIsExportModalOpen(true)}
+            className="flex-1 sm:flex-none"
           >
             Export
           </Button>
@@ -192,6 +193,7 @@ export const ExpensesPage = () => {
             icon={Upload}
             size="md"
             onClick={() => setIsImportModalOpen(true)}
+            className="flex-1 sm:flex-none"
           >
             Import
           </Button>
@@ -200,6 +202,7 @@ export const ExpensesPage = () => {
             icon={Tag}
             size="md"
             onClick={() => setIsCategoryModalOpen(true)}
+            className="flex-1 sm:flex-none"
           >
             Categories
           </Button>
@@ -207,6 +210,7 @@ export const ExpensesPage = () => {
             icon={Plus}
             size="md"
             onClick={handleOpenAddExpense}
+            className="flex-1 sm:flex-none"
           >
             Add Expense
           </Button>
@@ -481,20 +485,19 @@ export const ExpensesPage = () => {
                       <span>{expense.expense_date}</span>
                     </div>
                   </div>
-
-                  <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+                  <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-slate-100">
                     <button
                       onClick={() => handleOpenEditExpense(expense)}
-                      className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200 transition-colors"
+                      className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-slate-700 bg-slate-100 rounded-xl hover:bg-slate-200 active:scale-95 transition-all min-h-[38px]"
                     >
-                      <Edit3 className="w-3.5 h-3.5" />
+                      <Edit3 className="w-4 h-4" />
                       <span>Edit</span>
                     </button>
                     <button
                       onClick={() => setExpenseToDelete(expense)}
-                      className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-rose-600 bg-rose-50 rounded-lg hover:bg-rose-100 transition-colors"
+                      className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-rose-600 bg-rose-50 rounded-xl hover:bg-rose-100 active:scale-95 transition-all min-h-[38px]"
                     >
-                      <Trash2 className="w-3.5 h-3.5" />
+                      <Trash2 className="w-4 h-4" />
                       <span>Delete</span>
                     </button>
                   </div>
@@ -504,8 +507,8 @@ export const ExpensesPage = () => {
 
             {/* Pagination Controls */}
             {pagination.totalPages > 1 && (
-              <div className="flex items-center justify-between px-6 py-4 border-t border-slate-100 bg-slate-50/50">
-                <span className="text-xs text-slate-500">
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-4 sm:px-6 py-4 border-t border-slate-100 bg-slate-50/50">
+                <span className="text-xs text-slate-500 text-center sm:text-left">
                   Showing {(pagination.page - 1) * pagination.pageSize + 1} to{' '}
                   {Math.min(pagination.page * pagination.pageSize, pagination.total)} of{' '}
                   {pagination.total} transactions
@@ -518,8 +521,9 @@ export const ExpensesPage = () => {
                     onClick={() => setPage(pagination.page - 1)}
                   >
                     <ChevronLeft className="w-4 h-4" />
+                    <span className="hidden sm:inline">Prev</span>
                   </Button>
-                  <span className="text-xs font-semibold px-2 text-slate-700">
+                  <span className="text-xs font-semibold text-slate-700 px-2">
                     Page {pagination.page} of {pagination.totalPages}
                   </span>
                   <Button
@@ -528,6 +532,7 @@ export const ExpensesPage = () => {
                     disabled={pagination.page >= pagination.totalPages}
                     onClick={() => setPage(pagination.page + 1)}
                   >
+                    <span className="hidden sm:inline">Next</span>
                     <ChevronRight className="w-4 h-4" />
                   </Button>
                 </div>

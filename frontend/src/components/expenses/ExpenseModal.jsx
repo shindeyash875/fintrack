@@ -5,6 +5,7 @@ import { Plus, Check, CreditCard, Banknote, Smartphone } from 'lucide-react';
 import Modal from '../common/Modal';
 import Button from '../common/Button';
 import { expenseSchema } from '../../schemas/expenseSchema';
+import { toTitleCase } from '../../schemas/categorySchema';
 import { useExpenseStore } from '../../store/useExpenseStore';
 import { useCategoryStore } from '../../store/useCategoryStore';
 import { useBudgetStore } from '../../store/useBudgetStore';
@@ -78,15 +79,26 @@ export const ExpenseModal = ({ isOpen, onClose, expenseToEdit = null }) => {
       return;
     }
 
+    // Duplicate check: case-insensitive & trimmed
+    const isDuplicate = categories.some(
+      (c) => c.name.trim().toLowerCase() === trimmed.toLowerCase()
+    );
+    if (isDuplicate) {
+      addToast({ type: 'error', message: 'Category already exists.' });
+      return;
+    }
+
+    const normalized = toTitleCase(trimmed);
+
     setIsSubmittingCat(true);
     try {
-      const created = await addCategory({ name: trimmed });
+      const created = await addCategory({ name: normalized });
       setNewCatName('');
       setIsCreatingCategory(false);
       setValue('category_id', created.id, { shouldValidate: true });
-      addToast({ type: 'success', message: `Category "${trimmed}" created & selected.` });
+      addToast({ type: 'success', message: `Category "${normalized}" created & selected.` });
     } catch (err) {
-      addToast({ type: 'error', message: err.message || 'Failed to create category.' });
+      addToast({ type: 'error', message: err.message || 'Category already exists.' });
     } finally {
       setIsSubmittingCat(false);
     }
@@ -266,7 +278,7 @@ export const ExpenseModal = ({ isOpen, onClose, expenseToEdit = null }) => {
           <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
             Payment Mode (Optional)
           </label>
-          <div className="grid grid-cols-4 gap-2">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             {[
               { id: 'upi', label: 'UPI', icon: Smartphone },
               { id: 'card', label: 'Card', icon: CreditCard },
@@ -280,9 +292,9 @@ export const ExpenseModal = ({ isOpen, onClose, expenseToEdit = null }) => {
                   type="button"
                   key={mode.id}
                   onClick={() => setValue('payment_mode', mode.id)}
-                  className={`flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl border text-xs font-medium transition-all ${
+                  className={`flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl border text-xs font-medium transition-all min-h-[42px] active:scale-95 ${
                     isSelected
-                      ? 'bg-emerald-50 text-emerald-700 border-emerald-300 ring-2 ring-emerald-500/20'
+                      ? 'bg-emerald-50 text-emerald-700 border-emerald-300 ring-2 ring-emerald-500/20 font-semibold'
                       : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
                   }`}
                 >
@@ -311,12 +323,12 @@ export const ExpenseModal = ({ isOpen, onClose, expenseToEdit = null }) => {
           )}
         </div>
 
-        {/* Action Buttons */}
-        <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
-          <Button variant="secondary" size="md" onClick={onClose} disabled={isSubmitting}>
+        {/* Sticky Action Buttons */}
+        <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100 sticky bottom-0 bg-white/95 backdrop-blur-sm -mx-4 -mb-4 px-4 py-3 sm:-mx-6 sm:-mb-6 sm:px-6 sm:py-4">
+          <Button variant="secondary" size="md" onClick={onClose} disabled={isSubmitting} className="flex-1 sm:flex-none">
             Cancel
           </Button>
-          <Button type="submit" size="md" isLoading={isSubmitting}>
+          <Button type="submit" size="md" isLoading={isSubmitting} className="flex-1 sm:flex-none">
             {isEditing ? 'Save Changes' : 'Log Expense'}
           </Button>
         </div>

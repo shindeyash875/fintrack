@@ -90,11 +90,27 @@ describe('categorySchema validation', () => {
   it('validates a valid category name', () => {
     const result = categorySchema.safeParse({ name: 'Subscriptions' });
     expect(result.success).toBe(true);
+    expect(result.data.name).toBe('Subscriptions');
   });
 
   it('fails on empty or overly long name', () => {
     expect(categorySchema.safeParse({ name: '' }).success).toBe(false);
+    expect(categorySchema.safeParse({ name: '   ' }).success).toBe(false);
     expect(categorySchema.safeParse({ name: 'A'.repeat(51) }).success).toBe(false);
+  });
+
+  it('normalizes category names to Title Case and trims spaces', () => {
+    const res1 = categorySchema.safeParse({ name: 'food' });
+    expect(res1.success).toBe(true);
+    expect(res1.data.name).toBe('Food');
+
+    const res2 = categorySchema.safeParse({ name: '  travel expenses  ' });
+    expect(res2.success).toBe(true);
+    expect(res2.data.name).toBe('Travel Expenses');
+
+    const res3 = categorySchema.safeParse({ name: 'FOOD' });
+    expect(res3.success).toBe(true);
+    expect(res3.data.name).toBe('Food');
   });
 });
 

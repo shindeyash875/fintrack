@@ -5,6 +5,7 @@ import Button from '../common/Button';
 import { useCategoryStore } from '../../store/useCategoryStore';
 import { useExpenseStore } from '../../store/useExpenseStore';
 import { useUIStore } from '../../store/useUIStore';
+import { toTitleCase } from '../../schemas/categorySchema';
 
 export const CategoryManageModal = ({ isOpen, onClose }) => {
   const { categories, addCategory, updateCategory, deleteCategory, fetchCategories } = useCategoryStore();
@@ -33,13 +34,24 @@ export const CategoryManageModal = ({ isOpen, onClose }) => {
       return;
     }
 
+    // Duplicate check: case-insensitive & trimmed
+    const isDuplicate = categories.some(
+      (c) => c.name.trim().toLowerCase() === trimmed.toLowerCase()
+    );
+    if (isDuplicate) {
+      addToast({ type: 'error', message: 'Category already exists.' });
+      return;
+    }
+
+    const normalized = toTitleCase(trimmed);
+
     setIsSubmittingNew(true);
     try {
-      await addCategory({ name: trimmed });
+      await addCategory({ name: normalized });
       setNewCategoryName('');
-      addToast({ type: 'success', message: `Category "${trimmed}" created successfully.` });
+      addToast({ type: 'success', message: `Category "${normalized}" created successfully.` });
     } catch (err) {
-      addToast({ type: 'error', message: err.message || 'Failed to create category.' });
+      addToast({ type: 'error', message: err.message || 'Category already exists.' });
     } finally {
       setIsSubmittingNew(false);
     }
@@ -59,9 +71,25 @@ export const CategoryManageModal = ({ isOpen, onClose }) => {
   const handleSaveEdit = async (id) => {
     const trimmed = editingName.trim();
     if (!trimmed) return;
+    if (trimmed.length > 50) {
+      addToast({ type: 'error', message: 'Category name must be 50 characters or less.' });
+      return;
+    }
+
+    // Duplicate check: case-insensitive & trimmed (excluding current item)
+    const isDuplicate = categories.some(
+      (c) => c.id !== id && c.name.trim().toLowerCase() === trimmed.toLowerCase()
+    );
+    if (isDuplicate) {
+      addToast({ type: 'error', message: 'Category already exists.' });
+      return;
+    }
+
+    const normalized = toTitleCase(trimmed);
+
     setIsSavingEdit(true);
     try {
-      await updateCategory(id, { name: trimmed });
+      await updateCategory(id, { name: normalized });
       setEditingCategoryId(null);
       addToast({ type: 'success', message: 'Category updated.' });
       fetchExpenses();
@@ -233,28 +261,28 @@ export const CategoryManageModal = ({ isOpen, onClose }) => {
                   </div>
                 ) : (
                   <>
-                    <div className="flex items-center gap-2.5">
-                      <Tag className="w-4 h-4 text-emerald-600" />
-                      <span className="text-sm font-medium text-slate-800">{category.name}</span>
-                      <span className="text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 font-normal">
-                        {category.expense_count || 0} expenses
+                    <div className="flex items-center gap-2 min-w-0 flex-1 pr-2">
+                      <Tag className="w-4 h-4 text-emerald-600 shrink-0" />
+                      <span className="text-sm font-medium text-slate-800 truncate">{category.name}</span>
+                      <span className="text-[11px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 font-normal shrink-0">
+                        {category.expense_count || 0}
                       </span>
                     </div>
 
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-1 shrink-0">
                       <button
                         onClick={() => startEditing(category)}
-                        className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors"
+                        className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors min-h-[38px] min-w-[38px] flex items-center justify-center"
                         title="Rename category"
                       >
-                        <Edit2 className="w-3.5 h-3.5" />
+                        <Edit2 className="w-4 h-4" />
                       </button>
                       <button
                         onClick={() => handleDeleteClick(category)}
-                        className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                        className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors min-h-[38px] min-w-[38px] flex items-center justify-center"
                         title="Delete category"
                       >
-                        <Trash2 className="w-3.5 h-3.5" />
+                        <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
                   </>
@@ -265,7 +293,7 @@ export const CategoryManageModal = ({ isOpen, onClose }) => {
         </div>
 
         <div className="flex justify-end pt-2">
-          <Button variant="secondary" size="md" onClick={onClose}>
+          <Button variant="secondary" size="md" onClick={onClose} className="w-full sm:w-auto">
             Close
           </Button>
         </div>

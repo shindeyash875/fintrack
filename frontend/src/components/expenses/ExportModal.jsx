@@ -76,48 +76,48 @@ export const ExportModal = ({ isOpen, onClose, activeFilters = {}, filteredCount
           <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
             Export Format
           </label>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <button
               type="button"
               onClick={() => setFormat('csv')}
-              className={`flex items-center gap-3 p-3.5 rounded-xl border text-left transition-all ${
+              className={`flex items-center gap-3 p-3 sm:p-3.5 rounded-xl border text-left transition-all min-h-[44px] ${
                 format === 'csv'
                   ? 'border-emerald-500 bg-emerald-50/50 text-emerald-950 ring-2 ring-emerald-500/20'
                   : 'border-slate-200 hover:border-slate-300 text-slate-700 bg-white'
               }`}
             >
               <div
-                className={`p-2 rounded-lg ${
+                className={`p-2 rounded-lg shrink-0 ${
                   format === 'csv' ? 'bg-emerald-500 text-white' : 'bg-slate-100 text-slate-600'
                 }`}
               >
                 <FileText className="w-5 h-5" />
               </div>
-              <div>
+              <div className="min-w-0">
                 <p className="text-sm font-bold">CSV Document</p>
-                <p className="text-xs text-slate-400">For Excel, Sheets, Numbers</p>
+                <p className="text-xs text-slate-400">For Excel, Sheets</p>
               </div>
             </button>
 
             <button
               type="button"
               onClick={() => setFormat('json')}
-              className={`flex items-center gap-3 p-3.5 rounded-xl border text-left transition-all ${
+              className={`flex items-center gap-3 p-3 sm:p-3.5 rounded-xl border text-left transition-all min-h-[44px] ${
                 format === 'json'
                   ? 'border-emerald-500 bg-emerald-50/50 text-emerald-950 ring-2 ring-emerald-500/20'
                   : 'border-slate-200 hover:border-slate-300 text-slate-700 bg-white'
               }`}
             >
               <div
-                className={`p-2 rounded-lg ${
+                className={`p-2 rounded-lg shrink-0 ${
                   format === 'json' ? 'bg-emerald-500 text-white' : 'bg-slate-100 text-slate-600'
                 }`}
               >
                 <FileCode className="w-5 h-5" />
               </div>
-              <div>
+              <div className="min-w-0">
                 <p className="text-sm font-bold">JSON Data</p>
-                <p className="text-xs text-slate-400">Structured data backup</p>
+                <p className="text-xs text-slate-400">Structured backup</p>
               </div>
             </button>
           </div>
@@ -139,15 +139,23 @@ export const ExportModal = ({ isOpen, onClose, activeFilters = {}, filteredCount
               }`}
             >
               <div className="flex items-center gap-3">
-                <Filter className="w-4 h-4 text-emerald-600" />
+                <div
+                  className={`p-2 rounded-lg ${
+                    scope === 'filtered'
+                      ? 'bg-emerald-500 text-white'
+                      : 'bg-slate-100 text-slate-600'
+                  }`}
+                >
+                  <Filter className="w-4 h-4" />
+                </div>
                 <div>
-                  <p className="text-sm font-bold">Filtered View</p>
+                  <p className="text-sm font-semibold">Filtered View</p>
                   <p className="text-xs text-slate-400">
                     Exports items matching active filters ({filteredCount} items)
                   </p>
                 </div>
               </div>
-              {scope === 'filtered' && <Check className="w-4 h-4 text-emerald-600" />}
+              {scope === 'filtered' && <Check className="w-5 h-5 text-emerald-600 shrink-0" />}
             </button>
 
             <button
@@ -160,27 +168,34 @@ export const ExportModal = ({ isOpen, onClose, activeFilters = {}, filteredCount
               }`}
             >
               <div className="flex items-center gap-3">
-                <Database className="w-4 h-4 text-emerald-600" />
+                <div
+                  className={`p-2 rounded-lg ${
+                    scope === 'all' ? 'bg-emerald-500 text-white' : 'bg-slate-100 text-slate-600'
+                  }`}
+                >
+                  <Database className="w-4 h-4" />
+                </div>
                 <div>
-                  <p className="text-sm font-bold">All Lifetime Records</p>
-                  <p className="text-xs text-slate-400">Complete database export without any filters</p>
+                  <p className="text-sm font-semibold">All Lifetime Records</p>
+                  <p className="text-xs text-slate-400">Complete historical database export</p>
                 </div>
               </div>
-              {scope === 'all' && <Check className="w-4 h-4 text-emerald-600" />}
+              {scope === 'all' && <Check className="w-5 h-5 text-emerald-600 shrink-0" />}
             </button>
           </div>
         </div>
 
         {/* Modal Action Buttons */}
-        <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
-          <Button variant="secondary" onClick={onClose} disabled={isExporting}>
+        <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
+          <Button variant="secondary" onClick={onClose} disabled={isExporting} className="flex-1 sm:flex-none">
             Cancel
           </Button>
           <Button
             variant="primary"
             onClick={handleExport}
-            loading={isExporting}
+            isLoading={isExporting}
             icon={Download}
+            className="flex-1 sm:flex-none"
           >
             Download {format.toUpperCase()}
           </Button>

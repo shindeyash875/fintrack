@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <defs>
+    <linearGradient id="emGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#10b981"/>
+      <stop offset="100%" stop-color="#047857"/>
+    </linearGradient>
+  </defs>
+  <!-- Background squircle -->
+  <rect width="100" height="100" rx="28" fill="url(#emGrad)"/>
+  
+  <!-- Wallet icon body -->
+  <rect x="20" y="28" width="60" height="44" rx="8" fill="#ffffff"/>
+  
+  <!-- Card slot accent -->
+  <rect x="26" y="36" width="34" height="4" rx="2" fill="#a7f3d0"/>
+  
+  <!-- Clasp flap -->
+  <path d="M 52 38 L 76 38 A 6 6 0 0 1 82 44 L 82 56 A 6 6 0 0 1 76 62 L 52 62 Z" fill="#064e3b"/>
+  
+  <!-- Golden/white button coin -->
+  <circle cx="70" cy="50" r="4.5" fill="#ffffff"/>
+</svg>

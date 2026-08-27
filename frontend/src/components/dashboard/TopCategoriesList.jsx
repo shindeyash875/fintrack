@@ -1,7 +1,7 @@
 import React from 'react';
 import { Award, ArrowRight } from 'lucide-react';
-import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { useUIStore } from '../../store/useUIStore';
 
 const RANK_BADGE_CLASSES = [
   'bg-amber-100 text-amber-800 border-amber-200', // #1 Gold
@@ -20,9 +20,11 @@ const BAR_COLOR_CLASSES = [
 ];
 
 export const TopCategoriesList = ({ categories = [], isLoading = false }) => {
+  const { openGlobalCategory } = useUIStore();
+
   if (isLoading) {
     return (
-      <div className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-sm animate-pulse space-y-4">
+      <div className="bg-white rounded-2xl p-4 sm:p-6 border border-slate-200/80 shadow-sm animate-pulse space-y-4">
         <div className="h-6 bg-slate-200 rounded w-1/3" />
         <div className="space-y-3">
           {[1, 2, 3].map((i) => (
@@ -41,7 +43,7 @@ export const TopCategoriesList = ({ categories = [], isLoading = false }) => {
     });
 
   return (
-    <div className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-sm flex flex-col justify-between">
+    <div className="bg-white rounded-2xl p-4 sm:p-6 border border-slate-200/80 shadow-sm flex flex-col justify-between">
       <div>
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
@@ -56,13 +58,14 @@ export const TopCategoriesList = ({ categories = [], isLoading = false }) => {
             </div>
           </div>
 
-          <Link
-            to="/categories"
-            className="text-xs font-semibold text-emerald-600 hover:text-emerald-700 inline-flex items-center gap-1 transition-colors"
+          <button
+            type="button"
+            onClick={openGlobalCategory}
+            className="text-xs font-semibold text-emerald-600 hover:text-emerald-700 inline-flex items-center gap-1 transition-colors min-h-[36px]"
           >
             Manage
             <ArrowRight className="w-3.5 h-3.5" />
-          </Link>
+          </button>
         </div>
 
         {!categories || categories.length === 0 ? (
