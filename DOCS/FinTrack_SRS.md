@@ -48,20 +48,58 @@ This combination is chosen deliberately from V1 onward so Phase 2+ features (aut
 
 ## 2. Database, Migrations, ORM, Seed Data
 
-### 2.1 Schema (V1)
+### 2.1 Schema (V1 + Auth & User Isolation)
 
 ```sql
--- categories
-categories (
+-- users
+users (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  name VARCHAR(50) NOT NULL UNIQUE,
+  email VARCHAR(255) NOT NULL UNIQUE,
+  hashed_password VARCHAR(255),
+  full_name VARCHAR(100),
+  is_active BOOLEAN NOT NULL DEFAULT true,
+  is_verified BOOLEAN NOT NULL DEFAULT false,
+  google_id VARCHAR(255) UNIQUE,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 )
 
--- expenses
+-- refresh_tokens
+refresh_tokens (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  token_hash VARCHAR(64) NOT NULL UNIQUE,
+  expires_at TIMESTAMPTZ NOT NULL,
+  revoked_at TIMESTAMPTZ,
+  user_agent VARCHAR(255),
+  ip_address VARCHAR(45),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+)
+
+-- password_reset_tokens
+password_reset_tokens (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  token_hash VARCHAR(64) NOT NULL UNIQUE,
+  expires_at TIMESTAMPTZ NOT NULL,
+  used_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+)
+
+-- categories (user-isolated)
+categories (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  name VARCHAR(50) NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE (user_id, name)
+)
+
+-- expenses (user-isolated)
 expenses (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   title VARCHAR(50) NOT NULL,
   category_id UUID NOT NULL REFERENCES categories(id) ON DELETE RESTRICT,
   amount NUMERIC(12,2) NOT NULL CHECK (amount > 0),
@@ -72,76 +110,76 @@ expenses (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 )
 
--- budgets
+-- budgets (user-isolated)
 budgets (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   category_id UUID REFERENCES categories(id) ON DELETE CASCADE, -- NULL = overall/monthly budget
   period_month DATE NOT NULL, -- normalized to first of month
   limit_amount NUMERIC(12,2) NOT NULL CHECK (limit_amount > 0),
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  UNIQUE (category_id, period_month)
+  UNIQUE (user_id, category_id, period_month)
 )
 ```
 
-Indexes: `expenses(expense_date)`, `expenses(category_id)`, `expenses(payment_mode)` — supports FR-12–FR-16 (filter/sort) efficiently.
+Indexes: `users(email)`, `users(google_id)`, `refresh_tokens(token_hash, user_id)`, `expenses(user_id, expense_date)`, `expenses(category_id)`, `budgets(user_id, period_month)`.
 
-Category delete rule (FR-8): `ON DELETE RESTRICT` on `expenses.category_id` — the API layer checks usage count first and either blocks deletion, or offers reassignment/cascade with an explicit confirmation, per the PRD.
+### 2.2 ORM & Data Isolation
+- SQLAlchemy 2.0 async models mirror the schema above.
+- Strict per-user isolation: Every query for categories, expenses, budgets, and dashboard metrics is scoped to `user_id = current_user.id`.
 
-### 2.2 ORM
-- SQLAlchemy 2.0 declarative models mirror the schema above 1:1.
-- One model file per table under `app/models/`.
-- Relationships: `Category.expenses`, `Category.budgets` (both lazy="selectin" to avoid N+1 on dashboard queries).
-
-### 2.3 Migrations (Alembic)
-- `alembic init app/db/alembic` on project setup.
-- Every schema change = one migration file, generated via `alembic revision --autogenerate -m "message"`, reviewed by hand before commit (autogenerate can miss constraints).
-- `alembic upgrade head` is part of both the dev bootstrap and the deployment pipeline — schema state must always be migration-driven, never manual `CREATE TABLE`.
-
-### 2.4 Seed Data
-Per PRD's non-functional principle (FR-30 / Section 9.1: **no hardcoded/dummy data**), seeding is treated carefully:
-
-- A seed script (`app/db/seed.py`) exists **only** to insert the small set of starter categories referenced in FR-10 (Food, Transport, Rent, Utilities, Shopping, Health, Entertainment, Other) — this is real, permanent app data, not test/demo data.
-- It is idempotent (checks existence before insert) and gated behind an explicit env flag: `SEED_STARTER_CATEGORIES=true`.
-- **No** demo expenses, demo budgets, or fake users are ever seeded — the app must show a genuine empty state on first run, per FR-30.
-- A separate `tests/fixtures/` seed exists strictly for the Pytest suite and never touches the dev/prod database.
+### 2.3 Seed Data
+- On user registration or initial Google Sign-In, `AuthService.seed_user_categories` creates the 8 starter categories (`Food`, `Transport`, `Rent`, `Utilities`, `Shopping`, `Health`, `Entertainment`, `Other`) owned exclusively by that user.
 
 ---
 
 ## 3. API Contract
 
-Base URL: `/api/v1`. All responses use a consistent envelope; all list endpoints are paginated.
+Base URL: `/api/v1`. All responses use a consistent envelope.
 
-### 3.1 Response envelope
-```json
-// Success
-{ "success": true, "data": { ... }, "meta": { "page": 1, "page_size": 20, "total": 134 } }
+### 3.1 Authentication & Authorization Endpoints
 
-// Error
-{ "success": false, "error": { "code": "VALIDATION_ERROR", "message": "amount must be positive", "field": "amount" } }
-```
-
-### 3.2 Core endpoints
-
-| Method | Path | Purpose | Priority |
+| Method | Path | Purpose | Auth |
 |---|---|---|---|
-| GET | `/health` | Health check (see 3.3) | P0 |
-| GET | `/expenses` | List, paginated; query params: `search`, `date_from`, `date_to`, `category_id`, `amount_min`, `amount_max`, `payment_mode`, `sort_by`, `sort_dir` | P0 |
-| POST | `/expenses` | Create expense | P0 |
-| GET | `/expenses/{id}` | Retrieve one | P0 |
-| PUT | `/expenses/{id}` | Update (full) | P0 |
-| DELETE | `/expenses/{id}` | Delete (confirmation handled client-side) | P0 |
-| GET | `/categories` | List, with `expense_count` per category (FR-9) | P0 |
-| POST | `/categories` | Create | P0 |
-| PUT | `/categories/{id}` | Rename | P0 |
-| DELETE | `/categories/{id}` | Delete; `409 Conflict` if in use unless `?reassign_to={category_id}` or `?cascade=true` provided | P0 |
-| GET | `/budgets` | List budgets (overall + per-category) for a given `period_month` | P0 |
-| POST | `/budgets` | Create/upsert a budget goal | P0 |
-| GET | `/budgets/status` | Live remaining balance + status (`on_track` / `near_limit` / `over_budget`) per FR-27/28 | P0 |
-| GET | `/dashboard/summary` | Total spend (overall + current month), recent expenses, top categories | P0 |
-| GET | `/dashboard/charts/by-category` | Data for pie/donut chart | P0 |
-| GET | `/dashboard/charts/over-time` | Data for bar/line chart, `granularity=daily\|weekly\|monthly` | P0 |
-| GET | `/dashboard/compare` | Month-over-month % change (FR-23) | P1 |
+| POST | `/auth/register` | Register new user + auto-seed starter categories | Public (Rate Limited) |
+| POST | `/auth/login` | Email/password login → returns JWT access token + HttpOnly refresh cookie | Public (Rate Limited) |
+| POST | `/auth/google` | Google OAuth 2.0 / OpenID Connect login & account linking | Public |
+| POST | `/auth/refresh` | Refresh token rotation → returns new access token + rotated cookie | Cookie |
+| POST | `/auth/logout` | Revoke current refresh token and clear cookie | Public / Cookie |
+| POST | `/auth/logout-all` | Revoke all active sessions for current user | Bearer Token |
+| GET | `/auth/me` | Retrieve current authenticated user profile | Bearer Token |
+| POST | `/auth/forgot-password` | Generate password reset token / email | Public (Rate Limited) |
+| POST | `/auth/reset-password` | Reset password using valid reset token | Public (Rate Limited) |
+| POST | `/auth/change-password` | Change password for authenticated user | Bearer Token |
+| GET | `/auth/sessions` | List active sessions/devices for authenticated user | Bearer Token |
+
+### 3.2 Core Isolated Resource Endpoints
+
+| Method | Path | Purpose | Auth |
+|---|---|---|---|
+| GET | `/health` | Health check (DB probe) | Public |
+| GET | `/expenses` | List user expenses, paginated, filtered | Bearer Token |
+| POST | `/expenses` | Create user expense | Bearer Token |
+| GET | `/expenses/{id}` | Retrieve single user expense | Bearer Token |
+| PUT | `/expenses/{id}` | Update single user expense | Bearer Token |
+| DELETE | `/expenses/{id}` | Delete single user expense | Bearer Token |
+| GET | `/expenses/export/csv` | Export user expenses to CSV | Bearer Token |
+| GET | `/expenses/export/json` | Export user expenses to JSON | Bearer Token |
+| POST | `/expenses/import/csv` | Import CSV into user account | Bearer Token |
+| POST | `/expenses/import/json` | Import JSON into user account | Bearer Token |
+| GET | `/categories` | List user categories with expense counts | Bearer Token |
+| POST | `/categories` | Create user category (Title Case normalized) | Bearer Token |
+| PUT | `/categories/{id}` | Rename user category | Bearer Token |
+| DELETE | `/categories/{id}` | Delete user category with reassign option | Bearer Token |
+| GET | `/budgets` | List user budgets for given month | Bearer Token |
+| POST | `/budgets` | Create/upsert user budget goal | Bearer Token |
+| GET | `/budgets/status` | Live remaining balance + status | Bearer Token |
+| GET | `/dashboard/summary` | User dashboard summary metrics | Bearer Token |
+| GET | `/dashboard/charts/by-category` | Category spending pie/donut data | Bearer Token |
+| GET | `/dashboard/charts/over-time` | Spending over time data | Bearer Token |
+| GET | `/dashboard/compare` | Month-over-month % change | Bearer Token |
+
 
 ### 3.3 Health endpoint contract
 ```json

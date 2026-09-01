@@ -3,10 +3,12 @@ import uuid
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
+from app.api.dependencies import get_current_active_user
 from app.db.session import get_db
+from app.models.user import User
 from app.services.category_service import CategoryService
 from app.schemas.category import CategoryCreate, CategoryUpdate, CategoryRead
-from app.schemas.common import ResponseEnvelope, ErrorEnvelope, ErrorDetail
+from app.schemas.common import ResponseEnvelope
 
 logger = logging.getLogger(__name__)
 
@@ -18,8 +20,11 @@ router = APIRouter()
     response_model=ResponseEnvelope[List[CategoryRead]],
     summary="List all categories with expense counts",
 )
-async def list_categories(session: AsyncSession = Depends(get_db)):
-    categories = await CategoryService.get_all_with_counts(session)
+async def list_categories(
+    current_user: User = Depends(get_current_active_user),
+    session: AsyncSession = Depends(get_db),
+):
+    categories = await CategoryService.get_all_with_counts(session, user_id=current_user.id)
     return ResponseEnvelope(data=categories)
 
 
@@ -31,10 +36,11 @@ async def list_categories(session: AsyncSession = Depends(get_db)):
 )
 async def create_category(
     payload: CategoryCreate,
+    current_user: User = Depends(get_current_active_user),
     session: AsyncSession = Depends(get_db),
 ):
     try:
-        category = await CategoryService.create(session, payload)
+        category = await CategoryService.create(session, payload, user_id=current_user.id)
         return ResponseEnvelope(
             data=CategoryRead(
                 id=category.id,
@@ -62,16 +68,17 @@ async def create_category(
 async def update_category(
     category_id: uuid.UUID,
     payload: CategoryUpdate,
+    current_user: User = Depends(get_current_active_user),
     session: AsyncSession = Depends(get_db),
 ):
-    category = await CategoryService.get_by_id(session, category_id)
+    category = await CategoryService.get_by_id(session, category_id, user_id=current_user.id)
     if not category:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Category not found",
         )
     try:
-        updated = await CategoryService.update(session, category, payload)
+        updated = await CategoryService.update(session, category, payload, user_id=current_user.id)
         return ResponseEnvelope(
             data=CategoryRead(
                 id=updated.id,
@@ -99,16 +106,17 @@ async def delete_category(
     category_id: uuid.UUID,
     reassign_to: Optional[uuid.UUID] = Query(None, description="Category to reassign linked expenses to"),
     cascade: bool = Query(False, description="Whether to cascade delete linked expenses"),
+    current_user: User = Depends(get_current_active_user),
     session: AsyncSession = Depends(get_db),
 ):
-    category = await CategoryService.get_by_id(session, category_id)
+    category = await CategoryService.get_by_id(session, category_id, user_id=current_user.id)
     if not category:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Category not found",
         )
     success, err = await CategoryService.delete(
-        session, category, reassign_to=reassign_to, cascade=cascade
+        session, category, user_id=current_user.id, reassign_to=reassign_to, cascade=cascade
     )
     if not success:
         raise HTTPException(

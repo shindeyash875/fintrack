@@ -1,3 +1,4 @@
+import uuid
 import pytest
 import pytest_asyncio
 from httpx import AsyncClient, ASGITransport
@@ -6,13 +7,15 @@ from sqlalchemy.pool import NullPool
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 
 from app.core.config import settings
+from app.core.security import create_access_token, hash_password
 from app.db import session as db_session
 from app.db.session import get_db, engine as dev_engine
 from app.db.base import Base
+from app.models.user import User
 from app.models.category import Category
 from app.models.expense import Expense
 from app.models.budget import Budget
-from app.db.seed import STARTER_CATEGORIES
+from app.services.auth_service import AuthService
 from app.main import app
 
 
@@ -42,8 +45,10 @@ async def initialize_test_database():
         echo=False,
     )
     async with init_engine.begin() as conn:
+        await conn.run_sync(Base.metadata.drop_all)
         await conn.run_sync(Base.metadata.create_all)
     await init_engine.dispose()
+
 
     yield
 
@@ -51,11 +56,7 @@ async def initialize_test_database():
 @pytest_asyncio.fixture
 async def client():
     """
-    Function-scoped client:
-    - Uses NullPool to prevent event loop mismatch across async tests on Windows.
-    - Points exclusively to fintrack_test.
-    - Guarantees starter categories are seeded.
-    - Overrides get_db so all API routes use the test session.
+    Base test HTTP client pointed to fintrack_test.
     """
     test_engine = create_async_engine(
         settings.test_database_url,
@@ -71,19 +72,10 @@ async def client():
         autoflush=False,
     )
 
-    # Patch db_session globals
     orig_engine = db_session.engine
     orig_factory = db_session.async_session_factory
     db_session.engine = test_engine
     db_session.async_session_factory = test_session_factory
-
-    # Ensure starter categories exist in fintrack_test for this test
-    async with test_session_factory() as session:
-        for name in STARTER_CATEGORIES:
-            res = await session.execute(select(Category).where(Category.name == name))
-            if not res.scalar_one_or_none():
-                session.add(Category(name=name))
-        await session.commit()
 
     async def override_get_db():
         async with test_session_factory() as session:
@@ -101,8 +93,114 @@ async def client():
     async with AsyncClient(transport=transport, base_url="http://testserver") as ac:
         yield ac
 
-    # Teardown
     app.dependency_overrides.pop(get_db, None)
     db_session.engine = orig_engine
     db_session.async_session_factory = orig_factory
     await test_engine.dispose()
+
+
+@pytest_asyncio.fixture
+async def test_user(client: AsyncClient):
+    """
+    Creates or returns a standard test user in fintrack_test with seeded starter categories.
+    """
+    test_engine = create_async_engine(
+        settings.test_database_url,
+        poolclass=NullPool,
+        echo=False,
+    )
+    async_session = async_sessionmaker(test_engine, class_=AsyncSession, expire_on_commit=False)
+
+    email = f"testuser_{uuid.uuid4().hex[:8]}@fintrack.app"
+    async with async_session() as session:
+        user = User(
+            email=email,
+            hashed_password=hash_password("Password123!"),
+            full_name="FinTrack Test User",
+            is_active=True,
+            is_verified=True,
+        )
+        session.add(user)
+        await session.flush()
+        await AuthService.seed_user_categories(session, user.id)
+        await session.commit()
+        await session.refresh(user)
+
+    await test_engine.dispose()
+    return user
+
+
+@pytest_asyncio.fixture
+async def auth_client(client: AsyncClient, test_user: User):
+    """
+    AsyncClient pre-authenticated with JWT Bearer header for test_user.
+    """
+    token = create_access_token(user_id=str(test_user.id), email=test_user.email)
+    client.headers.update({"Authorization": f"Bearer {token}"})
+    return client
+
+
+@pytest_asyncio.fixture
+async def user_a(client: AsyncClient):
+    test_engine = create_async_engine(settings.test_database_url, poolclass=NullPool)
+    async_session = async_sessionmaker(test_engine, class_=AsyncSession, expire_on_commit=False)
+    async with async_session() as session:
+        user = User(
+            email=f"user_a_{uuid.uuid4().hex[:8]}@fintrack.app",
+            hashed_password=hash_password("Password123!"),
+            full_name="User Alpha",
+            is_active=True,
+            is_verified=True,
+        )
+        session.add(user)
+        await session.flush()
+        await AuthService.seed_user_categories(session, user.id)
+        await session.commit()
+        await session.refresh(user)
+    await test_engine.dispose()
+    return user
+
+
+@pytest_asyncio.fixture
+async def user_b(client: AsyncClient):
+    test_engine = create_async_engine(settings.test_database_url, poolclass=NullPool)
+    async_session = async_sessionmaker(test_engine, class_=AsyncSession, expire_on_commit=False)
+    async with async_session() as session:
+        user = User(
+            email=f"user_b_{uuid.uuid4().hex[:8]}@fintrack.app",
+            hashed_password=hash_password("Password123!"),
+            full_name="User Beta",
+            is_active=True,
+            is_verified=True,
+        )
+        session.add(user)
+        await session.flush()
+        await AuthService.seed_user_categories(session, user.id)
+        await session.commit()
+        await session.refresh(user)
+    await test_engine.dispose()
+    return user
+
+
+@pytest_asyncio.fixture
+async def user_a_client(user_a: User):
+    token = create_access_token(user_id=str(user_a.id), email=user_a.email)
+    transport = ASGITransport(app=app)
+    async with AsyncClient(
+        transport=transport,
+        base_url="http://testserver",
+        headers={"Authorization": f"Bearer {token}"},
+    ) as ac:
+        yield ac
+
+
+@pytest_asyncio.fixture
+async def user_b_client(user_b: User):
+    token = create_access_token(user_id=str(user_b.id), email=user_b.email)
+    transport = ASGITransport(app=app)
+    async with AsyncClient(
+        transport=transport,
+        base_url="http://testserver",
+        headers={"Authorization": f"Bearer {token}"},
+    ) as ac:
+        yield ac

@@ -2,7 +2,9 @@ from datetime import date
 from typing import List, Optional
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
+from app.api.dependencies import get_current_active_user
 from app.db.session import get_db
+from app.models.user import User
 from app.services.dashboard_service import DashboardService
 from app.schemas.dashboard import (
     DashboardSummary,
@@ -20,8 +22,11 @@ router = APIRouter()
     response_model=ResponseEnvelope[DashboardSummary],
     summary="Retrieve overall dashboard summary and metric cards",
 )
-async def get_dashboard_summary(session: AsyncSession = Depends(get_db)):
-    summary = await DashboardService.get_summary(session)
+async def get_dashboard_summary(
+    current_user: User = Depends(get_current_active_user),
+    session: AsyncSession = Depends(get_db),
+):
+    summary = await DashboardService.get_summary(session, user_id=current_user.id)
     return ResponseEnvelope(data=summary)
 
 
@@ -33,9 +38,12 @@ async def get_dashboard_summary(session: AsyncSession = Depends(get_db)):
 async def get_spend_by_category(
     date_from: Optional[date] = Query(None, description="Start date"),
     date_to: Optional[date] = Query(None, description="End date"),
+    current_user: User = Depends(get_current_active_user),
     session: AsyncSession = Depends(get_db),
 ):
-    items = await DashboardService.get_charts_by_category(session, date_from, date_to)
+    items = await DashboardService.get_charts_by_category(
+        session, user_id=current_user.id, date_from=date_from, date_to=date_to
+    )
     return ResponseEnvelope(data=items)
 
 
@@ -48,10 +56,11 @@ async def get_spend_over_time(
     granularity: str = Query("daily", description="Granularity: daily, weekly, monthly"),
     date_from: Optional[date] = Query(None, description="Start date"),
     date_to: Optional[date] = Query(None, description="End date"),
+    current_user: User = Depends(get_current_active_user),
     session: AsyncSession = Depends(get_db),
 ):
     items = await DashboardService.get_charts_over_time(
-        session, granularity=granularity, date_from=date_from, date_to=date_to
+        session, user_id=current_user.id, granularity=granularity, date_from=date_from, date_to=date_to
     )
     return ResponseEnvelope(data=items)
 
@@ -61,6 +70,9 @@ async def get_spend_over_time(
     response_model=ResponseEnvelope[MonthComparison],
     summary="Month-over-month spending comparison and percentage change",
 )
-async def get_month_comparison(session: AsyncSession = Depends(get_db)):
-    compare_data = await DashboardService.get_compare(session)
+async def get_month_comparison(
+    current_user: User = Depends(get_current_active_user),
+    session: AsyncSession = Depends(get_db),
+):
+    compare_data = await DashboardService.get_compare(session, user_id=current_user.id)
     return ResponseEnvelope(data=compare_data)

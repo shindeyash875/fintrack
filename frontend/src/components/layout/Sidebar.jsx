@@ -7,9 +7,11 @@ import {
   Tag,
   SlidersHorizontal,
   Wallet,
+  LogOut,
   X,
 } from 'lucide-react';
 import { useUIStore } from '../../store/useUIStore';
+import { useAuthStore } from '../../store/useAuthStore';
 
 export const Sidebar = () => {
   const {
@@ -19,6 +21,8 @@ export const Sidebar = () => {
     openGlobalCategory,
     openGlobalSettings,
   } = useUIStore();
+
+  const { user, logout } = useAuthStore();
 
   const navItems = [
     { name: 'Dashboard', path: '/', icon: LayoutDashboard },
@@ -123,11 +127,32 @@ export const Sidebar = () => {
           </div>
         </nav>
 
-        {/* Version Footer */}
+        {/* User Card & Logout in Footer */}
         <div className="p-4 border-t border-slate-800/80 pb-safe">
-          <div className="bg-slate-800/50 rounded-xl p-3 text-xs text-slate-400">
-            <p className="font-semibold text-slate-300">FinTrack PWA v1.0</p>
-            <p className="mt-0.5 text-slate-500">PostgreSQL Database</p>
+          {user && (
+            <div className="bg-slate-800/60 rounded-2xl p-3 mb-2 flex items-center justify-between border border-slate-700/50">
+              <div className="truncate mr-2">
+                <p className="text-xs font-semibold text-white truncate">
+                  {user.full_name || 'Account'}
+                </p>
+                <p className="text-[10px] text-slate-400 truncate">{user.email}</p>
+              </div>
+              <button
+                onClick={() => {
+                  closeSidebar();
+                  logout();
+                }}
+                className="p-1.5 text-slate-400 hover:text-red-400 hover:bg-slate-700/50 rounded-lg transition-colors min-h-[32px] min-w-[32px] flex items-center justify-center"
+                title="Sign Out"
+                aria-label="Sign Out"
+              >
+                <LogOut className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+
+          <div className="bg-slate-800/30 rounded-xl p-2.5 text-[11px] text-slate-500 text-center">
+            FinTrack v1.0 • Isolated Secure Cloud
           </div>
         </div>
       </aside>

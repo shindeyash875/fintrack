@@ -5,7 +5,7 @@ from datetime import date
 
 
 @pytest.mark.asyncio
-async def test_full_lifecycle_e2e(client: AsyncClient):
+async def test_full_lifecycle_e2e(auth_client: AsyncClient):
     """
     End-to-End lifecycle test:
     1. Create unique category
@@ -20,7 +20,7 @@ async def test_full_lifecycle_e2e(client: AsyncClient):
     cat_name = f"End To End Cat {unique_suffix}"
 
     # 1. Create Category
-    res_cat = await client.post("/api/v1/categories", json={"name": cat_name})
+    res_cat = await auth_client.post("/api/v1/categories", json={"name": cat_name})
     assert res_cat.status_code == 201
     cat_data = res_cat.json()["data"]
     category_id = cat_data["id"]
@@ -28,7 +28,7 @@ async def test_full_lifecycle_e2e(client: AsyncClient):
     assert cat_data["name"] == normalize_title_case(cat_name)
 
     # 2. Set Monthly Budget
-    res_budget = await client.post(
+    res_budget = await auth_client.post(
         "/api/v1/budgets",
         json={
             "category_id": category_id,
@@ -43,7 +43,7 @@ async def test_full_lifecycle_e2e(client: AsyncClient):
 
     # 3. Create Expense
     exp_title = f"E2E Dinner {unique_suffix}"
-    res_exp = await client.post(
+    res_exp = await auth_client.post(
         "/api/v1/expenses",
         json={
             "title": exp_title,
@@ -60,7 +60,7 @@ async def test_full_lifecycle_e2e(client: AsyncClient):
     assert float(exp_data["amount"]) == 1600.00
 
     # 4. Check Budget Status: 1600 of 2000 is 80% (near limit!)
-    res_status = await client.get("/api/v1/budgets/status?period_month=2026-08-01")
+    res_status = await auth_client.get("/api/v1/budgets/status?period_month=2026-08-01")
     assert res_status.status_code == 200
     statuses = res_status.json()["data"]["categories"]
     matched = [s for s in statuses if s["category_id"] == category_id]
@@ -69,13 +69,13 @@ async def test_full_lifecycle_e2e(client: AsyncClient):
     assert matched[0]["percentage_used"] == 80.0
 
     # 5. Check Dashboard Summary
-    res_dash = await client.get("/api/v1/dashboard/summary")
+    res_dash = await auth_client.get("/api/v1/dashboard/summary")
     assert res_dash.status_code == 200
     dash_data = res_dash.json()["data"]
     assert float(dash_data["total_spent_overall"]) >= 1600.00
 
     # 6. Export Filtered CSV and verify row content
-    res_export = await client.get(f"/api/v1/expenses/export/csv?category_id={category_id}")
+    res_export = await auth_client.get(f"/api/v1/expenses/export/csv?category_id={category_id}")
     assert res_export.status_code == 200
     assert "text/csv" in res_export.headers.get("content-type", "")
     csv_text = res_export.text
@@ -83,9 +83,9 @@ async def test_full_lifecycle_e2e(client: AsyncClient):
     assert "1600.00" in csv_text
 
     # 7. Clean up
-    del_exp = await client.delete(f"/api/v1/expenses/{expense_id}")
+    del_exp = await auth_client.delete(f"/api/v1/expenses/{expense_id}")
     assert del_exp.status_code == 200
-    del_budget = await client.delete(f"/api/v1/budgets/{budget_id}")
+    del_budget = await auth_client.delete(f"/api/v1/budgets/{budget_id}")
     assert del_budget.status_code == 200
-    del_cat = await client.delete(f"/api/v1/categories/{category_id}")
+    del_cat = await auth_client.delete(f"/api/v1/categories/{category_id}")
     assert del_cat.status_code == 200

@@ -1,0 +1,865 @@
+{
+  "info": {
+    "name": "FinTrack API Collection",
+    "_postman_id": "fintrack-api-v1-collection",
+    "description": "Comprehensive Postman collection for manual and automated testing of the FinTrack FastAPI backend.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. System Health",
+      "item": [
+        {
+          "name": "Platform Root Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/health",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "health"
+              ]
+            },
+            "description": "Platform-level health check probe for Render/Docker verifying process liveness and DB connection."
+          }
+        },
+        {
+          "name": "API v1 Deep Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/health",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "health"
+              ]
+            },
+            "description": "Validates API v1 router mounting and executes an active SELECT 1 query on PostgreSQL."
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Categories",
+      "item": [
+        {
+          "name": "List All Categories",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/categories",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "categories"
+              ]
+            },
+            "description": "Retrieves all categories along with live expense_count."
+          }
+        },
+        {
+          "name": "Create Category",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var res = pm.response.json();",
+                  "    if (res.data && res.data.id) {",
+                  "        pm.environment.set('category_id', res.data.id);",
+                  "        console.log('Saved category_id:', res.data.id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Groceries\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/categories",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "categories"
+              ]
+            },
+            "description": "Creates a new category. Automatically normalized to Title Case."
+          }
+        },
+        {
+          "name": "Rename Category",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Food & Groceries\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/categories/{{category_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "categories",
+                "{{category_id}}"
+              ]
+            },
+            "description": "Renames an existing category by UUID."
+          }
+        },
+        {
+          "name": "Delete Category",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/categories/{{category_id}}?cascade=false",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "categories",
+                "{{category_id}}"
+              ],
+              "query": [
+                {
+                  "key": "cascade",
+                  "value": "false"
+                },
+                {
+                  "key": "reassign_to",
+                  "value": "",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Deletes category if not in use, or with optional cascade/reassign."
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Expenses & Transactions",
+      "item": [
+        {
+          "name": "List Paginated Expenses",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/expenses?page=1&page_size=20&sort_by=expense_date&sort_dir=desc",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "expenses"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "page_size",
+                  "value": "20"
+                },
+                {
+                  "key": "sort_by",
+                  "value": "expense_date"
+                },
+                {
+                  "key": "sort_dir",
+                  "value": "desc"
+                },
+                {
+                  "key": "search",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "payment_mode",
+                  "value": "upi",
+                  "disabled": true
+                },
+                {
+                  "key": "category_id",
+                  "value": "{{category_id}}",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "List paginated expenses with dynamic filters, sorting, and search."
+          }
+        },
+        {
+          "name": "Create Expense",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var res = pm.response.json();",
+                  "    if (res.data && res.data.id) {",
+                  "        pm.environment.set('expense_id', res.data.id);",
+                  "        console.log('Saved expense_id:', res.data.id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Weekly Organic Supermarket\",\n  \"category_id\": \"{{category_id}}\",\n  \"amount\": 1450.5,\n  \"expense_date\": \"2026-08-27\",\n  \"notes\": \"Vegetables, dairy, and fruits\",\n  \"payment_mode\": \"upi\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/expenses",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "expenses"
+              ]
+            },
+            "description": "Create a new expense linked to an existing category."
+          }
+        },
+        {
+          "name": "Get Single Expense",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/expenses/{{expense_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "expenses",
+                "{{expense_id}}"
+              ]
+            },
+            "description": "Retrieve details of a single expense by ID."
+          }
+        },
+        {
+          "name": "Update Expense",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Weekly Supermarket & Pharmacy\",\n  \"amount\": 1620.0,\n  \"payment_mode\": \"card\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/expenses/{{expense_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "expenses",
+                "{{expense_id}}"
+              ]
+            },
+            "description": "Update specific fields of an existing expense."
+          }
+        },
+        {
+          "name": "Delete Expense",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/expenses/{{expense_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "expenses",
+                "{{expense_id}}"
+              ]
+            },
+            "description": "Permanently delete an expense."
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Budgets & Goals",
+      "item": [
+        {
+          "name": "List Budgets for Month",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/budgets?period_month=2026-08-01",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "budgets"
+              ],
+              "query": [
+                {
+                  "key": "period_month",
+                  "value": "2026-08-01"
+                }
+              ]
+            },
+            "description": "List all active budget goals for a specific month."
+          }
+        },
+        {
+          "name": "Create or Upsert Budget",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var res = pm.response.json();",
+                  "    if (res.data && res.data.id) {",
+                  "        pm.environment.set('budget_id', res.data.id);",
+                  "        console.log('Saved budget_id:', res.data.id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"category_id\": \"{{category_id}}\",\n  \"period_month\": \"2026-08-01\",\n  \"limit_amount\": 5000.0\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/budgets",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "budgets"
+              ]
+            },
+            "description": "Create a budget or update existing budget for same month and category."
+          }
+        },
+        {
+          "name": "Get Live Budget Status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/budgets/status?period_month=2026-08-01",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "budgets",
+                "status"
+              ],
+              "query": [
+                {
+                  "key": "period_month",
+                  "value": "2026-08-01"
+                }
+              ]
+            },
+            "description": "Live spent amount, remaining balance, percentage used, and budget health status."
+          }
+        },
+        {
+          "name": "Delete Budget Goal",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/budgets/{{budget_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "budgets",
+                "{{budget_id}}"
+              ]
+            },
+            "description": "Delete a budget limit by UUID."
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Dashboard & Analytics",
+      "item": [
+        {
+          "name": "Dashboard Summary",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/dashboard/summary",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "dashboard",
+                "summary"
+              ]
+            },
+            "description": "Overall summary: total spent lifetime, this month, 5 recent expenses, top categories, and daily/weekly average."
+          }
+        },
+        {
+          "name": "Spend by Category (Pie Chart)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/dashboard/charts/by-category?date_from=2026-08-01&date_to=2026-08-31",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "dashboard",
+                "charts",
+                "by-category"
+              ],
+              "query": [
+                {
+                  "key": "date_from",
+                  "value": "2026-08-01"
+                },
+                {
+                  "key": "date_to",
+                  "value": "2026-08-31"
+                }
+              ]
+            },
+            "description": "Category-wise percentage and amount breakdown."
+          }
+        },
+        {
+          "name": "Spending Over Time (Trend Chart)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/dashboard/charts/over-time?granularity=daily",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "dashboard",
+                "charts",
+                "over-time"
+              ],
+              "query": [
+                {
+                  "key": "granularity",
+                  "value": "daily"
+                },
+                {
+                  "key": "date_from",
+                  "value": "2026-08-01",
+                  "disabled": true
+                },
+                {
+                  "key": "date_to",
+                  "value": "2026-08-31",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Spending time-series trend (daily, weekly, or monthly)."
+          }
+        },
+        {
+          "name": "Month-over-Month Comparison",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/dashboard/compare",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "dashboard",
+                "compare"
+              ]
+            },
+            "description": "Current month vs previous month comparison with percentage change."
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. Data Export & Import",
+      "item": [
+        {
+          "name": "Export Expenses CSV",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/expenses/export/csv",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "expenses",
+                "export",
+                "csv"
+              ]
+            },
+            "description": "Export expenses matching filters as CSV. Click 'Send and Download' in Postman to save to disk."
+          }
+        },
+        {
+          "name": "Export Expenses JSON",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/expenses/export/json",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "expenses",
+                "export",
+                "json"
+              ]
+            },
+            "description": "Export expenses matching filters as formatted JSON."
+          }
+        },
+        {
+          "name": "Import Expenses CSV",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"csv_content\": \"Date,Title,Category,Amount,Payment Mode,Notes\\n2026-08-20,Coffee,Food & Dining,120.00,upi,Starbucks\\n2026-08-21,Metro Pass,Transport,450.00,card,Monthly recharge\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/expenses/import/csv",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "expenses",
+                "import",
+                "csv"
+              ]
+            },
+            "description": "Bulk import expenses from raw CSV text with row-by-row validation."
+          }
+        },
+        {
+          "name": "Import Expenses JSON",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"items\": [\n    {\n      \"title\": \"Gym Membership\",\n      \"category_name\": \"Health & Fitness\",\n      \"amount\": 2500.0,\n      \"expense_date\": \"2026-08-01\",\n      \"payment_mode\": \"card\",\n      \"notes\": \"Quarterly gym plan\"\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/expenses/import/json",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "expenses",
+                "import",
+                "json"
+              ]
+            },
+            "description": "Bulk import expenses from a JSON array."
+          }
+        }
+      ]
+    },
+    {
+      "name": "7. Verification Tests (Recent Fixes)",
+      "item": [
+        {
+          "name": "Category - Duplicate Same Case (Expect 409)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Groceries\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/categories",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "categories"
+              ]
+            },
+            "description": "Should reject duplicate and return clean 409 Conflict without SQLAlchemy tracebacks."
+          }
+        },
+        {
+          "name": "Category - Duplicate Lowercase (Expect 409)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"groceries\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/categories",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "categories"
+              ]
+            },
+            "description": "Should detect case-insensitive collision with Groceries and return 409 Conflict."
+          }
+        },
+        {
+          "name": "Category - Duplicate Spaces (Expect 409)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"   Groceries   \"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/categories",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "categories"
+              ]
+            },
+            "description": "Should trim leading and trailing spaces, detect duplicate, and return 409 Conflict."
+          }
+        },
+        {
+          "name": "Budget - Negative Amount (Expect 422)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"period_month\": \"2026-08-01\",\n  \"limit_amount\": -500.0\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/budgets",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "budgets"
+              ]
+            },
+            "description": "Should reject negative budget amounts with 422 Unprocessable Entity."
+          }
+        },
+        {
+          "name": "Expense - Future Date (Expect 422)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Future Item\",\n  \"category_id\": \"{{category_id}}\",\n  \"amount\": 250.0,\n  \"expense_date\": \"2099-12-31\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/expenses",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "expenses"
+              ]
+            },
+            "description": "Should reject future expense dates with 422 Unprocessable Entity."
+          }
+        },
+        {
+          "name": "Expense - Invalid Payment Mode (Expect 422)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Coffee\",\n  \"category_id\": \"{{category_id}}\",\n  \"amount\": 120.0,\n  \"payment_mode\": \"bitcoin\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/expenses",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "expenses"
+              ]
+            },
+            "description": "Should reject unknown payment mode with 422 Unprocessable Entity."
+          }
+        }
+      ]
+    }
+  ]
+}

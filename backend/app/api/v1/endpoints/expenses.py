@@ -6,7 +6,9 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import Response
 from sqlalchemy.ext.asyncio import AsyncSession
+from app.api.dependencies import get_current_active_user
 from app.db.session import get_db
+from app.models.user import User
 from app.services.expense_service import ExpenseService
 from app.schemas.expense import (
     ExpenseCreate,
@@ -38,10 +40,12 @@ async def list_expenses(
     sort_dir: str = Query("desc", description="Sort direction (asc, desc)"),
     page: int = Query(1, ge=1, description="Page number"),
     page_size: int = Query(20, ge=1, le=100, description="Items per page"),
+    current_user: User = Depends(get_current_active_user),
     session: AsyncSession = Depends(get_db),
 ):
     items, meta = await ExpenseService.get_paginated(
         session=session,
+        user_id=current_user.id,
         search=search,
         date_from=date_from,
         date_to=date_to,
@@ -65,11 +69,14 @@ async def list_expenses(
 )
 async def create_expense(
     payload: ExpenseCreate,
+    current_user: User = Depends(get_current_active_user),
     session: AsyncSession = Depends(get_db),
 ):
     try:
-        expense = await ExpenseService.create(session, payload)
+        expense = await ExpenseService.create(session, payload, user_id=current_user.id)
         return ResponseEnvelope(data=expense)
+    except HTTPException:
+        raise
     except Exception as exc:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -91,10 +98,12 @@ async def export_expenses_csv(
     payment_mode: Optional[str] = Query(None, description="Payment mode"),
     sort_by: str = Query("expense_date"),
     sort_dir: str = Query("desc"),
+    current_user: User = Depends(get_current_active_user),
     session: AsyncSession = Depends(get_db),
 ):
     expenses = await ExpenseService.get_all_filtered(
         session=session,
+        user_id=current_user.id,
         search=search,
         date_from=date_from,
         date_to=date_to,
@@ -132,10 +141,12 @@ async def export_expenses_json(
     payment_mode: Optional[str] = Query(None, description="Payment mode"),
     sort_by: str = Query("expense_date"),
     sort_dir: str = Query("desc"),
+    current_user: User = Depends(get_current_active_user),
     session: AsyncSession = Depends(get_db),
 ):
     expenses = await ExpenseService.get_all_filtered(
         session=session,
+        user_id=current_user.id,
         search=search,
         date_from=date_from,
         date_to=date_to,
@@ -167,9 +178,10 @@ async def export_expenses_json(
 )
 async def import_expenses_csv(
     payload: ExpenseImportCsvPayload,
+    current_user: User = Depends(get_current_active_user),
     session: AsyncSession = Depends(get_db),
 ):
-    result = await ExpenseService.import_from_csv(session, payload.csv_content)
+    result = await ExpenseService.import_from_csv(session, payload.csv_content, user_id=current_user.id)
     return ResponseEnvelope(data=result)
 
 
@@ -180,9 +192,10 @@ async def import_expenses_csv(
 )
 async def import_expenses_json(
     payload: ExpenseImportJsonPayload,
+    current_user: User = Depends(get_current_active_user),
     session: AsyncSession = Depends(get_db),
 ):
-    result = await ExpenseService.import_from_json(session, payload.items)
+    result = await ExpenseService.import_from_json(session, payload.items, user_id=current_user.id)
     return ResponseEnvelope(data=result)
 
 
@@ -193,9 +206,10 @@ async def import_expenses_json(
 )
 async def get_expense(
     expense_id: uuid.UUID,
+    current_user: User = Depends(get_current_active_user),
     session: AsyncSession = Depends(get_db),
 ):
-    expense = await ExpenseService.get_by_id(session, expense_id)
+    expense = await ExpenseService.get_by_id(session, expense_id, user_id=current_user.id)
     if not expense:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -212,9 +226,10 @@ async def get_expense(
 async def update_expense(
     expense_id: uuid.UUID,
     payload: ExpenseUpdate,
+    current_user: User = Depends(get_current_active_user),
     session: AsyncSession = Depends(get_db),
 ):
-    updated = await ExpenseService.update(session, expense_id, payload)
+    updated = await ExpenseService.update(session, expense_id, payload, user_id=current_user.id)
     if not updated:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -230,9 +245,10 @@ async def update_expense(
 )
 async def delete_expense(
     expense_id: uuid.UUID,
+    current_user: User = Depends(get_current_active_user),
     session: AsyncSession = Depends(get_db),
 ):
-    deleted = await ExpenseService.delete(session, expense_id)
+    deleted = await ExpenseService.delete(session, expense_id, user_id=current_user.id)
     if not deleted:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

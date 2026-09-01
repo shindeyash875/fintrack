@@ -5,9 +5,11 @@ from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from slowapi.errors import RateLimitExceeded
 from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
 
+from app.api.dependencies import limiter
 from app.core.config import settings
 from app.db.session import async_session_factory, engine
 from app.db.seed import seed_starter_categories
@@ -35,6 +37,7 @@ app = FastAPI(
     version=settings.APP_VERSION,
     lifespan=lifespan,
 )
+app.state.limiter = limiter
 
 # CORS Middleware
 app.add_middleware(
@@ -81,6 +84,22 @@ async def root_health():
     return payload
 
 
+# Rate Limit Exception Handler
+@app.exception_handler(RateLimitExceeded)
+async def rate_limit_handler(request: Request, exc: RateLimitExceeded):
+    return JSONResponse(
+        status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+        content={
+            "success": False,
+            "error": {
+                "code": "TOO_MANY_REQUESTS",
+                "message": "Too many requests. Please slow down and try again later.",
+                "field": None,
+            },
+        },
+    )
+
+
 # Standardized Validation Error Handler (SRS Section 3.1 & 3.4)
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
@@ -107,9 +126,12 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
 async def http_exception_handler(request: Request, exc: HTTPException):
     code_map = {
         400: "BAD_REQUEST",
+        401: "UNAUTHORIZED",
+        403: "FORBIDDEN",
         404: "NOT_FOUND",
         409: "CONFLICT",
         422: "UNPROCESSABLE_ENTITY",
+        429: "TOO_MANY_REQUESTS",
         500: "INTERNAL_SERVER_ERROR",
         503: "SERVICE_UNAVAILABLE",
     }
@@ -131,8 +153,10 @@ async def http_exception_handler(request: Request, exc: HTTPException):
 async def integrity_error_handler(request: Request, exc: IntegrityError):
     logger.error("Database integrity error: %s", exc)
     err_str = str(exc).lower()
-    if "category" in err_str or "ix_categories_name" in err_str:
+    if "uq_categories_user_name" in err_str or "category" in err_str:
         msg = "Category already exists."
+    elif "users_email_key" in err_str or "email" in err_str:
+        msg = "An account with this email address already exists."
     elif "unique" in err_str or "duplicate" in err_str:
         msg = "A record with this value already exists."
     else:
@@ -154,6 +178,7 @@ async def integrity_error_handler(request: Request, exc: IntegrityError):
 # Standardized Unhandled Exception Handler (SRS Section 3.1 & 3.4)
 @app.exception_handler(Exception)
 async def unhandled_exception_handler(request: Request, exc: Exception):
+    logger.error("Unhandled exception: %s", exc, exc_info=True)
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         content={
@@ -165,4 +190,3 @@ async def unhandled_exception_handler(request: Request, exc: Exception):
             },
         },
     )
-

@@ -4,9 +4,9 @@ from httpx import AsyncClient
 
 
 @pytest.mark.asyncio
-async def test_expense_crud_and_filters(client: AsyncClient):
+async def test_expense_crud_and_filters(auth_client: AsyncClient):
     # 1. Fetch categories to get an active category_id
-    cat_res = await client.get("/api/v1/categories")
+    cat_res = await auth_client.get("/api/v1/categories")
     assert cat_res.status_code == 200
     categories = cat_res.json()["data"]
     assert len(categories) > 0
@@ -24,7 +24,7 @@ async def test_expense_crud_and_filters(client: AsyncClient):
         "notes": "Farm market vegetables",
         "payment_mode": "upi",
     }
-    create_res = await client.post("/api/v1/expenses", json=expense_payload)
+    create_res = await auth_client.post("/api/v1/expenses", json=expense_payload)
     assert create_res.status_code == 201
     created = create_res.json()["data"]
     expense_id = created["id"]
@@ -35,23 +35,23 @@ async def test_expense_crud_and_filters(client: AsyncClient):
 
     # 3. Test Filters & Search
     # Search by title
-    search_res = await client.get("/api/v1/expenses?search=Organic")
+    search_res = await auth_client.get("/api/v1/expenses?search=Organic")
     assert search_res.status_code == 200
     search_data = search_res.json()["data"]
     assert any(item["id"] == expense_id for item in search_data)
 
     # Filter by category
-    cat_filter_res = await client.get(f"/api/v1/expenses?category_id={category_id}")
+    cat_filter_res = await auth_client.get(f"/api/v1/expenses?category_id={category_id}")
     assert cat_filter_res.status_code == 200
     assert any(item["id"] == expense_id for item in cat_filter_res.json()["data"])
 
     # Filter by payment mode
-    mode_res = await client.get("/api/v1/expenses?payment_mode=upi")
+    mode_res = await auth_client.get("/api/v1/expenses?payment_mode=upi")
     assert mode_res.status_code == 200
     assert any(item["id"] == expense_id for item in mode_res.json()["data"])
 
     # Filter by amount range
-    range_res = await client.get("/api/v1/expenses?amount_min=700&amount_max=800")
+    range_res = await auth_client.get("/api/v1/expenses?amount_min=700&amount_max=800")
     assert range_res.status_code == 200
     assert any(item["id"] == expense_id for item in range_res.json()["data"])
 
@@ -61,7 +61,7 @@ async def test_expense_crud_and_filters(client: AsyncClient):
         "amount": 820.00,
         "payment_mode": "card",
     }
-    update_res = await client.put(f"/api/v1/expenses/{expense_id}", json=update_payload)
+    update_res = await auth_client.put(f"/api/v1/expenses/{expense_id}", json=update_payload)
     assert update_res.status_code == 200
     updated = update_res.json()["data"]
     assert updated["title"] == update_payload["title"]
@@ -69,10 +69,10 @@ async def test_expense_crud_and_filters(client: AsyncClient):
     assert updated["payment_mode"] == "card"
 
     # 5. Delete expense
-    delete_res = await client.delete(f"/api/v1/expenses/{expense_id}")
+    delete_res = await auth_client.delete(f"/api/v1/expenses/{expense_id}")
     assert delete_res.status_code == 200
     assert delete_res.json()["data"]["deleted"] is True
 
     # 6. Verify 404 after deletion
-    get_res = await client.get(f"/api/v1/expenses/{expense_id}")
+    get_res = await auth_client.get(f"/api/v1/expenses/{expense_id}")
     assert get_res.status_code == 404

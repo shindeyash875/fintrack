@@ -4,8 +4,8 @@ from httpx import AsyncClient
 
 
 @pytest.mark.asyncio
-async def test_get_dashboard_summary(client: AsyncClient):
-    res = await client.get("/api/v1/dashboard/summary")
+async def test_get_dashboard_summary(auth_client: AsyncClient):
+    res = await auth_client.get("/api/v1/dashboard/summary")
     assert res.status_code == 200
     data = res.json()["data"]
     assert "total_spent_overall" in data
@@ -17,8 +17,8 @@ async def test_get_dashboard_summary(client: AsyncClient):
 
 
 @pytest.mark.asyncio
-async def test_get_charts_by_category(client: AsyncClient):
-    res = await client.get("/api/v1/dashboard/charts/by-category")
+async def test_get_charts_by_category(auth_client: AsyncClient):
+    res = await auth_client.get("/api/v1/dashboard/charts/by-category")
     assert res.status_code == 200
     items = res.json()["data"]
     assert isinstance(items, list)
@@ -30,9 +30,9 @@ async def test_get_charts_by_category(client: AsyncClient):
 
 
 @pytest.mark.asyncio
-async def test_get_charts_over_time_granularities(client: AsyncClient):
+async def test_get_charts_over_time_granularities(auth_client: AsyncClient):
     for gran in ["daily", "weekly", "monthly"]:
-        res = await client.get(f"/api/v1/dashboard/charts/over-time?granularity={gran}")
+        res = await auth_client.get(f"/api/v1/dashboard/charts/over-time?granularity={gran}")
         assert res.status_code == 200
         items = res.json()["data"]
         assert isinstance(items, list)
@@ -43,8 +43,8 @@ async def test_get_charts_over_time_granularities(client: AsyncClient):
 
 
 @pytest.mark.asyncio
-async def test_get_month_comparison(client: AsyncClient):
-    res = await client.get("/api/v1/dashboard/compare")
+async def test_get_month_comparison(auth_client: AsyncClient):
+    res = await auth_client.get("/api/v1/dashboard/compare")
     assert res.status_code == 200
     data = res.json()["data"]
     assert "current_month" in data

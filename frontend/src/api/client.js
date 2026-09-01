@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { useAuthStore } from '../store/useAuthStore';
 
 /**
  * Resolves the backend API base URL supporting:
@@ -35,14 +36,13 @@ export function getApiBaseUrl() {
   url = url.replace(/\/+$/, '');
 
   // Backend routes are mounted under /api/v1
-  // If user provided https://...onrender.com without /api/v1, normalize it
   if (!url.endsWith('/api/v1') && !url.endsWith('/api')) {
     url = `${url}/api/v1`;
   } else if (url.endsWith('/api')) {
     url = `${url}/v1`;
   }
 
-  // Enforce HTTPS for remote production hosts to prevent Mixed Content blocking
+  // Enforce HTTPS for remote production hosts
   if (!url.includes('localhost') && !url.includes('127.0.0.1') && url.startsWith('http://')) {
     url = url.replace('http://', 'https://');
   }
@@ -52,22 +52,38 @@ export function getApiBaseUrl() {
 
 const API_BASE_URL = getApiBaseUrl();
 
-// Safe diagnostic log in browser console
-if (typeof window !== 'undefined') {
-  console.log(`[FinTrack API] Base URL configured as: ${API_BASE_URL}`);
-}
-
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
+  withCredentials: true, // Essential for sending & receiving HttpOnly refresh token cookies
   headers: {
     'Content-Type': 'application/json',
   },
-  timeout: 30000, // 30 seconds to accommodate Render free tier cold starts
+  timeout: 30000,
 });
 
-// Request interceptor for safe diagnostic logging
+// Refresh token queue management
+let isRefreshing = false;
+let failedQueue = [];
+
+const processQueue = (error, token = null) => {
+  failedQueue.forEach((prom) => {
+    if (error) {
+      prom.reject(error);
+    } else {
+      prom.resolve(token);
+    }
+  });
+  failedQueue = [];
+};
+
+// Request interceptor: Attach JWT Bearer Access Token
 apiClient.interceptors.request.use(
   (config) => {
+    const accessToken = useAuthStore.getState().accessToken;
+    if (accessToken && !config.headers.Authorization) {
+      config.headers.Authorization = `Bearer ${accessToken}`;
+    }
+
     if (import.meta.env.DEV || import.meta.env.VITE_DEBUG_API === 'true') {
       const fullUrl = config.baseURL
         ? `${config.baseURL.replace(/\/+$/, '')}/${config.url?.replace(/^\/+/, '')}`
@@ -79,16 +95,71 @@ apiClient.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Response interceptor
+// Response interceptor: Unpack envelope and handle automatic 401 token refresh
 apiClient.interceptors.response.use(
   (response) => {
-    // Standard response envelope unpacker
     if (response.data && response.data.success !== undefined) {
       return response.data;
     }
     return response;
   },
-  (error) => {
+  async (error) => {
+    const originalRequest = error.config;
+
+    // Check if error is 401 and request was not an auth request that shouldn't retry
+    const isAuthEndpoint =
+      originalRequest?.url?.includes('/auth/login') ||
+      originalRequest?.url?.includes('/auth/register') ||
+      originalRequest?.url?.includes('/auth/refresh') ||
+      originalRequest?.url?.includes('/auth/forgot-password') ||
+      originalRequest?.url?.includes('/auth/reset-password');
+
+    if (error.response?.status === 401 && !originalRequest._retry && !isAuthEndpoint) {
+      if (isRefreshing) {
+        // Queue the request until refresh finishes
+        return new Promise((resolve, reject) => {
+          failedQueue.push({ resolve, reject });
+        })
+          .then((token) => {
+            originalRequest.headers.Authorization = `Bearer ${token}`;
+            return apiClient(originalRequest);
+          })
+          .catch((err) => Promise.reject(err));
+      }
+
+      originalRequest._retry = true;
+      isRefreshing = true;
+
+      try {
+        // Call backend /auth/refresh with HttpOnly cookie
+        const refreshResponse = await axios.post(
+          `${API_BASE_URL}/auth/refresh`,
+          {},
+          { withCredentials: true }
+        );
+
+        const data = refreshResponse.data?.data || refreshResponse.data;
+        const newAccessToken = data?.access_token;
+        const user = data?.user;
+
+        if (newAccessToken) {
+          useAuthStore.getState().setAuth(user, newAccessToken);
+          processQueue(null, newAccessToken);
+
+          originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+          return apiClient(originalRequest);
+        } else {
+          throw new Error('Refresh response missing access token');
+        }
+      } catch (refreshErr) {
+        processQueue(refreshErr, null);
+        useAuthStore.getState().clearAuth();
+        return Promise.reject(refreshErr);
+      } finally {
+        isRefreshing = false;
+      }
+    }
+
     const fullUrl = error.config?.baseURL
       ? `${error.config.baseURL.replace(/\/+$/, '')}/${error.config.url?.replace(/^\/+/, '')}`
       : error.config?.url;
@@ -102,11 +173,10 @@ apiClient.interceptors.response.use(
         code: isTimeout ? 'TIMEOUT_ERROR' : 'NETWORK_ERROR',
         message: isTimeout
           ? 'Backend request timed out. If your backend is on Render free tier, it may be waking up from sleep (~30s). Please retry in a moment.'
-          : error.message || 'Network request failed. Please verify the backend is running and CORS allows this domain.',
+          : error.message || 'Network request failed. Please verify backend is running.',
       };
     } else if (typeof errorPayload.message === 'string') {
       const msg = errorPayload.message;
-      // Shield against raw DB / ORM error exposures
       if (
         msg.includes('SQLAlchemy') ||
         msg.includes('psycopg2') ||
@@ -116,7 +186,7 @@ apiClient.interceptors.response.use(
       ) {
         errorPayload.message =
           error.response?.status === 409 || errorPayload.code === 'CONFLICT'
-            ? 'Category already exists.'
+            ? 'Record already exists.'
             : 'A database conflict occurred. Please try again.';
       }
     }

@@ -96,11 +96,25 @@ Everything else (login, recurring expenses, notifications, multi-user support, b
 
 ## 7. Functional Requirements & User Stories
 
+### 7.0 Authentication & User Data Isolation
+
+| ID | Requirement | Priority | User Story |
+|----|-------------|----------|------------|
+| FR-0A | Email & Password Registration | P0 | As a new user, I want to sign up with my full name, email, and a secure password so I have a private account. |
+| FR-0B | Starter Category Auto-Seeding | P0 | As a new user, I want my new account to automatically receive 8 standard categories (Food, Transport, Rent, etc.) so I can log expenses immediately. |
+| FR-0C | Email & Password Login | P0 | As a registered user, I want to sign in with my email and password so I can access my private data. |
+| FR-0D | Google Sign-In (OAuth 2.0 / OpenID Connect) | P0 | As a user, I want to sign in with my Google account with one click so I don't have to remember passwords. |
+| FR-0E | Secure JWT & Automatic Token Refresh | P0 | As a user, I want my session to stay securely logged in without storing vulnerable long-lived tokens in localStorage. |
+| FR-0F | Logout & Revocation | P0 | As a user, I want to securely log out of my current device or log out from all active sessions simultaneously. |
+| FR-0G | Password Reset & Change Password | P1 | As a user, I want to reset my forgotten password via a secure token link and update my password while logged in. |
+| FR-0H | Strict User Data Isolation | P0 | As a user, I want all my expenses, custom categories, budgets, and dashboards to be completely isolated and accessible only to me. |
+
 ### 7.1 Navigation
 
 | ID | Requirement | Priority | User Story |
 |----|-------------|----------|------------|
-| FR-1 | Hamburger menu with two sections: **Dashboard** (view-only summary) and **Expenses** (add/edit/delete/search/filter/sort) | P0 | As a user, I want a simple hamburger menu so I can move between my Dashboard and my Expenses easily. |
+| FR-1 | Hamburger menu with sections: **Dashboard**, **Expenses**, **Budget Goals**, **Categories**, **App Settings**, and **User Profile** | P0 | As a user, I want a simple responsive menu so I can navigate my finances and account settings. |
+
 
 ### 7.2 Expense Fields & Validation
 

@@ -3,7 +3,9 @@ from datetime import date
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
+from app.api.dependencies import get_current_active_user
 from app.db.session import get_db
+from app.models.user import User
 from app.services.budget_service import BudgetService
 from app.schemas.budget import (
     BudgetCreate,
@@ -25,9 +27,10 @@ async def list_budgets(
         default_factory=lambda: date.today().replace(day=1),
         description="Month for budgets (YYYY-MM-DD, day normalized to 1)",
     ),
+    current_user: User = Depends(get_current_active_user),
     session: AsyncSession = Depends(get_db),
 ):
-    budgets = await BudgetService.get_budgets_for_month(session, period_month)
+    budgets = await BudgetService.get_budgets_for_month(session, period_month, user_id=current_user.id)
     return ResponseEnvelope(data=budgets)
 
 
@@ -39,9 +42,10 @@ async def list_budgets(
 )
 async def upsert_budget(
     payload: BudgetCreate,
+    current_user: User = Depends(get_current_active_user),
     session: AsyncSession = Depends(get_db),
 ):
-    budget = await BudgetService.upsert(session, payload)
+    budget = await BudgetService.upsert(session, payload, user_id=current_user.id)
     return ResponseEnvelope(data=budget)
 
 
@@ -55,9 +59,10 @@ async def get_budget_status(
         default_factory=lambda: date.today().replace(day=1),
         description="Month for budget status (YYYY-MM-DD, day normalized to 1)",
     ),
+    current_user: User = Depends(get_current_active_user),
     session: AsyncSession = Depends(get_db),
 ):
-    status_data = await BudgetService.get_status(session, period_month)
+    status_data = await BudgetService.get_status(session, period_month, user_id=current_user.id)
     return ResponseEnvelope(data=status_data)
 
 
@@ -68,9 +73,10 @@ async def get_budget_status(
 )
 async def delete_budget(
     budget_id: uuid.UUID,
+    current_user: User = Depends(get_current_active_user),
     session: AsyncSession = Depends(get_db),
 ):
-    deleted = await BudgetService.delete(session, budget_id)
+    deleted = await BudgetService.delete(session, budget_id, user_id=current_user.id)
     if not deleted:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

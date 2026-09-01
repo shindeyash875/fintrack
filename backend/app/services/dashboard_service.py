@@ -1,3 +1,4 @@
+import uuid
 from datetime import date, timedelta
 from decimal import Decimal
 from typing import List, Optional
@@ -20,6 +21,7 @@ class DashboardService:
     @staticmethod
     async def get_summary(
         session: AsyncSession,
+        user_id: uuid.UUID,
         today: Optional[date] = None,
     ) -> DashboardSummary:
         if not today:
@@ -31,32 +33,47 @@ class DashboardService:
         else:
             next_month = date(first_of_current_month.year, first_of_current_month.month + 1, 1)
 
-        # 1. Total spent overall
-        total_overall_stmt = select(func.coalesce(func.sum(Expense.amount), Decimal("0.00")))
+        # 1. Total spent overall for this user
+        total_overall_stmt = select(func.coalesce(func.sum(Expense.amount), Decimal("0.00"))).where(
+            Expense.user_id == user_id
+        )
         total_spent_overall = (await session.execute(total_overall_stmt)).scalar_one()
 
-        # 2. Total spent current month
+        # 2. Total spent current month for this user
         total_current_month_stmt = select(func.coalesce(func.sum(Expense.amount), Decimal("0.00"))).where(
             and_(
+                Expense.user_id == user_id,
                 Expense.expense_date >= first_of_current_month,
                 Expense.expense_date < next_month,
             )
         )
         total_spent_current_month = (await session.execute(total_current_month_stmt)).scalar_one()
 
-        # 3. Recent expenses (last 5)
-        recent_expenses, _ = await ExpenseService.get_paginated(session, page=1, page_size=5)
+        # 3. Recent expenses (last 5) for this user
+        recent_expenses, _ = await ExpenseService.get_paginated(
+            session=session,
+            user_id=user_id,
+            page=1,
+            page_size=5,
+        )
 
-        # 4. Top categories by spend in current month
+        # 4. Top categories by spend in current month for this user
         top_cats_stmt = (
             select(
                 Category.id,
                 Category.name,
                 func.coalesce(func.sum(Expense.amount), Decimal("0.00")).label("cat_total"),
             )
-            .join(Expense, Expense.category_id == Category.id)
+            .join(
+                Expense,
+                and_(
+                    Expense.category_id == Category.id,
+                    Expense.user_id == user_id,
+                )
+            )
             .where(
                 and_(
+                    Category.user_id == user_id,
                     Expense.expense_date >= first_of_current_month,
                     Expense.expense_date < next_month,
                 )
@@ -82,8 +99,8 @@ class DashboardService:
                 )
             )
 
-        # 5. Overall budget status
-        budget_status = await BudgetService.get_status(session, first_of_current_month)
+        # 5. Overall budget status for this user
+        budget_status = await BudgetService.get_status(session, first_of_current_month, user_id=user_id)
         overall_budget_status = budget_status.overall
 
         # 6. Average daily and weekly spend for the month so far
@@ -104,6 +121,7 @@ class DashboardService:
     @staticmethod
     async def get_charts_by_category(
         session: AsyncSession,
+        user_id: uuid.UUID,
         date_from: Optional[date] = None,
         date_to: Optional[date] = None,
     ) -> List[CategoryChartItem]:
@@ -113,7 +131,14 @@ class DashboardService:
                 Category.name,
                 func.coalesce(func.sum(Expense.amount), Decimal("0.00")).label("cat_total"),
             )
-            .join(Expense, Expense.category_id == Category.id)
+            .join(
+                Expense,
+                and_(
+                    Expense.category_id == Category.id,
+                    Expense.user_id == user_id,
+                )
+            )
+            .where(Category.user_id == user_id)
         )
         if date_from:
             query = query.where(Expense.expense_date >= date_from)
@@ -140,6 +165,7 @@ class DashboardService:
     @staticmethod
     async def get_charts_over_time(
         session: AsyncSession,
+        user_id: uuid.UUID,
         granularity: str = "daily",
         date_from: Optional[date] = None,
         date_to: Optional[date] = None,
@@ -168,6 +194,7 @@ class DashboardService:
             )
             .where(
                 and_(
+                    Expense.user_id == user_id,
                     Expense.expense_date >= date_from,
                     Expense.expense_date <= date_to,
                 )
@@ -199,6 +226,7 @@ class DashboardService:
     @staticmethod
     async def get_compare(
         session: AsyncSession,
+        user_id: uuid.UUID,
         today: Optional[date] = None,
     ) -> MonthComparison:
         if not today:
@@ -215,18 +243,20 @@ class DashboardService:
         else:
             current_month_end = date(current_month_start.year, current_month_start.month + 1, 1)
 
-        # Current month total
+        # Current month total for this user
         current_total_stmt = select(func.coalesce(func.sum(Expense.amount), Decimal("0.00"))).where(
             and_(
+                Expense.user_id == user_id,
                 Expense.expense_date >= current_month_start,
                 Expense.expense_date < current_month_end,
             )
         )
         current_total = (await session.execute(current_total_stmt)).scalar_one()
 
-        # Prev month total
+        # Prev month total for this user
         prev_total_stmt = select(func.coalesce(func.sum(Expense.amount), Decimal("0.00"))).where(
             and_(
+                Expense.user_id == user_id,
                 Expense.expense_date >= prev_month_start,
                 Expense.expense_date < current_month_start,
             )

@@ -17,6 +17,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db.base import Base
 
 if TYPE_CHECKING:
+    from app.models.user import User
     from app.models.category import Category
 
 
@@ -24,15 +25,22 @@ class Expense(Base):
     __tablename__ = "expenses"
     __table_args__ = (
         CheckConstraint("amount > 0", name="check_expense_amount_positive"),
+        Index("ix_expenses_user_id", "user_id"),
         Index("ix_expenses_expense_date", "expense_date"),
         Index("ix_expenses_category_id", "category_id"),
         Index("ix_expenses_payment_mode", "payment_mode"),
+        Index("ix_expenses_user_date", "user_id", "expense_date"),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         primary_key=True,
         default=uuid.uuid4,
+    )
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
     )
     title: Mapped[str] = mapped_column(
         String(50),
@@ -72,6 +80,11 @@ class Expense(Base):
     )
 
     # Relationships
+    user: Mapped["User"] = relationship(
+        "User",
+        back_populates="expenses",
+        lazy="selectin",
+    )
     category: Mapped["Category"] = relationship(
         "Category",
         back_populates="expenses",

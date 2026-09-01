@@ -26,3 +26,7 @@ class ErrorDetail(BaseModel):
 class ErrorEnvelope(BaseModel):
     success: bool = False
     error: ErrorDetail
+
+
+ApiResponse = ResponseEnvelope
+

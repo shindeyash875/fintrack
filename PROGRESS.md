@@ -689,3 +689,102 @@
 ---
 **FinTrack deployed frontend-to-backend integration is hardened, with resilient URL resolution, dynamic Vercel CORS support, and PWA cache busting.**
 
+---
+
+## Milestone Completed: Production-Ready JWT Authentication, Google OAuth 2.0 & Strict User Data Isolation
+
+### 1. Work Completed
+- **Database Schema & Migrations:**
+  - Created `users`, `refresh_tokens`, and `password_reset_tokens` tables.
+  - Added `user_id` foreign key columns with `ON DELETE CASCADE` to `categories`, `expenses`, and `budgets`.
+  - Replaced global uniqueness constraints with per-user composite unique constraints: `UNIQUE (user_id, name)` on categories and `UNIQUE (user_id, category_id, period_month)` on budgets.
+  - Created and executed Alembic migration `7a8e9f1b2c3d_add_authentication_and_user_isolation.py`.
+- **Security & Core Auth Layer:**
+  - Implemented bcrypt password hashing and verification in `app/core/security.py`.
+  - Configured short-lived JWT Access Tokens (15 min) and long-lived HttpOnly SameSite Refresh Tokens (30 days).
+  - Implemented refresh token rotation, replay attack detection, and SHA-256 database hashing.
+  - Implemented `slowapi` rate limiting on public authentication endpoints (`/login`, `/register`, `/forgot-password`, `/reset-password`).
+  - Google OAuth 2.0 / OpenID Connect ID token verification (`app/services/auth_service.py`), auto-creating new users or linking accounts by email.
+  - Per-user starter category seeding (`seed_user_categories`): new registrations automatically receive the 8 standard categories (`Food`, `Transport`, `Rent`, `Utilities`, `Shopping`, `Health`, `Entertainment`, `Other`).
+- **User Data Isolation:**
+  - Injected `current_user: User = Depends(get_current_active_user)` across all `/categories`, `/expenses`, `/budgets`, and `/dashboard` endpoints.
+  - Scoped every query, update, deletion, dashboard aggregation, CSV/JSON export, and CSV/JSON import strictly to `user_id = current_user.id`.
+- **Frontend Auth Integration:**
+  - Created `useAuthStore.js` with session lifecycle, login, registration, Google auth, silent session boot (`checkAuth`), password reset, and active session management.
+  - Configured `apiClient.js` with `withCredentials: true`, JWT Bearer request interceptor, and seamless 401 response queue for automatic background token rotation.
+  - Created `LoginPage.jsx`, `RegisterPage.jsx`, `ForgotPasswordPage.jsx`, and `ResetPasswordPage.jsx` with glassmorphic dark UI, password visibility toggles, and Google Identity Services SDK button (`GoogleLoginButton.jsx`).
+  - Implemented `ProtectedRoute.jsx` route guard protecting dashboard and expense management views.
+  - Added user initials avatar, profile dropdown, `ChangePasswordModal.jsx`, `ActiveSessionsModal.jsx`, and Sign Out actions to `Navbar.jsx` and `Sidebar.jsx`.
+- **Environment & Documentation Parity:**
+  - Updated `backend/.env.example` and `frontend/.env.example`.
+  - Updated `DOCS/FinTrack_SRS.md` and `DOCS/expensetracker prd final.md` with authentication endpoints, schemas, and user stories.
+
+### 2. Files Modified / Created
+- **Backend:**
+  - `backend/requirements.txt` [MODIFIED]
+  - `backend/.env.example` [MODIFIED]
+  - `backend/app/core/config.py` [MODIFIED]
+  - `backend/app/core/security.py` [MODIFIED]
+  - `backend/app/models/user.py` [NEW]
+  - `backend/app/models/refresh_token.py` [NEW]
+  - `backend/app/models/password_reset.py` [NEW]
+  - `backend/app/models/category.py` [MODIFIED]
+  - `backend/app/models/expense.py` [MODIFIED]
+  - `backend/app/models/budget.py` [MODIFIED]
+  - `backend/app/models/__init__.py` [MODIFIED]
+  - `backend/app/schemas/auth.py` [NEW]
+  - `backend/app/schemas/common.py` [MODIFIED]
+  - `backend/app/services/auth_service.py` [NEW]
+  - `backend/app/services/category_service.py` [MODIFIED]
+  - `backend/app/services/expense_service.py` [MODIFIED]
+  - `backend/app/services/budget_service.py` [MODIFIED]
+  - `backend/app/services/dashboard_service.py` [MODIFIED]
+  - `backend/app/api/dependencies.py` [NEW]
+  - `backend/app/api/v1/endpoints/auth.py` [NEW]
+  - `backend/app/api/v1/endpoints/categories.py` [MODIFIED]
+  - `backend/app/api/v1/endpoints/expenses.py` [MODIFIED]
+  - `backend/app/api/v1/endpoints/budgets.py` [MODIFIED]
+  - `backend/app/api/v1/endpoints/dashboard.py` [MODIFIED]
+  - `backend/app/api/v1/router.py` [MODIFIED]
+  - `backend/app/main.py` [MODIFIED]
+  - `backend/app/db/alembic/versions/7a8e9f1b2c3d_add_authentication_and_user_isolation.py` [NEW]
+  - `backend/tests/conftest.py` [MODIFIED]
+  - `backend/tests/test_auth.py` [NEW]
+  - `backend/tests/test_user_isolation.py` [NEW]
+  - `backend/tests/test_categories.py` [MODIFIED]
+  - `backend/tests/test_expenses.py` [MODIFIED]
+  - `backend/tests/test_budgets.py` [MODIFIED]
+  - `backend/tests/test_dashboard.py` [MODIFIED]
+  - `backend/tests/test_e2e_integration.py` [MODIFIED]
+  - `backend/tests/test_export_import.py` [MODIFIED]
+- **Frontend:**
+  - `frontend/.env.example` [MODIFIED]
+  - `frontend/src/api/client.js` [MODIFIED]
+  - `frontend/src/api/endpoints/auth.js` [NEW]
+  - `frontend/src/store/useAuthStore.js` [NEW]
+  - `frontend/src/components/auth/ProtectedRoute.jsx` [NEW]
+  - `frontend/src/components/auth/GoogleLoginButton.jsx` [NEW]
+  - `frontend/src/components/auth/ChangePasswordModal.jsx` [NEW]
+  - `frontend/src/components/auth/ActiveSessionsModal.jsx` [NEW]
+  - `frontend/src/pages/LoginPage.jsx` [NEW]
+  - `frontend/src/pages/RegisterPage.jsx` [NEW]
+  - `frontend/src/pages/ForgotPasswordPage.jsx` [NEW]
+  - `frontend/src/pages/ResetPasswordPage.jsx` [NEW]
+  - `frontend/src/components/layout/Navbar.jsx` [MODIFIED]
+  - `frontend/src/components/layout/Sidebar.jsx` [MODIFIED]
+  - `frontend/src/App.jsx` [MODIFIED]
+  - `frontend/src/tests/auth.test.jsx` [NEW]
+  - `frontend/src/tests/App.test.jsx` [MODIFIED]
+- **Documentation:**
+  - `DOCS/FinTrack_SRS.md` [MODIFIED]
+  - `DOCS/expensetracker prd final.md` [MODIFIED]
+  - `PROGRESS.md` [MODIFIED]
+
+### 3. Tests & Verification Performed
+- **Backend Automated Tests (Pytest):**
+  - Executed `pytest` in `backend/`: **31 of 31 passed** (100% pass rate in 36.50s).
+  - Verified: Registration, duplicate email rejection, login validation, token rotation, replay detection, logout, logout-all, forgot password, reset password, change password, and strict multi-user data isolation.
+- **Frontend Automated Tests (Vitest):**
+  - Executed `npm run test -- --run` in `frontend/`: **55 of 55 passed** across 8 test suites (100% pass rate in 3.56s).
+- **Rule Compliance:**
+  - 100% compliant with AGENTS.md: zero inline styling, ORM over raw SQL, React communicates exclusively via REST APIs, never committed `.env`, and end-to-end integration verified.

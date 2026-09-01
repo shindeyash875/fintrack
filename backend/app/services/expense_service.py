@@ -5,7 +5,8 @@ import uuid
 from datetime import date, datetime
 from decimal import Decimal, InvalidOperation
 from typing import List, Optional, Tuple
-from sqlalchemy import select, func, or_, and_
+from fastapi import HTTPException, status
+from sqlalchemy import select, func, or_, and_, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.expense import Expense
 from app.models.category import Category
@@ -24,6 +25,7 @@ class ExpenseService:
     @staticmethod
     async def get_paginated(
         session: AsyncSession,
+        user_id: uuid.UUID,
         search: Optional[str] = None,
         date_from: Optional[date] = None,
         date_to: Optional[date] = None,
@@ -37,10 +39,12 @@ class ExpenseService:
         page_size: int = 20,
     ) -> Tuple[List[ExpenseRead], PaginationMeta]:
         """
-        Queries expenses with combined search, filtering, and sorting (FR-11 through FR-16).
+        Queries expenses strictly belonging to user_id with combined search, filtering, and sorting.
         """
-        query = select(Expense, Category.name.label("category_name")).join(
-            Category, Category.id == Expense.category_id
+        query = (
+            select(Expense, Category.name.label("category_name"))
+            .join(Category, Category.id == Expense.category_id)
+            .where(Expense.user_id == user_id)
         )
 
         # Filters
@@ -110,11 +114,18 @@ class ExpenseService:
         return items, meta
 
     @staticmethod
-    async def get_by_id(session: AsyncSession, expense_id: uuid.UUID) -> Optional[ExpenseRead]:
+    async def get_by_id(
+        session: AsyncSession,
+        expense_id: uuid.UUID,
+        user_id: uuid.UUID,
+    ) -> Optional[ExpenseRead]:
         query = (
             select(Expense, Category.name.label("category_name"))
             .join(Category, Category.id == Expense.category_id)
-            .where(Expense.id == expense_id)
+            .where(
+                Expense.id == expense_id,
+                Expense.user_id == user_id,
+            )
         )
         result = await session.execute(query)
         row = result.first()
@@ -135,8 +146,25 @@ class ExpenseService:
         )
 
     @staticmethod
-    async def create(session: AsyncSession, data: ExpenseCreate) -> ExpenseRead:
+    async def create(
+        session: AsyncSession,
+        data: ExpenseCreate,
+        user_id: uuid.UUID,
+    ) -> ExpenseRead:
+        # Verify category belongs to user
+        cat_stmt = select(Category).where(
+            Category.id == data.category_id,
+            Category.user_id == user_id,
+        )
+        cat = (await session.execute(cat_stmt)).scalar_one_or_none()
+        if not cat:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Category not found or does not belong to user.",
+            )
+
         expense = Expense(
+            user_id=user_id,
             title=data.title.strip(),
             category_id=data.category_id,
             amount=data.amount,
@@ -147,12 +175,12 @@ class ExpenseService:
         session.add(expense)
         await session.commit()
         await session.refresh(expense)
-        cat = await session.get(Category, expense.category_id)
+
         return ExpenseRead(
             id=expense.id,
             title=expense.title,
             category_id=expense.category_id,
-            category_name=cat.name if cat else None,
+            category_name=cat.name,
             amount=expense.amount,
             expense_date=expense.expense_date,
             notes=expense.notes,
@@ -162,12 +190,33 @@ class ExpenseService:
         )
 
     @staticmethod
-    async def update(session: AsyncSession, expense_id: uuid.UUID, data: ExpenseUpdate) -> Optional[ExpenseRead]:
-        expense = await session.get(Expense, expense_id)
+    async def update(
+        session: AsyncSession,
+        expense_id: uuid.UUID,
+        data: ExpenseUpdate,
+        user_id: uuid.UUID,
+    ) -> Optional[ExpenseRead]:
+        stmt = select(Expense).where(
+            Expense.id == expense_id,
+            Expense.user_id == user_id,
+        )
+        expense = (await session.execute(stmt)).scalar_one_or_none()
         if not expense:
             return None
 
         update_data = data.model_dump(exclude_unset=True)
+        if "category_id" in update_data and update_data["category_id"]:
+            cat_stmt = select(Category).where(
+                Category.id == update_data["category_id"],
+                Category.user_id == user_id,
+            )
+            cat = (await session.execute(cat_stmt)).scalar_one_or_none()
+            if not cat:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="Target category not found.",
+                )
+
         for field, val in update_data.items():
             if field == "title" and val:
                 val = val.strip()
@@ -177,12 +226,12 @@ class ExpenseService:
 
         await session.commit()
         await session.refresh(expense)
-        cat = await session.get(Category, expense.category_id)
+        cat_obj = await session.get(Category, expense.category_id)
         return ExpenseRead(
             id=expense.id,
             title=expense.title,
             category_id=expense.category_id,
-            category_name=cat.name if cat else None,
+            category_name=cat_obj.name if cat_obj else None,
             amount=expense.amount,
             expense_date=expense.expense_date,
             notes=expense.notes,
@@ -192,17 +241,23 @@ class ExpenseService:
         )
 
     @staticmethod
-    async def delete(session: AsyncSession, expense_id: uuid.UUID) -> bool:
-        expense = await session.get(Expense, expense_id)
-        if not expense:
-            return False
-        await session.delete(expense)
+    async def delete(
+        session: AsyncSession,
+        expense_id: uuid.UUID,
+        user_id: uuid.UUID,
+    ) -> bool:
+        del_stmt = delete(Expense).where(
+            Expense.id == expense_id,
+            Expense.user_id == user_id,
+        )
+        result = await session.execute(del_stmt)
         await session.commit()
-        return True
+        return result.rowcount > 0
 
     @staticmethod
     async def get_all_filtered(
         session: AsyncSession,
+        user_id: uuid.UUID,
         search: Optional[str] = None,
         date_from: Optional[date] = None,
         date_to: Optional[date] = None,
@@ -213,8 +268,10 @@ class ExpenseService:
         sort_by: str = "expense_date",
         sort_dir: str = "desc",
     ) -> List[ExpenseRead]:
-        query = select(Expense, Category.name.label("category_name")).join(
-            Category, Category.id == Expense.category_id
+        query = (
+            select(Expense, Category.name.label("category_name"))
+            .join(Category, Category.id == Expense.category_id)
+            .where(Expense.user_id == user_id)
         )
 
         if search:
@@ -280,7 +337,11 @@ class ExpenseService:
         return output.getvalue()
 
     @staticmethod
-    async def import_from_csv(session: AsyncSession, csv_content: str) -> ExpenseImportResult:
+    async def import_from_csv(
+        session: AsyncSession,
+        csv_content: str,
+        user_id: uuid.UUID,
+    ) -> ExpenseImportResult:
         csv_file = io.StringIO(csv_content.strip())
         reader = csv.reader(csv_file)
         header_row = next(reader, None)
@@ -324,7 +385,9 @@ class ExpenseService:
                 ],
             )
 
-        cat_result = await session.execute(select(Category))
+        cat_result = await session.execute(
+            select(Category).where(Category.user_id == user_id)
+        )
         categories = {c.name.strip().lower(): c for c in cat_result.scalars().all()}
 
         async def get_or_create_category(cat_name: Optional[str]) -> Category:
@@ -336,7 +399,7 @@ class ExpenseService:
             if normalized_target in categories:
                 return categories[normalized_target]
 
-            new_cat = Category(name=target_name)
+            new_cat = Category(user_id=user_id, name=target_name)
             session.add(new_cat)
             await session.flush()
             categories[normalized_target] = new_cat
@@ -348,7 +411,9 @@ class ExpenseService:
         total_processed = 0
 
         existing_res = await session.execute(
-            select(Expense.title, Expense.amount, Expense.expense_date, Expense.category_id)
+            select(Expense.title, Expense.amount, Expense.expense_date, Expense.category_id).where(
+                Expense.user_id == user_id
+            )
         )
         existing_set = {
             (row[0].strip().lower(), row[1], row[2], row[3]) for row in existing_res.all()
@@ -407,6 +472,7 @@ class ExpenseService:
                 continue
 
             new_exp = Expense(
+                user_id=user_id,
                 title=raw_title,
                 category_id=cat_obj.id,
                 amount=amount_dec,
@@ -429,8 +495,14 @@ class ExpenseService:
         )
 
     @staticmethod
-    async def import_from_json(session: AsyncSession, items: List[ExpenseImportItem]) -> ExpenseImportResult:
-        cat_result = await session.execute(select(Category))
+    async def import_from_json(
+        session: AsyncSession,
+        items: List[ExpenseImportItem],
+        user_id: uuid.UUID,
+    ) -> ExpenseImportResult:
+        cat_result = await session.execute(
+            select(Category).where(Category.user_id == user_id)
+        )
         categories = {c.name.strip().lower(): c for c in cat_result.scalars().all()}
 
         async def get_or_create_category(cat_name: Optional[str]) -> Category:
@@ -442,14 +514,16 @@ class ExpenseService:
             if normalized_target in categories:
                 return categories[normalized_target]
 
-            new_cat = Category(name=target_name)
+            new_cat = Category(user_id=user_id, name=target_name)
             session.add(new_cat)
             await session.flush()
             categories[normalized_target] = new_cat
             return new_cat
 
         existing_res = await session.execute(
-            select(Expense.title, Expense.amount, Expense.expense_date, Expense.category_id)
+            select(Expense.title, Expense.amount, Expense.expense_date, Expense.category_id).where(
+                Expense.user_id == user_id
+            )
         )
         existing_set = {
             (row[0].strip().lower(), row[1], row[2], row[3]) for row in existing_res.all()
@@ -478,6 +552,7 @@ class ExpenseService:
                 continue
 
             new_exp = Expense(
+                user_id=user_id,
                 title=item.title.strip(),
                 category_id=cat_obj.id,
                 amount=item.amount,
@@ -498,4 +573,3 @@ class ExpenseService:
             skipped_duplicates_count=skipped_duplicates_count,
             errors=errors,
         )
-
