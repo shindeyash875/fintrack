@@ -788,3 +788,49 @@
   - Executed `npm run test -- --run` in `frontend/`: **55 of 55 passed** across 8 test suites (100% pass rate in 3.56s).
 - **Rule Compliance:**
   - 100% compliant with AGENTS.md: zero inline styling, ORM over raw SQL, React communicates exclusively via REST APIs, never committed `.env`, and end-to-end integration verified.
+
+---
+
+## Milestone Completed: Email Verification (Registration), Password Reset & Flexible SMTP (Gmail / Resend)
+
+### 1. Work Completed
+- **100% Environment-Driven SMTP Engine (`backend/app/services/email_service.py`):**
+  - Zero hardcoding: Uses standard asynchronous SMTP (`aiosmtplib` / MIME multipart HTML + plain text) capable of switching seamlessly between **Gmail SMTP** (App Passwords) and **Resend SMTP** (API Key) simply by altering `.env` variables.
+  - Generates responsive, emerald-themed branded email templates for both Email Verification (24-hour expiration) and Password Reset (60-minute expiration).
+  - Background async dispatch via FastAPI `BackgroundTasks` ensuring instantaneous HTTP API response times.
+- **Email Verification Tokens Schema & Migration:**
+  - Created `EmailVerificationToken` SQLAlchemy 2.0 ORM model in `backend/app/models/email_verification.py` with foreign key cascade to `users.id` and indexed `token_hash`.
+  - Generated and executed Alembic migration `9c2d1e4f6a8b_add_email_verification_tokens.py`.
+- **Backend Verification Endpoints & Logic:**
+  - Updated `POST /api/v1/auth/register` to auto-generate a secure random token and dispatch a verification email in the background.
+  - Implemented `POST /api/v1/auth/verify-email` to validate token and mark `user.is_verified = True`.
+  - Implemented rate-limited `POST /api/v1/auth/resend-verification` (`3/minute`) to issue and deliver a fresh verification link.
+- **Frontend Verification Page & Integration:**
+  - Created `VerifyEmailPage.jsx` at `/verify-email` with auto-verification on load, loading spinner, celebratory success state, and expired token recovery UI with a resend button.
+  - Added user verification status badge (Verified vs Unverified) in `Navbar.jsx` user profile dropdown.
+  - Added `verifyEmail` and `resendVerification` actions in `useAuthStore.js` and `auth.js`.
+- **Comprehensive Testing:**
+  - Created `backend/tests/test_email_verification.py` testing registration verification token generation, verification endpoint validation, invalid/expired token rejection, and resend verification. All tests passed.
+  - Executed Vitest test suite (`8 passed, 56 tests`) and verified production build with Vite (`npm run build`).
+
+### 2. Files Modified / Created
+- **Backend:**
+  - `backend/app/models/email_verification.py` [NEW]
+  - `backend/app/db/alembic/versions/9c2d1e4f6a8b_add_email_verification_tokens.py` [NEW]
+  - `backend/app/services/email_service.py` [MODIFIED]
+  - `backend/app/services/auth_service.py` [MODIFIED]
+  - `backend/app/schemas/auth.py` [MODIFIED]
+  - `backend/app/api/v1/endpoints/auth.py` [MODIFIED]
+  - `backend/app/api/dependencies.py` [MODIFIED]
+  - `backend/app/core/config.py` [MODIFIED]
+  - `backend/.env.example` [MODIFIED]
+  - `backend/tests/test_email_verification.py` [NEW]
+- **Frontend:**
+  - `frontend/src/pages/VerifyEmailPage.jsx` [NEW]
+  - `frontend/src/api/endpoints/auth.js` [MODIFIED]
+  - `frontend/src/store/useAuthStore.js` [MODIFIED]
+  - `frontend/src/components/layout/Navbar.jsx` [MODIFIED]
+  - `frontend/src/App.jsx` [MODIFIED]
+- **Documentation:**
+  - `PROGRESS.md` [MODIFIED]
+

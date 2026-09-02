@@ -238,3 +238,174 @@ The FinTrack Team
             html_content=html_body,
             text_content=plain_text,
         )
+
+    @classmethod
+    async def send_verification_email(
+        cls,
+        to_email: str,
+        verification_token: str,
+        user_name: Optional[str] = None,
+    ) -> bool:
+        """
+        Constructs and delivers an email verification message for new user registration.
+        """
+        frontend_base = settings.FRONTEND_URL.rstrip("/")
+        verify_link = f"{frontend_base}/verify-email?token={verification_token}"
+        greeting_name = user_name if user_name and user_name.strip() else "FinTrack User"
+
+        subject = "Verify Your FinTrack Email Address"
+
+        plain_text = f"""Hello {greeting_name},
+
+Welcome to FinTrack! Please verify your email address to complete your registration and secure your account.
+
+Click the link below to verify your email:
+{verify_link}
+
+This verification link will expire in {settings.VERIFICATION_TOKEN_EXPIRE_HOURS} hours.
+
+If you did not create a FinTrack account, please ignore this email.
+
+Best regards,
+The FinTrack Team
+"""
+
+        html_body = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Verify Your FinTrack Email</title>
+  <style>
+    body {{
+      margin: 0;
+      padding: 0;
+      background-color: #0b0f19;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      color: #e2e8f0;
+    }}
+    .container {{
+      max-width: 560px;
+      margin: 40px auto;
+      background: #131b2e;
+      border: 1px solid #1e293b;
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+    }}
+    .header {{
+      background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+      padding: 32px 24px;
+      text-align: center;
+    }}
+    .header h1 {{
+      margin: 0;
+      color: #ffffff;
+      font-size: 26px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+    }}
+    .header p {{
+      margin: 6px 0 0 0;
+      color: #ecfdf5;
+      font-size: 14px;
+      font-weight: 500;
+    }}
+    .content {{
+      padding: 36px 32px;
+    }}
+    .greeting {{
+      font-size: 18px;
+      font-weight: 600;
+      color: #ffffff;
+      margin-bottom: 16px;
+    }}
+    .message {{
+      font-size: 15px;
+      line-height: 1.6;
+      color: #94a3b8;
+      margin-bottom: 28px;
+    }}
+    .btn-wrapper {{
+      text-align: center;
+      margin: 32px 0;
+    }}
+    .btn {{
+      display: inline-block;
+      background: #10b981;
+      color: #ffffff !important;
+      font-size: 15px;
+      font-weight: 700;
+      text-decoration: none;
+      padding: 14px 32px;
+      border-radius: 12px;
+      box-shadow: 0 8px 20px rgba(16, 185, 129, 0.35);
+    }}
+    .notice {{
+      background: #1e293b;
+      border-left: 4px solid #10b981;
+      border-radius: 8px;
+      padding: 14px 18px;
+      font-size: 13px;
+      color: #cbd5e1;
+      margin-bottom: 24px;
+      line-height: 1.5;
+    }}
+    .fallback-url {{
+      word-break: break-all;
+      font-size: 12px;
+      color: #64748b;
+      margin-top: 24px;
+      line-height: 1.5;
+    }}
+    .fallback-url a {{
+      color: #10b981;
+      text-decoration: underline;
+    }}
+    .footer {{
+      padding: 24px 32px;
+      background: #0d1322;
+      border-top: 1px solid #1e293b;
+      text-align: center;
+      font-size: 12px;
+      color: #64748b;
+    }}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>FinTrack</h1>
+      <p>Personal Expense &amp; Live Budget Tracker</p>
+    </div>
+    <div class="content">
+      <div class="greeting">Welcome to FinTrack, {greeting_name}!</div>
+      <div class="message">
+        Thank you for creating an account. Please click the button below to verify your email address and activate all features:
+      </div>
+      <div class="btn-wrapper">
+        <a href="{verify_link}" class="btn" target="_blank">Verify My Email</a>
+      </div>
+      <div class="notice">
+        <strong>Note:</strong> This verification link is valid for <strong>{settings.VERIFICATION_TOKEN_EXPIRE_HOURS} hours</strong>. If you did not sign up for a FinTrack account, you can safely ignore this email.
+      </div>
+      <div class="fallback-url">
+        If the button above does not work, copy and paste this URL into your browser:<br>
+        <a href="{verify_link}">{verify_link}</a>
+      </div>
+    </div>
+    <div class="footer">
+      &copy; FinTrack. All rights reserved.<br>
+      This is an automated system email, please do not reply.
+    </div>
+  </div>
+</body>
+</html>
+"""
+
+        return await cls.send_email(
+            to_email=to_email,
+            subject=subject,
+            html_content=html_body,
+            text_content=plain_text,
+        )

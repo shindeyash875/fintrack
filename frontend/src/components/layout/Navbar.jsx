@@ -111,9 +111,20 @@ export const Navbar = () => {
             {isDropdownOpen && (
               <div className="absolute right-0 mt-2 w-56 bg-white rounded-2xl shadow-xl border border-slate-100 py-2 z-50 animate-fade-in">
                 <div className="px-4 py-2.5 border-b border-slate-100">
-                  <p className="text-xs font-bold text-slate-800 truncate">
-                    {user?.full_name || 'FinTrack User'}
-                  </p>
+                  <div className="flex items-center justify-between gap-1 mb-0.5">
+                    <p className="text-xs font-bold text-slate-800 truncate">
+                      {user?.full_name || 'FinTrack User'}
+                    </p>
+                    {user?.is_verified ? (
+                      <span className="text-[10px] font-semibold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-md border border-emerald-200">
+                        Verified
+                      </span>
+                    ) : (
+                      <span className="text-[10px] font-semibold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded-md border border-amber-200">
+                        Unverified
+                      </span>
+                    )}
+                  </div>
                   <p className="text-[11px] text-slate-500 truncate">{user?.email}</p>
                 </div>
 

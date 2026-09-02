@@ -19,6 +19,7 @@ from app.core.security import (
 )
 from app.db.seed import STARTER_CATEGORIES
 from app.models.category import Category
+from app.models.email_verification import EmailVerificationToken
 from app.models.password_reset import PasswordResetToken
 from app.models.refresh_token import RefreshToken
 from app.models.user import User
@@ -473,3 +474,107 @@ class AuthService:
             .order_by(RefreshToken.created_at.desc())
         )
         return list(res.scalars().all())
+
+    @classmethod
+    async def create_email_verification(
+        cls,
+        session: AsyncSession,
+        user_id: uuid.UUID,
+    ) -> str:
+        """
+        Generates a secure email verification token for the user.
+        Invalidates any previously active verification tokens.
+        """
+        now = datetime.now(timezone.utc)
+        # Mark existing active tokens as used/invalidated
+        await session.execute(
+            update(EmailVerificationToken)
+            .where(
+                EmailVerificationToken.user_id == user_id,
+                EmailVerificationToken.used_at.is_(None),
+            )
+            .values(used_at=now)
+        )
+
+        raw_token = generate_secure_random_token(32)
+        token_hashed = hash_token(raw_token)
+        expires_at = now + timedelta(hours=settings.VERIFICATION_TOKEN_EXPIRE_HOURS)
+
+        verification_record = EmailVerificationToken(
+            user_id=user_id,
+            token_hash=token_hashed,
+            expires_at=expires_at,
+        )
+        session.add(verification_record)
+        await session.flush()
+        return raw_token
+
+    @classmethod
+    async def verify_email(
+        cls,
+        session: AsyncSession,
+        raw_token: str,
+    ) -> User:
+        """
+        Validates an email verification token, marks the user's email as verified,
+        and invalidates the token.
+        """
+        token_hashed = hash_token(raw_token.strip())
+        res = await session.execute(
+            select(EmailVerificationToken).where(EmailVerificationToken.token_hash == token_hashed)
+        )
+        record = res.scalar_one_or_none()
+
+        now = datetime.now(timezone.utc)
+        if not record or record.used_at is not None or record.expires_at <= now:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid or expired verification link. Please request a new verification email.",
+            )
+
+        # Mark token as used
+        record.used_at = now
+
+        # Retrieve and verify user
+        user_res = await session.execute(select(User).where(User.id == record.user_id))
+        user = user_res.scalar_one_or_none()
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User account not found.",
+            )
+
+        user.is_verified = True
+        await session.commit()
+        await session.refresh(user)
+        return user
+
+    @classmethod
+    async def resend_verification(
+        cls,
+        session: AsyncSession,
+        email: Optional[str] = None,
+        user_id: Optional[uuid.UUID] = None,
+    ) -> Optional[Tuple[str, str, Optional[str]]]:
+        """
+        Generates a new email verification token for the user.
+        Returns (raw_token, email, full_name) if user exists and is unverified, else None.
+        """
+        user = None
+        if user_id:
+            res = await session.execute(select(User).where(User.id == user_id))
+            user = res.scalar_one_or_none()
+        elif email:
+            email_clean = email.strip().lower()
+            res = await session.execute(select(User).where(User.email == email_clean))
+            user = res.scalar_one_or_none()
+
+        if not user:
+            return None  # Shield against user enumeration
+
+        if user.is_verified:
+            return None  # Already verified
+
+        raw_token = await cls.create_email_verification(session, user.id)
+        await session.commit()
+        return raw_token, user.email, user.full_name

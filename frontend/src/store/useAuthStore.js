@@ -177,6 +177,21 @@ export const useAuthStore = create((set, get) => ({
       new_password: newPassword,
     });
   },
+
+  // Verify email with token
+  verifyEmail: async (token) => {
+    const res = await authApi.verifyEmail({ token });
+    const data = res.data || res;
+    if (get().user) {
+      set({ user: { ...get().user, is_verified: true } });
+    }
+    return data;
+  },
+
+  // Resend verification email
+  resendVerification: async (email) => {
+    return await authApi.resendVerification({ email });
+  },
 }));
 
 export default useAuthStore;

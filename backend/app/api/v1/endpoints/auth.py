@@ -3,7 +3,7 @@ from typing import List, Optional
 from fastapi import APIRouter, BackgroundTasks, Cookie, Depends, Header, HTTPException, Request, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.dependencies import get_current_active_user, limiter
+from app.api.dependencies import get_current_active_user, get_optional_current_user, limiter
 from app.core.config import settings
 from app.db.session import get_db
 from app.models.user import User
@@ -13,11 +13,13 @@ from app.schemas.auth import (
     GoogleAuthRequest,
     LoginRequest,
     RegisterRequest,
+    ResendVerificationRequest,
     ResetPasswordRequest,
     SessionResponse,
     TokenResponse,
     UserResponse,
     UserUpdateRequest,
+    VerifyEmailRequest,
 )
 from app.schemas.common import ApiResponse
 from app.services.auth_service import AuthService
@@ -68,6 +70,7 @@ async def register(
     request: Request,
     payload: RegisterRequest,
     response: Response,
+    background_tasks: BackgroundTasks,
     session: AsyncSession = Depends(get_db),
     user_agent: Optional[str] = Header(None),
 ):
@@ -79,6 +82,17 @@ async def register(
         ip_address=ip_addr,
     )
     set_refresh_cookie(response, raw_refresh)
+
+    # Generate email verification token & dispatch email in background
+    verification_token = await AuthService.create_email_verification(session, user.id)
+    await session.commit()
+
+    background_tasks.add_task(
+        EmailService.send_verification_email,
+        to_email=user.email,
+        verification_token=verification_token,
+        user_name=user.full_name,
+    )
 
     token_data = TokenResponse(
         access_token=access_token,
@@ -95,7 +109,7 @@ async def register(
     )
     return ApiResponse(
         data=token_data,
-        message="Account created successfully.",
+        message="Account created successfully. A verification email has been sent to your inbox.",
     )
 
 
@@ -392,4 +406,68 @@ async def get_sessions(
     return ApiResponse(
         data=results,
         message="Active sessions retrieved.",
+    )
+
+
+@router.post(
+    "/verify-email",
+    response_model=ApiResponse[dict],
+    summary="Verify user email address using verification token",
+)
+@limiter.limit("10/minute")
+async def verify_email(
+    request: Request,
+    payload: VerifyEmailRequest,
+    session: AsyncSession = Depends(get_db),
+):
+    user = await AuthService.verify_email(session, payload.token)
+    return ApiResponse(
+        data={"is_verified": True, "email": user.email},
+        message="Your email address has been verified successfully!",
+    )
+
+
+@router.post(
+    "/resend-verification",
+    response_model=ApiResponse[dict],
+    summary="Resend verification email to user",
+)
+@limiter.limit("3/minute")
+async def resend_verification(
+    request: Request,
+    payload: ResendVerificationRequest,
+    background_tasks: BackgroundTasks,
+    session: AsyncSession = Depends(get_db),
+    current_user: Optional[User] = Depends(get_optional_current_user),
+):
+    target_email = payload.email
+    target_user_id = None
+
+    if current_user:
+        target_user_id = current_user.id
+        target_email = current_user.email
+    elif not target_email:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Please provide an email address or sign in to resend verification.",
+        )
+
+    resend_result = await AuthService.resend_verification(
+        session=session,
+        email=target_email,
+        user_id=target_user_id,
+    )
+
+    if resend_result:
+        raw_token, email_to_send, full_name = resend_result
+        background_tasks.add_task(
+            EmailService.send_verification_email,
+            to_email=email_to_send,
+            verification_token=raw_token,
+            user_name=full_name,
+        )
+
+    return ApiResponse(
+        data={"email_sent": True},
+        message="If an unverified account exists with that email, a new verification link has been sent.",
     )

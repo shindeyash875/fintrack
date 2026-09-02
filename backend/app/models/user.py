@@ -12,6 +12,7 @@ if TYPE_CHECKING:
     from app.models.budget import Budget
     from app.models.refresh_token import RefreshToken
     from app.models.password_reset import PasswordResetToken
+    from app.models.email_verification import EmailVerificationToken
 
 
 class User(Base):
@@ -95,6 +96,13 @@ class User(Base):
     )
     password_reset_tokens: Mapped[List["PasswordResetToken"]] = relationship(
         "PasswordResetToken",
+        back_populates="user",
+        lazy="selectin",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
+    email_verification_tokens: Mapped[List["EmailVerificationToken"]] = relationship(
+        "EmailVerificationToken",
         back_populates="user",
         lazy="selectin",
         cascade="all, delete-orphan",

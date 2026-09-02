@@ -108,6 +108,22 @@ class UserUpdateRequest(BaseModel):
     full_name: Optional[str] = Field(None, max_length=100, description="Updated display name")
 
 
+class VerifyEmailRequest(BaseModel):
+    token: str = Field(..., min_length=10, description="Email verification token")
+
+
+class ResendVerificationRequest(BaseModel):
+    email: Optional[EmailStr] = Field(None, description="Registered account email (optional if authenticated)")
+
+    @field_validator("email", mode="before")
+    @classmethod
+    def normalize_email(cls, v: Optional[str]) -> Optional[str]:
+        if isinstance(v, str) and v.strip():
+            return v.strip().lower()
+        return v
+
+
+
 class SessionResponse(BaseModel):
     id: uuid.UUID
     user_agent: Optional[str] = None

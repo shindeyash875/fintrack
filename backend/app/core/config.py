@@ -33,6 +33,7 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = Field(default=15, description="Access token expiration in minutes")
     REFRESH_TOKEN_EXPIRE_DAYS: int = Field(default=30, description="Refresh token expiration in days")
     RESET_TOKEN_EXPIRE_MINUTES: int = Field(default=60, description="Password reset token expiration in minutes")
+    VERIFICATION_TOKEN_EXPIRE_HOURS: int = Field(default=24, description="Email verification token expiration in hours")
 
     # Google OAuth / OpenID Connect
     GOOGLE_CLIENT_ID: Optional[str] = Field(default=None, description="Google OAuth 2.0 Client ID")

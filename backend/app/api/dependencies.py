@@ -76,3 +76,27 @@ async def get_current_active_user(
             detail="User account is deactivated.",
         )
     return current_user
+
+
+async def get_optional_current_user(
+    auth: Optional[HTTPAuthorizationCredentials] = Depends(http_bearer),
+    session: AsyncSession = Depends(get_db),
+) -> Optional[User]:
+    """
+    FastAPI dependency that returns the authenticated User entity if a valid Bearer token is provided,
+    otherwise returns None without raising an authentication exception.
+    """
+    if not auth or not auth.credentials:
+        return None
+
+    payload = decode_access_token(auth.credentials)
+    if not payload or not payload.get("sub"):
+        return None
+
+    try:
+        user_id = uuid.UUID(payload["sub"])
+    except (ValueError, TypeError):
+        return None
+
+    res = await session.execute(select(User).where(User.id == user_id, User.is_active.is_(True)))
+    return res.scalar_one_or_none()
