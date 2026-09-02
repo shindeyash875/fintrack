@@ -181,3 +181,42 @@ async def test_protected_routes_reject_unauthenticated(client: AsyncClient):
 
     res5 = await client.get("/api/v1/budgets/status")
     assert res5.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_email_service_fallback_and_dispatch(client: AsyncClient, monkeypatch):
+    from app.services.email_service import EmailService
+
+    # 1. Test when SMTP_PASSWORD is not set (should safely return False without exception)
+    monkeypatch.setattr("app.core.config.settings.SMTP_PASSWORD", "")
+    res = await EmailService.send_email(
+        to_email="test@example.com",
+        subject="Test Subject",
+        html_content="<p>Test Content</p>",
+    )
+    assert res is False
+
+    # 2. Test send_password_reset_email with mocked aiosmtplib.send
+    sent_messages = []
+
+    async def mock_send(message, **kwargs):
+        sent_messages.append({"message": message, "kwargs": kwargs})
+        return {}
+
+    monkeypatch.setattr("app.core.config.settings.SMTP_PASSWORD", "re_mock_test_key_123")
+    monkeypatch.setattr("aiosmtplib.send", mock_send)
+
+    send_success = await EmailService.send_password_reset_email(
+        to_email="user@example.com",
+        reset_token="sample_token_xyz",
+        user_name="John Doe",
+    )
+    assert send_success is True
+    assert len(sent_messages) == 1
+    msg = sent_messages[0]["message"]
+    assert msg["To"] == "user@example.com"
+    assert "Reset Your FinTrack Password" in str(msg["Subject"])
+    assert sent_messages[0]["kwargs"]["hostname"] == "smtp.resend.com"
+    assert sent_messages[0]["kwargs"]["username"] == "resend"
+    assert sent_messages[0]["kwargs"]["password"] == "re_mock_test_key_123"
+

@@ -42,6 +42,22 @@ class Settings(BaseSettings):
     COOKIE_SECURE: bool = Field(default=False, description="Enforce HTTPS Secure attribute on cookies")
     COOKIE_SAMESITE: str = Field(default="lax", description="SameSite attribute for cookies (lax, strict, none)")
 
+    # Email & SMTP (Resend)
+    SMTP_HOST: str = Field(default="smtp.resend.com", description="SMTP server host")
+    SMTP_PORT: int = Field(default=587, description="SMTP server port (587 for STARTTLS, 465 for SSL)")
+    SMTP_USER: str = Field(default="resend", description="SMTP username (for Resend, always 'resend')")
+    SMTP_PASSWORD: Optional[str] = Field(default=None, description="SMTP password / Resend API key (re_...)")
+    SMTP_FROM_EMAIL: str = Field(default="onboarding@resend.dev", description="Sender email address")
+    SMTP_FROM_NAME: str = Field(default="FinTrack", description="Sender display name")
+    SMTP_STARTTLS: bool = Field(default=True, description="Use STARTTLS for SMTP connection")
+    SMTP_SSL: bool = Field(default=False, description="Use SSL for SMTP connection (e.g. port 465)")
+
+    # Frontend URL (for constructing password reset and verification links)
+    FRONTEND_URL: str = Field(
+        default="http://localhost:5173",
+        description="Frontend base URL for generating password reset and verification links",
+    )
+
     # CORS
     CORS_ORIGINS: str = "http://localhost:5173,http://127.0.0.1:5173,https://fintrack.vercel.app"
     CORS_ORIGIN_REGEX: Optional[str] = Field(

@@ -160,6 +160,10 @@ apiClient.interceptors.response.use(
       }
     }
 
+    const fullUrl = error.config?.baseURL
+      ? `${error.config.baseURL.replace(/\/+$/, '')}/${error.config.url?.replace(/^\/+/, '')}`
+      : error.config?.url;
+
     const isSilentAuthProbe = error.config?.url?.includes('/auth/refresh') && error.response?.status === 401;
     if (!isSilentAuthProbe) {
       console.warn(`[FinTrack API Error] ${error.config?.method?.toUpperCase()} ${fullUrl}:`, error.message || error);

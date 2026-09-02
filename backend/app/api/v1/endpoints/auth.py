@@ -1,6 +1,6 @@
 from typing import List, Optional
 
-from fastapi import APIRouter, Cookie, Depends, Header, HTTPException, Request, Response, status
+from fastapi import APIRouter, BackgroundTasks, Cookie, Depends, Header, HTTPException, Request, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.dependencies import get_current_active_user, limiter
@@ -21,6 +21,7 @@ from app.schemas.auth import (
 )
 from app.schemas.common import ApiResponse
 from app.services.auth_service import AuthService
+from app.services.email_service import EmailService
 
 router = APIRouter()
 
@@ -273,18 +274,34 @@ async def logout_all_devices(
 async def forgot_password(
     request: Request,
     payload: ForgotPasswordRequest,
+    background_tasks: BackgroundTasks,
     session: AsyncSession = Depends(get_db),
 ):
-    reset_token = await AuthService.create_password_reset(session, payload.email)
-    # In a production setup, reset_token is sent via Email/SMTP.
-    # In development/test mode, we return the reset_token safely in the response payload for testing.
+    reset_data = await AuthService.create_password_reset(session, payload.email)
+    
+    reset_token = None
+    if isinstance(reset_data, dict):
+        reset_token = reset_data.get("token")
+        user_name = reset_data.get("full_name")
+    elif isinstance(reset_data, str):
+        reset_token = reset_data
+        user_name = None
+
+    if reset_token:
+        background_tasks.add_task(
+            EmailService.send_password_reset_email,
+            to_email=payload.email.strip().lower(),
+            reset_token=reset_token,
+            user_name=user_name,
+        )
+
     data = {"email_sent": True}
     if settings.DEBUG and reset_token:
         data["debug_reset_token"] = reset_token
 
     return ApiResponse(
         data=data,
-        message="If an account with that email exists, password reset instructions have been generated.",
+        message="If an account with that email exists, password reset instructions have been sent.",
     )
 
 

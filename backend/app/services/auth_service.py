@@ -347,9 +347,10 @@ class AuthService:
         cls,
         session: AsyncSession,
         email: str,
-    ) -> Optional[str]:
+    ) -> Optional[dict]:
         """
         Generates a secure password reset token for the given email.
+        Returns a dict with token, full_name, and user_id, or None if user not found.
         """
         email_clean = email.strip().lower()
         res = await session.execute(select(User).where(User.email == email_clean))
@@ -369,7 +370,11 @@ class AuthService:
         )
         session.add(reset_record)
         await session.commit()
-        return raw_reset_token
+        return {
+            "token": raw_reset_token,
+            "full_name": user.full_name,
+            "user_id": user.id,
+        }
 
     @classmethod
     async def reset_password(
