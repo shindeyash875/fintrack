@@ -118,8 +118,8 @@ export const AIChatAdvisorModal = () => {
         history: historyPayload,
       });
 
-      if (res?.data?.data) {
-        const aiResponse = res.data.data;
+      const aiResponse = res?.data || res;
+      if (aiResponse && aiResponse.reply) {
         setMessages((prev) => [
           ...prev,
           {
