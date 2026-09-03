@@ -19,6 +19,7 @@ import BudgetModal from '../components/budgets/BudgetModal';
 import ReceiptScannerModal from '../components/expenses/ReceiptScannerModal';
 import ExpenseModal from '../components/expenses/ExpenseModal';
 import AIQuickInput from '../components/expenses/AIQuickInput';
+import FinancialMoodAvatar from '../components/dashboard/FinancialMoodAvatar';
 import AIForecastCard from '../components/dashboard/AIForecastCard';
 import CategoryPieChart from '../components/dashboard/CategoryPieChart';
 import SpendingTrendChart from '../components/dashboard/SpendingTrendChart';
@@ -166,6 +167,12 @@ export const DashboardPage = () => {
 
       {/* Overspending Alert Banner */}
       <OverspendingBanner onManageBudgets={() => setIsBudgetModalOpen(true)} />
+
+      {/* Financial Mood & Sentiment Mascot Avatar (Option 3) */}
+      <FinancialMoodAvatar
+        summary={summary}
+        onOpenBudgetModal={() => setIsBudgetModalOpen(true)}
+      />
 
       {/* Error state alert */}
       {error && (
