@@ -1013,6 +1013,27 @@
 - **Documentation:**
   - `PROGRESS.md` [MODIFIED]
 
+---
+
+## Phase 4.1: AI Quick-Add Expense Parsing & Automatic Category Allocation
+
+### 1. Work Completed
+- **Smart Category Auto-Resolution & Creation (`AIService._smart_resolve_category`):**
+  - Added `CategoryService.get_or_create(session, name, user_id)` in `backend/app/services/category_service.py` supporting auto-creation of missing expense categories during AI logging.
+  - Implemented `_smart_resolve_category` in `backend/app/services/ai_service.py` with multi-tier resolution:
+    1. Exact or substring match against the user's existing categories.
+    2. Domain keyword matching across 9 core Indian & universal expense domains (Food & Dining, Transportation, Groceries, Bills & Utilities, Shopping, Entertainment, Health & Medical, Education, Personal Care).
+    3. Automatic creation of the matched category if not yet present in the user's account.
+    4. Safe fallback to 'General' category.
+  - Added resilient local NLP / regex parser `_fallback_parse_expense` in `AIService` for guaranteed zero-failure parsing even when the external LLM provider throttles or is unavailable.
+- **Frontend Interactive Category Selection (`AIQuickInput.jsx`):**
+  - Made the category badge on the parsed confirmation card an interactive `<select>` dropdown, preselected to the AI suggested category with support for instant manual overrides.
+  - Added auto-refresh `fetchCategories()` after saving an expense so newly created categories appear instantly across all category filters and views.
+- **Testing & Verification:**
+  - Backend pytest suite: **51 of 51 passed**.
+  - Frontend Vitest suite: **56 of 56 passed**.
+
+
 
 
 
