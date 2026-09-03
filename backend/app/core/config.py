@@ -96,12 +96,12 @@ class Settings(BaseSettings):
             return self.AI_MODEL.strip()
         provider = self.AI_PROVIDER.lower().strip()
         if provider == "gemini":
-            return "gemini-2.0-flash"
+            return "gemini-3.6-flash"
         elif provider == "openai":
             return "gpt-4o-mini"
         elif provider == "claude":
             return "claude-3-5-haiku-20241022"
-        return "gemini-2.0-flash"
+        return "gemini-3.6-flash"
 
     @property
     def cors_origins_list(self) -> List[str]:
