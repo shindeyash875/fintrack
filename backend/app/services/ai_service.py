@@ -449,13 +449,24 @@ class AIService:
 
         prompt = f"{history_text}User: {message}\nAdvisor:"
 
-        provider = AIFactory.get_provider()
-        reply_text = await provider.generate_text(
-            prompt=prompt,
-            system_prompt=system_instruction,
-            temperature=0.4,
-            max_tokens=800,
-        )
+        try:
+            provider = AIFactory.get_provider()
+            reply_text = await provider.generate_text(
+                prompt=prompt,
+                system_prompt=system_instruction,
+                temperature=0.4,
+                max_tokens=800,
+            )
+        except Exception as ai_err:
+            logger.warning(f"[AIService] AI chat provider failed ({ai_err}), using grounded financial guidance fallback.")
+            spent_val = f"₹{float(summary.total_spent_current_month):.2f}"
+            reply_text = (
+                f"### 📊 Your Financial Snapshot\n\n"
+                f"- **Total Spent This Month:** {spent_val}\n"
+                f"- **Top Categories:** {top_cats}\n"
+                f"- **Budget Status:** {overall_budget_str}\n\n"
+                f"💡 **Tip:** Based on your current spending, keeping your daily expenses below your target allowance will ensure you stay within your monthly budget."
+            )
 
         # Generate smart suggested follow-up prompts
         suggested_actions = [

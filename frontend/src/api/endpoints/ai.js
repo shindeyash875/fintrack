@@ -14,16 +14,27 @@ export const aiApi = {
 
   /**
    * Parses natural language text into a structured expense
-   * @param {string} text
+   * @param {string|object} textOrPayload
    */
-  parseExpense: (text) => apiClient.post('/ai/parse-expense', { text }),
+  parseExpense: (textOrPayload) => {
+    const text = typeof textOrPayload === 'object' && textOrPayload !== null ? textOrPayload.text : textOrPayload;
+    return apiClient.post('/ai/parse-expense', { text });
+  },
 
   /**
    * Sends user message to FinTrack AI Financial Advisor
-   * @param {string} message
-   * @param {Array} history
+   * @param {string|object} messageOrPayload
+   * @param {Array} [history]
    */
-  chat: (message, history = []) => apiClient.post('/ai/chat', { message, history }),
+  chat: (messageOrPayload, history = []) => {
+    if (typeof messageOrPayload === 'object' && messageOrPayload !== null) {
+      return apiClient.post('/ai/chat', {
+        message: messageOrPayload.message,
+        history: messageOrPayload.history || [],
+      });
+    }
+    return apiClient.post('/ai/chat', { message: messageOrPayload, history });
+  },
 
   /**
    * Retrieves predictive spending forecast and budget overrun alerts
