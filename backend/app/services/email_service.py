@@ -36,20 +36,55 @@ class EmailService:
             return False
 
         try:
-            # Build multipart message
+            plain_body = text_content or "Please view this email in an HTML-compatible email client."
+
+            # If using Resend (host is smtp.resend.com or API key starts with 're_'),
+            # deliver via Resend's HTTPS REST API. This completely bypasses cloud host
+            # outbound SMTP port blocks (such as Render blocking port 587/25).
+            is_resend = (
+                settings.SMTP_HOST == "smtp.resend.com"
+                or (settings.SMTP_PASSWORD and settings.SMTP_PASSWORD.strip().startswith("re_"))
+            )
+
+            if is_resend:
+                import httpx
+
+                from_addr = (
+                    f"{settings.SMTP_FROM_NAME} <{settings.SMTP_FROM_EMAIL}>"
+                    if settings.SMTP_FROM_NAME
+                    else settings.SMTP_FROM_EMAIL
+                )
+                headers = {
+                    "Authorization": f"Bearer {settings.SMTP_PASSWORD.strip()}",
+                    "Content-Type": "application/json",
+                }
+                api_payload = {
+                    "from": from_addr,
+                    "to": [to_email],
+                    "subject": subject,
+                    "html": html_content,
+                    "text": plain_body,
+                }
+                async with httpx.AsyncClient(timeout=15.0) as client:
+                    resp = await client.post("https://api.resend.com/emails", headers=headers, json=api_payload)
+                    if resp.status_code in (200, 201):
+                        logger.info(f"[Email Success] Sent '{subject}' to <{to_email}> via Resend HTTPS API")
+                        return True
+                    else:
+                        logger.error(
+                            f"[Email Error] Resend HTTPS API returned status {resp.status_code}: {resp.text}"
+                        )
+                        return False
+
+            # Standard SMTP delivery (e.g. Gmail SMTP, local development, custom SMTP server)
             message = MIMEMultipart("alternative")
             message["Subject"] = Header(subject, "utf-8")
             message["From"] = formataddr((str(Header(settings.SMTP_FROM_NAME, "utf-8")), settings.SMTP_FROM_EMAIL))
             message["To"] = to_email
 
-            # Attach plain text fallback
-            plain_body = text_content or "Please view this email in an HTML-compatible email client."
             message.attach(MIMEText(plain_body, "plain", "utf-8"))
-
-            # Attach HTML content
             message.attach(MIMEText(html_content, "html", "utf-8"))
 
-            # Dispatch via async SMTP
             await aiosmtplib.send(
                 message,
                 hostname=settings.SMTP_HOST,
