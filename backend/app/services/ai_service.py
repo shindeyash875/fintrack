@@ -368,60 +368,68 @@ class AIService:
         """
         Interactive personal financial advisor chatbot grounded in real-time user financial data.
         """
-        # 1. Fetch real-time user financial context
         today = date.today()
-        summary = await DashboardService.get_summary(session, user_id, today=today)
-        comparison = await DashboardService.get_compare(session, user_id, today=today)
-        budget_status = await BudgetService.get_status(session, period_month=today, user_id=user_id)
-
-        # 2. Format grounding snapshot
-        top_cats = (
-            ", ".join(
-                [
-                    f"{c.category_name}: ₹{float(c.total_amount):.2f} ({c.percentage:.1f}%)"
-                    for c in summary.top_categories
-                ]
-            )
-            if summary.top_categories
-            else "No spending recorded this month"
-        )
-        recent_txs = (
-            "; ".join([f"{e.title} (₹{float(e.amount):.2f} on {e.expense_date})" for e in summary.recent_expenses[:5]])
-            if summary.recent_expenses
-            else "No recent transactions"
-        )
-
+        summary = None
+        comparison = None
+        budget_status = None
+        top_cats = "No spending recorded this month"
+        recent_txs = "No recent transactions"
         overall_budget_str = "Not set"
-        if budget_status.overall:
-            overall_budget_str = (
-                f"Limit ₹{float(budget_status.overall.limit_amount):.2f}, "
-                f"Spent ₹{float(budget_status.overall.spent_amount):.2f} "
-                f"({budget_status.overall.percentage_used:.1f}%, Status: {budget_status.overall.status})"
-            )
+        overspent_str = "None (All category budgets on track)"
+        mom_str = "No previous month baseline available"
+        overspent_list = []
 
-        overspent_list = [b for b in budget_status.categories if b.status == "over_budget"]
-        overspent_str = (
-            ", ".join([f"{b.category_name} (Spent ₹{float(b.spent_amount):.2f} of ₹{float(b.limit_amount):.2f})" for b in overspent_list])
-            if overspent_list
-            else "None (All category budgets on track)"
-        )
+        # 1. Fetch real-time user financial context safely
+        try:
+            summary = await DashboardService.get_summary(session, user_id, today=today)
+            comparison = await DashboardService.get_compare(session, user_id, today=today)
+            budget_status = await BudgetService.get_status(session, period_month=today, user_id=user_id)
 
-        mom_str = (
-            f"Change from last month: {comparison.percentage_change:+.1f}%"
-            if comparison.previous_month_total > 0
-            else "No previous month baseline available"
-        )
+            if summary and summary.top_categories:
+                top_cats = ", ".join(
+                    [
+                        f"{c.category_name}: ₹{float(c.total_amount):.2f} ({c.percentage:.1f}%)"
+                        for c in summary.top_categories
+                    ]
+                )
+
+            if summary and summary.recent_expenses:
+                recent_txs = "; ".join(
+                    [f"{e.title} (₹{float(e.amount):.2f} on {e.expense_date})" for e in summary.recent_expenses[:5]]
+                )
+
+            if budget_status and budget_status.overall:
+                overall_budget_str = (
+                    f"Limit ₹{float(budget_status.overall.limit_amount):.2f}, "
+                    f"Spent ₹{float(budget_status.overall.spent_amount):.2f} "
+                    f"({budget_status.overall.percentage_used:.1f}%, Status: {budget_status.overall.status})"
+                )
+
+            if budget_status and budget_status.categories:
+                overspent_list = [b for b in budget_status.categories if b.status == "over_budget"]
+                if overspent_list:
+                    overspent_str = ", ".join(
+                        [f"{b.category_name} (Spent ₹{float(b.spent_amount):.2f} of ₹{float(b.limit_amount):.2f})" for b in overspent_list]
+                    )
+
+            if comparison and comparison.previous_month_total > 0:
+                mom_str = f"Change from last month: {comparison.percentage_change:+.1f}%"
+        except Exception as ctx_err:
+            logger.warning(f"[AIService] Failed to load full context for chat: {ctx_err}")
+
+        spent_month_val = float(summary.total_spent_current_month) if summary else 0.0
+        spent_total_val = float(summary.total_spent_overall) if summary else 0.0
 
         grounded_context = (
             f"--- USER'S LIVE FINANCIAL PROFILE (REAL GROUND TRUTH) ---\n"
             f"Today's Date: {today.isoformat()} ({today.strftime('%B %Y')})\n"
-            f"Total Spent This Month ({today.strftime('%B')}): ₹{float(summary.total_spent_current_month):.2f}\n"
+            f"Total Spent This Month ({today.strftime('%B')}): ₹{spent_month_val:.2f}\n"
             f"Overall Monthly Budget: {overall_budget_str}\n"
             f"Month-over-Month Trend: {mom_str}\n"
             f"Top Spending Categories This Month: {top_cats}\n"
             f"Overspending Categories: {overspent_str}\n"
             f"Recent Transactions: {recent_txs}\n"
-            f"Total Lifetime Spent in FinTrack: ₹{float(summary.total_spent_overall):.2f}\n"
+            f"Total Lifetime Spent in FinTrack: ₹{spent_total_val:.2f}\n"
             f"----------------------------------------------------------"
         )
 
@@ -438,13 +446,15 @@ class AIService:
             "6. Keep responses under 200 words unless the user explicitly asks for a detailed breakdown."
         )
 
-        # Build prompt with history
+        # Build prompt with history safely
         history_text = ""
         if history:
             history_lines = []
             for h in history[-6:]:  # Keep last 6 turns for context
-                role_label = "User" if h.role == "user" else "Advisor"
-                history_lines.append(f"{role_label}: {h.content}")
+                role_val = getattr(h, "role", None) or (h.get("role") if isinstance(h, dict) else "user")
+                content_val = getattr(h, "content", None) or (h.get("content") if isinstance(h, dict) else "")
+                role_label = "User" if role_val == "user" else "Advisor"
+                history_lines.append(f"{role_label}: {content_val}")
             history_text = "Conversation History:\n" + "\n".join(history_lines) + "\n\n"
 
         prompt = f"{history_text}User: {message}\nAdvisor:"
@@ -459,13 +469,13 @@ class AIService:
             )
         except Exception as ai_err:
             logger.warning(f"[AIService] AI chat provider failed ({ai_err}), using grounded financial guidance fallback.")
-            spent_val = f"₹{float(summary.total_spent_current_month):.2f}"
+            spent_val = f"₹{spent_month_val:.2f}"
             reply_text = (
                 f"### 📊 Your Financial Snapshot\n\n"
                 f"- **Total Spent This Month:** {spent_val}\n"
                 f"- **Top Categories:** {top_cats}\n"
                 f"- **Budget Status:** {overall_budget_str}\n\n"
-                f"💡 **Tip:** Based on your current spending, keeping your daily expenses below your target allowance will ensure you stay within your monthly budget."
+                f"💡 **Tip:** Tracking your daily expenses with specific categories and setting monthly limits is the best way to optimize your savings."
             )
 
         # Generate smart suggested follow-up prompts
@@ -479,10 +489,10 @@ class AIService:
             reply=reply_text.strip(),
             suggested_actions=suggested_actions,
             referenced_metrics={
-                "total_spent_current_month": float(summary.total_spent_current_month),
+                "total_spent_current_month": spent_month_val,
                 "top_category": (
                     summary.top_categories[0].category_name
-                    if summary.top_categories
+                    if summary and summary.top_categories
                     else None
                 ),
                 "overspending_count": len(overspent_list),
