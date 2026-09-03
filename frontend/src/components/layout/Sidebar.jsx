@@ -1,5 +1,5 @@
 import React from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
   Receipt,
@@ -11,11 +11,13 @@ import {
   X,
   Camera,
   Sparkles,
+  TrendingUp,
 } from 'lucide-react';
 import { useUIStore } from '../../store/useUIStore';
 import { useAuthStore } from '../../store/useAuthStore';
 
 export const Sidebar = () => {
+  const navigate = useNavigate();
   const {
     isSidebarOpen,
     closeSidebar,
@@ -123,6 +125,27 @@ export const Sidebar = () => {
             </div>
             <span className="px-1.5 py-0.5 rounded-full text-[10px] uppercase font-bold bg-teal-500/30 text-teal-300 border border-teal-400/30">
               AI
+            </span>
+          </button>
+
+          {/* AI Spending Forecast Trigger */}
+          <button
+            onClick={() => {
+              closeSidebar();
+              navigate('/');
+              setTimeout(() => {
+                const el = document.getElementById('ai-forecast');
+                if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              }, 100);
+            }}
+            className="w-full flex items-center justify-between px-3.5 py-3 rounded-xl text-sm font-medium bg-indigo-950/40 hover:bg-indigo-900/50 text-indigo-300 hover:text-white transition-all min-h-[44px] text-left focus:outline-none group mt-1.5 border border-indigo-800/40"
+          >
+            <div className="flex items-center gap-3">
+              <TrendingUp className="w-5 h-5 shrink-0 text-indigo-400 group-hover:scale-110 transition-transform" />
+              <span>AI Forecast</span>
+            </div>
+            <span className="px-1.5 py-0.5 rounded-full text-[10px] uppercase font-bold bg-indigo-500/30 text-indigo-200 border border-indigo-400/30">
+              Insights
             </span>
           </button>
 

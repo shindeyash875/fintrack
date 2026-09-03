@@ -118,6 +118,20 @@ export const DashboardPage = () => {
           </Button>
           <button
             type="button"
+            onClick={() => {
+              const el = document.getElementById('ai-forecast');
+              if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }}
+            className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl text-sm font-semibold bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white shadow-sm hover:shadow transition-all duration-150 flex-1 sm:flex-none cursor-pointer"
+          >
+            <TrendingUp className="w-4 h-4" />
+            <span>AI Forecast</span>
+            <span className="ml-0.5 px-1.5 py-0.2 rounded-full text-[10px] uppercase font-bold bg-indigo-400/30 text-indigo-100 border border-indigo-300/40">
+              New
+            </span>
+          </button>
+          <button
+            type="button"
             onClick={() => setIsReceiptScannerOpen(true)}
             className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl text-sm font-semibold bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white shadow-sm hover:shadow transition-all duration-150 flex-1 sm:flex-none"
           >
@@ -275,7 +289,9 @@ export const DashboardPage = () => {
       <MonthCompareWidget compareData={compareData} isLoading={isLoadingCompare} />
 
       {/* AI Spending Forecast & Anomaly Detection (Feature 4) */}
-      <AIForecastCard onRefreshOverview={fetchOverview} />
+      <div id="ai-forecast" className="scroll-mt-20">
+        <AIForecastCard onRefreshOverview={fetchOverview} />
+      </div>
 
       {/* Phase 5: Visual Charts Grid (FR-19, FR-20, FR-22) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">

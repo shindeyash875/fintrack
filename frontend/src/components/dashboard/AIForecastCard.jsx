@@ -74,7 +74,32 @@ export const AIForecastCard = ({ onRefreshOverview }) => {
   }
 
   if (error && !forecast) {
-    return null;
+    return (
+      <div className="bg-gradient-to-br from-indigo-50/70 via-purple-50/40 to-slate-50/70 dark:from-slate-900/90 dark:via-purple-950/30 dark:to-slate-900/90 rounded-2xl p-5 border border-indigo-200/70 dark:border-indigo-800/40 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-indigo-100 dark:bg-indigo-950/80 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
+            <Sparkles className="w-5 h-5" />
+          </div>
+          <div>
+            <h3 className="text-sm font-bold text-slate-900 dark:text-white font-['Outfit']">
+              AI Spending Forecast & Insights
+            </h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              {error || 'Unable to generate predictive forecast at this time.'}
+            </p>
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={() => fetchForecast(true)}
+          disabled={isRefreshing}
+          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm transition-all shrink-0 cursor-pointer disabled:opacity-60"
+        >
+          <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
+          <span>{isRefreshing ? 'Analyzing Telemetry...' : 'Generate Forecast'}</span>
+        </button>
+      </div>
+    );
   }
 
   if (!forecast) return null;
