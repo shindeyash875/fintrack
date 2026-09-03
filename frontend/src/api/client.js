@@ -22,11 +22,19 @@ export function getApiBaseUrl() {
   let url = (typeof envUrl === 'string' ? envUrl.trim() : '');
 
   if (!url) {
+    if (typeof window !== 'undefined' && window.location?.hostname) {
+      const host = window.location.hostname;
+      // If accessed on mobile via local network Wi-Fi (e.g. 192.168.x.x or 10.x.x.x or 172.x.x.x)
+      if (/^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(host) && host !== '127.0.0.1') {
+        return `http://${host}:8000/api/v1`;
+      }
+    }
     if (import.meta.env.PROD) {
       console.warn(
         '[FinTrack API Config] ⚠️ No backend URL configured! ' +
         'Neither VITE_API_BASE_URL nor VITE_API_URL is set in environment variables. ' +
-        'In Vercel, go to Settings > Environment Variables, add VITE_API_BASE_URL=https://<your-backend>.onrender.com/api/v1 and redeploy.'
+        'In Vercel / Netlify dashboard, go to Project Settings > Environment Variables, ' +
+        'add VITE_API_BASE_URL=https://<your-backend-service>.onrender.com/api/v1 and trigger a new deployment.'
       );
     }
     return 'http://localhost:8000/api/v1';
@@ -42,8 +50,13 @@ export function getApiBaseUrl() {
     url = `${url}/v1`;
   }
 
-  // Enforce HTTPS for remote production hosts
-  if (!url.includes('localhost') && !url.includes('127.0.0.1') && url.startsWith('http://')) {
+  // Enforce HTTPS for remote production hosts (excluding local IP / localhost)
+  const isLocalHostOrIP =
+    url.includes('localhost') ||
+    url.includes('127.0.0.1') ||
+    /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}/.test(url.replace(/^https?:\/\//, '').split(':')[0]);
+
+  if (!isLocalHostOrIP && url.startsWith('http://')) {
     url = url.replace('http://', 'https://');
   }
 
