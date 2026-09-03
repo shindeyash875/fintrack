@@ -1,12 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Menu, Wallet, Download, User, LogOut, KeyRound, Globe, ChevronDown } from 'lucide-react';
+import { Menu, Wallet, Download, User, LogOut, KeyRound, Globe, ChevronDown, Camera } from 'lucide-react';
 import { useUIStore } from '../../store/useUIStore';
 import { useAuthStore } from '../../store/useAuthStore';
 import ChangePasswordModal from '../auth/ChangePasswordModal';
 import ActiveSessionsModal from '../auth/ActiveSessionsModal';
 
 export const Navbar = () => {
-  const { toggleSidebar, isInstallable, triggerPWAInstall } = useUIStore();
+  const { toggleSidebar, isInstallable, triggerPWAInstall, openGlobalReceiptScanner } = useUIStore();
   const { user, logout } = useAuthStore();
 
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -85,6 +85,20 @@ export const Navbar = () => {
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
             <span className="font-semibold">₹ INR</span>
           </div>
+
+          {/* AI Scan Receipt Quick Action */}
+          <button
+            type="button"
+            onClick={openGlobalReceiptScanner}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white text-xs font-semibold shadow-xs active:scale-95 transition-all min-h-[36px]"
+            title="Scan Receipt or UPI screenshot with AI"
+          >
+            <Camera className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Scan Receipt</span>
+            <span className="px-1 py-0.2 rounded text-[9px] uppercase font-bold bg-white/20 text-white">
+              AI
+            </span>
+          </button>
 
           {/* User Profile Dropdown */}
           <div className="relative" ref={dropdownRef}>

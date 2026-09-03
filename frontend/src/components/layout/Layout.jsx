@@ -4,6 +4,7 @@ import Navbar from './Navbar';
 import BottomNav from './BottomNav';
 import ToastContainer from '../common/Toast';
 import ExpenseModal from '../expenses/ExpenseModal';
+import ReceiptScannerModal from '../expenses/ReceiptScannerModal';
 import BudgetModal from '../budgets/BudgetModal';
 import CategoryManageModal from '../categories/CategoryManageModal';
 import SettingsModal from '../common/SettingsModal';
@@ -18,6 +19,8 @@ export const Layout = ({ children }) => {
   const {
     isGlobalAddExpenseOpen,
     closeGlobalAddExpense,
+    isGlobalReceiptScannerOpen,
+    closeGlobalReceiptScanner,
     isGlobalBudgetOpen,
     closeGlobalBudget,
     isGlobalCategoryOpen,
@@ -62,6 +65,12 @@ export const Layout = ({ children }) => {
         isOpen={isGlobalAddExpenseOpen}
         onClose={closeGlobalAddExpense}
         onSuccess={handleDataRefresh}
+      />
+
+      <ReceiptScannerModal
+        isOpen={isGlobalReceiptScannerOpen}
+        onClose={closeGlobalReceiptScanner}
+        onExpenseCreated={handleDataRefresh}
       />
 
       <BudgetModal

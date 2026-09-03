@@ -9,6 +9,8 @@ import {
   Wallet,
   LogOut,
   X,
+  Camera,
+  Sparkles,
 } from 'lucide-react';
 import { useUIStore } from '../../store/useUIStore';
 import { useAuthStore } from '../../store/useAuthStore';
@@ -17,6 +19,7 @@ export const Sidebar = () => {
   const {
     isSidebarOpen,
     closeSidebar,
+    openGlobalReceiptScanner,
     openGlobalBudget,
     openGlobalCategory,
     openGlobalSettings,
@@ -86,6 +89,22 @@ export const Sidebar = () => {
               </NavLink>
             );
           })}
+
+          <button
+            onClick={() => {
+              closeSidebar();
+              openGlobalReceiptScanner();
+            }}
+            className="w-full flex items-center justify-between px-3.5 py-3 rounded-xl text-sm font-medium bg-gradient-to-r from-emerald-500/15 to-teal-500/10 border border-emerald-500/20 text-emerald-300 hover:bg-emerald-500/25 transition-all min-h-[44px] text-left focus:outline-none group mt-2"
+          >
+            <div className="flex items-center gap-3">
+              <Camera className="w-5 h-5 shrink-0 text-emerald-400 group-hover:scale-110 transition-transform" />
+              <span>Scan Receipt</span>
+            </div>
+            <span className="px-1.5 py-0.5 rounded-full text-[10px] uppercase font-bold bg-emerald-500/30 text-emerald-300 border border-emerald-400/30">
+              AI
+            </span>
+          </button>
 
           <div className="pt-4 mt-4 border-t border-slate-800/80">
             <p className="px-3 text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-2">

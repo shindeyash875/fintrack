@@ -5,10 +5,13 @@ export const useUIStore = create((set, get) => ({
   toggleSidebar: () => set((state) => ({ isSidebarOpen: !state.isSidebarOpen })),
   closeSidebar: () => set({ isSidebarOpen: false }),
 
-  // Global Modals State (for seamless access from BottomNav, Sidebar, and Pages)
   isGlobalAddExpenseOpen: false,
   openGlobalAddExpense: () => set({ isGlobalAddExpenseOpen: true }),
   closeGlobalAddExpense: () => set({ isGlobalAddExpenseOpen: false }),
+
+  isGlobalReceiptScannerOpen: false,
+  openGlobalReceiptScanner: () => set({ isGlobalReceiptScannerOpen: true }),
+  closeGlobalReceiptScanner: () => set({ isGlobalReceiptScannerOpen: false }),
 
   isGlobalBudgetOpen: false,
   openGlobalBudget: () => set({ isGlobalBudgetOpen: true }),

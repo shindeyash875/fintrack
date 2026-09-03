@@ -5,7 +5,9 @@ import {
   CreditCard, 
   AlertTriangle,
   Plus,
-  Target
+  Target,
+  Camera,
+  Sparkles
 } from 'lucide-react';
 import { dashboardApi } from '../api/endpoints/dashboard';
 import { CardSkeleton } from '../components/common/Skeleton';
@@ -14,6 +16,7 @@ import { useNavigate } from 'react-router-dom';
 import BudgetTracker from '../components/budgets/BudgetTracker';
 import OverspendingBanner from '../components/budgets/OverspendingBanner';
 import BudgetModal from '../components/budgets/BudgetModal';
+import ReceiptScannerModal from '../components/expenses/ReceiptScannerModal';
 import CategoryPieChart from '../components/dashboard/CategoryPieChart';
 import SpendingTrendChart from '../components/dashboard/SpendingTrendChart';
 import MonthCompareWidget from '../components/dashboard/MonthCompareWidget';
@@ -35,6 +38,7 @@ export const DashboardPage = () => {
   const [error, setError] = useState(null);
 
   const [isBudgetModalOpen, setIsBudgetModalOpen] = useState(false);
+  const [isReceiptScannerOpen, setIsReceiptScannerOpen] = useState(false);
   const { fetchAll, status } = useBudgetStore();
 
   // Fetch Summary & MoM comparison
@@ -107,6 +111,17 @@ export const DashboardPage = () => {
           <Button onClick={() => setIsBudgetModalOpen(true)} icon={Target} variant="secondary" size="md" className="flex-1 sm:flex-none">
             Set Budget
           </Button>
+          <button
+            type="button"
+            onClick={() => setIsReceiptScannerOpen(true)}
+            className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl text-sm font-semibold bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white shadow-sm hover:shadow transition-all duration-150 flex-1 sm:flex-none"
+          >
+            <Camera className="w-4 h-4" />
+            <span>Scan Receipt</span>
+            <span className="ml-0.5 px-1.5 py-0.2 rounded-full text-[10px] uppercase font-bold bg-emerald-400/30 text-emerald-100 border border-emerald-300/40">
+              AI
+            </span>
+          </button>
           <Button onClick={() => navigate('/expenses')} icon={Plus} size="md" className="flex-1 sm:flex-none">
             Add Expense
           </Button>
@@ -320,6 +335,13 @@ export const DashboardPage = () => {
         isOpen={isBudgetModalOpen}
         onClose={() => setIsBudgetModalOpen(false)}
         onBudgetChange={fetchOverview}
+      />
+
+      {/* AI Receipt Scanner Modal */}
+      <ReceiptScannerModal
+        isOpen={isReceiptScannerOpen}
+        onClose={() => setIsReceiptScannerOpen(false)}
+        onExpenseCreated={fetchOverview}
       />
     </div>
   );
