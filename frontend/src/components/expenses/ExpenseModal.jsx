@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Plus, Check, CreditCard, Banknote, Smartphone } from 'lucide-react';
+import { Plus, Check, CreditCard, Banknote, Smartphone, Sparkles, Camera } from 'lucide-react';
 import Modal from '../common/Modal';
 import Button from '../common/Button';
+import ReceiptScannerModal from './ReceiptScannerModal';
 import { expenseSchema } from '../../schemas/expenseSchema';
 import { toTitleCase } from '../../schemas/categorySchema';
 import { useExpenseStore } from '../../store/useExpenseStore';
@@ -19,6 +20,7 @@ export const ExpenseModal = ({ isOpen, onClose, expenseToEdit = null }) => {
   const [isCreatingCategory, setIsCreatingCategory] = useState(false);
   const [newCatName, setNewCatName] = useState('');
   const [isSubmittingCat, setIsSubmittingCat] = useState(false);
+  const [isScannerOpen, setIsScannerOpen] = useState(false);
 
   const isEditing = Boolean(expenseToEdit);
   const todayStr = new Date().toISOString().split('T')[0];
@@ -131,15 +133,50 @@ export const ExpenseModal = ({ isOpen, onClose, expenseToEdit = null }) => {
     }
   };
 
+  const handleExtractedData = (data) => {
+    if (!data) return;
+    if (data.title) setValue('title', data.title, { shouldValidate: true });
+    if (data.amount) setValue('amount', Number(data.amount), { shouldValidate: true });
+    if (data.expense_date) setValue('expense_date', data.expense_date, { shouldValidate: true });
+    if (data.suggested_category_id) setValue('category_id', data.suggested_category_id, { shouldValidate: true });
+    if (data.payment_mode) setValue('payment_mode', data.payment_mode, { shouldValidate: true });
+    if (data.notes) setValue('notes', data.notes, { shouldValidate: true });
+    addToast({ type: 'success', message: 'Form autofilled from AI scan!' });
+  };
+
   return (
-    <Modal
-      isOpen={isOpen}
-      onClose={onClose}
-      title={isEditing ? 'Edit Expense' : 'Log New Expense'}
-      maxWidth="max-w-lg"
-    >
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-        {/* Title Field */}
+    <>
+      <Modal
+        isOpen={isOpen}
+        onClose={onClose}
+        title={isEditing ? 'Edit Expense' : 'Log New Expense'}
+        maxWidth="max-w-lg"
+      >
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          {/* AI Scan Prompt Banner (when creating new expense) */}
+          {!isEditing && (
+            <div className="flex items-center justify-between p-3 rounded-2xl bg-gradient-to-r from-emerald-50 via-teal-50 to-indigo-50 border border-emerald-200/70 shadow-2xs">
+              <div className="flex items-center gap-2.5">
+                <div className="p-1.5 rounded-xl bg-white shadow-2xs text-emerald-600">
+                  <Sparkles className="w-4 h-4 animate-pulse" />
+                </div>
+                <div>
+                  <p className="text-xs font-semibold text-slate-800">Have a receipt or UPI screenshot?</p>
+                  <p className="text-[11px] text-slate-500">Auto-fill all fields instantly using AI Vision</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsScannerOpen(true)}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm hover:shadow transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-1"
+              >
+                <Camera className="w-3.5 h-3.5" />
+                <span>Scan Receipt</span>
+              </button>
+            </div>
+          )}
+
+          {/* Title Field */}
         <div>
           <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
             Title <span className="text-rose-500">*</span>
@@ -332,8 +369,15 @@ export const ExpenseModal = ({ isOpen, onClose, expenseToEdit = null }) => {
             {isEditing ? 'Save Changes' : 'Log Expense'}
           </Button>
         </div>
-      </form>
-    </Modal>
+        </form>
+      </Modal>
+
+      <ReceiptScannerModal
+        isOpen={isScannerOpen}
+        onClose={() => setIsScannerOpen(false)}
+        onExtractedData={handleExtractedData}
+      />
+    </>
   );
 };
 

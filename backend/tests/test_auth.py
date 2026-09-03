@@ -1,4 +1,5 @@
 import uuid
+from unittest.mock import AsyncMock, patch
 import pytest
 from httpx import AsyncClient
 from app.core.security import decode_access_token
@@ -196,14 +197,15 @@ async def test_email_service_fallback_and_dispatch(client: AsyncClient, monkeypa
     )
     assert res is False
 
-    # 2. Test send_password_reset_email with mocked aiosmtplib.send
+    # 2. Test standard SMTP delivery with mocked aiosmtplib.send
     sent_messages = []
 
     async def mock_send(message, **kwargs):
         sent_messages.append({"message": message, "kwargs": kwargs})
         return {}
 
-    monkeypatch.setattr("app.core.config.settings.SMTP_PASSWORD", "re_mock_test_key_123")
+    monkeypatch.setattr("app.core.config.settings.SMTP_HOST", "smtp.gmail.com")
+    monkeypatch.setattr("app.core.config.settings.SMTP_PASSWORD", "gmail_app_password_123")
     monkeypatch.setattr("aiosmtplib.send", mock_send)
 
     send_success = await EmailService.send_password_reset_email(
@@ -216,7 +218,23 @@ async def test_email_service_fallback_and_dispatch(client: AsyncClient, monkeypa
     msg = sent_messages[0]["message"]
     assert msg["To"] == "user@example.com"
     assert "Reset Your FinTrack Password" in str(msg["Subject"])
-    assert sent_messages[0]["kwargs"]["hostname"] == "smtp.resend.com"
-    assert sent_messages[0]["kwargs"]["username"] == "resend"
-    assert sent_messages[0]["kwargs"]["password"] == "re_mock_test_key_123"
+    assert sent_messages[0]["kwargs"]["hostname"] == "smtp.gmail.com"
+
+    # 3. Test Resend HTTPS REST API delivery with mocked httpx.AsyncClient.post
+    from httpx import Response
+    mock_resend_resp = Response(200, json={"id": "resend_msg_12345"})
+
+    monkeypatch.setattr("app.core.config.settings.SMTP_HOST", "smtp.resend.com")
+    monkeypatch.setattr("app.core.config.settings.SMTP_PASSWORD", "re_mock_test_key_123")
+
+    with patch("httpx.AsyncClient.post", new_callable=AsyncMock) as mock_post:
+        mock_post.return_value = mock_resend_resp
+        resend_success = await EmailService.send_password_reset_email(
+            to_email="user@example.com",
+            reset_token="sample_token_xyz",
+            user_name="John Doe",
+        )
+        assert resend_success is True
+        assert mock_post.called
+
 

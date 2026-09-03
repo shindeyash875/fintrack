@@ -69,6 +69,40 @@ class Settings(BaseSettings):
     # Seed
     SEED_STARTER_CATEGORIES: bool = False
 
+    # Universal AI Engine (Gemini / OpenAI / Claude)
+    AI_PROVIDER: str = Field(default="gemini", description="Active AI provider: 'gemini' | 'openai' | 'claude'")
+    AI_MODEL: Optional[str] = Field(default=None, description="Model identifier override (e.g. 'gemini-2.0-flash', 'gpt-4o-mini', 'claude-3-5-haiku-20241022')")
+    AI_API_KEY: Optional[str] = Field(default=None, description="Universal API key for the active AI provider")
+    GEMINI_API_KEY: Optional[str] = Field(default=None, description="Google Gemini API key fallback")
+    OPENAI_API_KEY: Optional[str] = Field(default=None, description="OpenAI API key fallback")
+    ANTHROPIC_API_KEY: Optional[str] = Field(default=None, description="Anthropic Claude API key fallback")
+
+    @property
+    def effective_ai_api_key(self) -> Optional[str]:
+        if self.AI_API_KEY and self.AI_API_KEY.strip():
+            return self.AI_API_KEY.strip()
+        provider = self.AI_PROVIDER.lower().strip()
+        if provider == "gemini":
+            return self.GEMINI_API_KEY.strip() if self.GEMINI_API_KEY else None
+        elif provider == "openai":
+            return self.OPENAI_API_KEY.strip() if self.OPENAI_API_KEY else None
+        elif provider == "claude":
+            return self.ANTHROPIC_API_KEY.strip() if self.ANTHROPIC_API_KEY else None
+        return None
+
+    @property
+    def effective_ai_model(self) -> str:
+        if self.AI_MODEL and self.AI_MODEL.strip():
+            return self.AI_MODEL.strip()
+        provider = self.AI_PROVIDER.lower().strip()
+        if provider == "gemini":
+            return "gemini-2.0-flash"
+        elif provider == "openai":
+            return "gpt-4o-mini"
+        elif provider == "claude":
+            return "claude-3-5-haiku-20241022"
+        return "gemini-2.0-flash"
+
     @property
     def cors_origins_list(self) -> List[str]:
         return [origin.strip() for origin in self.CORS_ORIGINS.split(",") if origin.strip()]

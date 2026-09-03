@@ -267,7 +267,34 @@ The user can update the goal anytime, and everything updates instantly.
 
 ---
 
-## 12. Stakeholders
+## 12. Smart AI Financial Assistant & Intelligent Automation (Non-Technical Overview)
+
+FinTrack integrates a flexible, pluggable Artificial Intelligence engine designed to make personal finance tracking completely effortless, smart, and interactive.
+
+### 12.1 Key AI User Capabilities:
+
+1. **Snap & Log (Smart Receipt & UPI Screenshot Scanner):**
+   - Take a picture of a paper receipt or upload a screenshot from Google Pay, PhonePe, or Paytm.
+   - The AI automatically reads the merchant name, date, payment mode, and total amount, pre-filling the expense form in under a second.
+
+2. **Speak & Type (Natural Language Quick-Add):**
+   - Type or speak your expenses in plain English, Marathi, or Hinglish (e.g. *"Paid 350 for Uber ride to office via UPI"*).
+   - The AI understands context and logs the transaction directly into the right category.
+
+3. **FinTrack AI Advisor (Personal Financial Chatbot):**
+   - An interactive financial coach right inside your dashboard.
+   - Ask questions like *"Where can I save ₹5,000 this month?"* or *"Why did my food spending go up?"* and receive personalized, actionable advice based on your real spending numbers.
+
+4. **Predictive Budget Forecast & Anomaly Detection:**
+   - Proactively projects your spending to the end of the month.
+   - Warns you days before you exceed your budget and flags unusually large transactions.
+
+5. **Monthly Financial Health Score:**
+   - An automated monthly report card (score out of 100) highlighting your savings discipline and offering 3 concrete tips for the upcoming month.
+
+---
+
+## 13. Stakeholders
 
 - Product Owner
 - Development Team

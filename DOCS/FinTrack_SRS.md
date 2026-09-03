@@ -44,6 +44,15 @@
 
 This combination is chosen deliberately from V1 onward so Phase 2+ features (auth, storage, realtime) can lean on Supabase's built-in services without a data-layer migration later.
 
+### 1.4 Universal AI Engine Layer (Multi-Model Architecture)
+| Concern | Architecture / Choice | Notes |
+|---|---|---|
+| Design Pattern | Strategy / Adapter Pattern | Standardized abstract interface `BaseLLMProvider` |
+| Supported Providers | **Google Gemini** (`gemini-2.0-flash`, `gemini-1.5-pro`), **OpenAI** (`gpt-4o-mini`, `gpt-4o`), **Anthropic** (`claude-3-5-haiku`, `claude-3-5-sonnet`) | 100% environment-variable driven (`AI_PROVIDER`, `AI_MODEL`, `AI_API_KEY`) |
+| Structured Outputs | Pydantic JSON Schemas enforced at prompt & response validation level | Guaranteed deterministic payload structure across all LLM providers |
+| Multimodal Vision | Base64 / Binary Image OCR Extraction (JPEG, PNG, WEBP) | For receipt, bill, and UPI payment screenshot scanning |
+| Security & Isolation | Prompt Injection Sanitization & Strict User-Level Context Scoping | AI only receives data strictly owned by the authenticated JWT user |
+
 ---
 
 ## 2. Database, Migrations, ORM, Seed Data
@@ -179,6 +188,11 @@ Base URL: `/api/v1`. All responses use a consistent envelope.
 | GET | `/dashboard/charts/by-category` | Category spending pie/donut data | Bearer Token |
 | GET | `/dashboard/charts/over-time` | Spending over time data | Bearer Token |
 | GET | `/dashboard/compare` | Month-over-month % change | Bearer Token |
+| POST | `/ai/scan-receipt` | Multimodal Vision OCR extraction for receipts/bills/UPI | Bearer Token |
+| POST | `/ai/parse-expense` | Natural Language & voice expense parsing | Bearer Token |
+| POST | `/ai/chat` | FinTrack AI Financial Advisor interactive chat | Bearer Token |
+| GET | `/ai/forecast` | Predictive spending forecast & anomaly detection | Bearer Token |
+| GET | `/ai/monthly-digest` | Monthly financial health score & summary | Bearer Token |
 
 
 ### 3.3 Health endpoint contract
@@ -360,6 +374,11 @@ SEED_STARTER_CATEGORIES=false
 
 # App metadata
 APP_VERSION=1.0.0
+
+# Universal AI Engine (Gemini / OpenAI / Claude)
+AI_PROVIDER=gemini             # gemini | openai | claude
+AI_MODEL=gemini-2.0-flash      # gemini-2.0-flash | gpt-4o-mini | claude-3-5-haiku-20241022
+AI_API_KEY=your_ai_api_key_here
 ```
 
 ### 6.2 `frontend/.env.example`
