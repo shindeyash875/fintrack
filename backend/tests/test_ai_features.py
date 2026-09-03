@@ -11,7 +11,12 @@ from sqlalchemy import select
 from app.core.config import settings
 from app.models.category import Category
 from app.models.user import User
-from app.schemas.ai import AIChatResponse, ParsedExpenseData, ScannedReceiptData
+from app.schemas.ai import (
+    AIChatResponse,
+    ParsedExpenseData,
+    ScannedReceiptData,
+    SpendingForecastResponse,
+)
 from app.services.ai.base import AIConfigurationError, AIProviderError
 from app.services.ai.claude_provider import ClaudeProvider
 from app.services.ai.factory import AIFactory
@@ -401,5 +406,61 @@ async def test_chat_endpoint_empty_message(auth_client: AsyncClient):
         json={"message": "   "},
     )
     assert response.status_code in [400, 422]
+
+
+# =========================================================================
+# 7. Predictive Spending Forecast & Anomaly Tests (Feature 4)
+# =========================================================================
+
+@pytest.mark.asyncio
+async def test_ai_service_get_spending_forecast(test_user: User):
+    test_engine = create_async_engine(settings.test_database_url, poolclass=NullPool)
+    test_session_maker = async_sessionmaker(test_engine, class_=AsyncSession, expire_on_commit=False)
+
+    async with test_session_maker() as session:
+        with patch("app.core.config.settings.AI_API_KEY", "test-api-key"):
+            forecast = await AIService.get_spending_forecast(
+                session=session,
+                user_id=test_user.id,
+            )
+
+            assert isinstance(forecast, SpendingForecastResponse)
+            assert forecast.days_remaining >= 0
+            assert forecast.predicted_total_month_end >= 0
+            assert forecast.confidence_score > 0.0
+            assert len(forecast.proactive_tips) >= 1
+            assert forecast.summary is not None
+
+    await test_engine.dispose()
+
+
+@pytest.mark.asyncio
+async def test_forecast_endpoint(auth_client: AsyncClient, test_user: User):
+    mock_forecast = SpendingForecastResponse(
+        current_month_to_date=1500.00,
+        predicted_total_month_end=4500.00,
+        days_remaining=20,
+        daily_recommended_spend=150.00,
+        historical_average_monthly=4000.00,
+        confidence_score=0.94,
+        summary="You are on track to spend ₹4,500 by month end.",
+        anomalies=[],
+        category_forecasts=[],
+        proactive_tips=["Limit dining out this weekend", "Review grocery list"],
+    )
+
+    with patch.object(AIService, "get_spending_forecast", new_callable=AsyncMock) as mock_f:
+        mock_f.return_value = mock_forecast
+
+        response = await auth_client.get("/api/v1/ai/forecast")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["success"] is True
+        assert float(data["data"]["current_month_to_date"]) == 1500.00
+        assert float(data["data"]["predicted_total_month_end"]) == 4500.00
+        assert data["data"]["days_remaining"] == 20
+        assert len(data["data"]["proactive_tips"]) == 2
+
 
 

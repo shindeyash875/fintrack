@@ -11,6 +11,7 @@ from app.schemas.ai import (
     ParseExpenseRequest,
     ParsedExpenseData,
     ScannedReceiptData,
+    SpendingForecastResponse,
 )
 from app.schemas.common import ApiResponse
 from app.services.ai.base import AIConfigurationError, AIProviderError
@@ -195,5 +196,48 @@ async def chat_with_advisor(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to communicate with AI Financial Advisor due to an internal error.",
         )
+
+
+@router.get(
+    "/forecast",
+    response_model=ApiResponse[SpendingForecastResponse],
+    summary="Predictive Spending Forecast & Anomaly Detection",
+)
+@limiter.limit("30/minute")
+async def get_spending_forecast(
+    request: Request,
+    current_user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_db),
+):
+    """
+    Generates intelligent month-end spending forecast, anomaly spike alerts,
+    daily safe spending allowances, and proactive actionable recommendations.
+    """
+    try:
+        forecast_data = await AIService.get_spending_forecast(
+            session=session,
+            user_id=current_user.id,
+        )
+        return ApiResponse(success=True, data=forecast_data)
+
+    except AIConfigurationError as exc:
+        logger.warning(f"[AI Config Error] {exc}")
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=str(exc),
+        )
+    except AIProviderError as exc:
+        logger.error(f"[AI Provider Error] {exc}")
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=f"AI Forecasting service error: {exc}",
+        )
+    except Exception as exc:
+        logger.error(f"[AI Forecast Error] Unexpected exception: {exc}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to generate spending forecast due to an internal error.",
+        )
+
 
 

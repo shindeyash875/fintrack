@@ -137,3 +137,155 @@ class AIChatResponse(BaseModel):
     )
 
 
+class SpendingAnomalyItem(BaseModel):
+    """Detected unusual spending spike or anomaly."""
+
+    title: str = Field(..., description="Transaction or event title")
+    amount: Decimal = Field(..., description="Amount spent in INR")
+    category_name: str = Field(..., description="Category of the anomalous expense")
+    expense_date: date = Field(..., description="Date on which anomaly occurred")
+    severity: str = Field(
+        default="medium",
+        description="'low' | 'medium' | 'high'",
+    )
+    explanation: str = Field(
+        ...,
+        description="Plain-English explanation of why this is considered an anomaly (e.g. '3.2x above your daily dining average')",
+    )
+
+
+class ForecastCategoryItem(BaseModel):
+    """Category-specific month-end spending projection and risk classification."""
+
+    category_name: str = Field(..., description="Name of category")
+    current_spend: Decimal = Field(..., description="Total spent month-to-date in INR")
+    predicted_month_end: Decimal = Field(..., description="Projected spend by end of month in INR")
+    budget_limit: Optional[Decimal] = Field(
+        default=None,
+        description="Active category budget limit if configured",
+    )
+    projected_status: str = Field(
+        default="within_budget",
+        description="'within_budget' | 'at_risk' | 'exceeded'",
+    )
+    risk_level: str = Field(
+        default="low",
+        description="'low' | 'medium' | 'high'",
+    )
+
+
+class SpendingForecastResponse(BaseModel):
+    """Comprehensive AI spending forecast, anomaly alerts, and daily allowance."""
+
+    current_month_to_date: Decimal = Field(..., description="Total spent so far in current month (INR)")
+    predicted_total_month_end: Decimal = Field(..., description="Projected total spend at month end (INR)")
+    days_remaining: int = Field(..., description="Days remaining in current calendar month")
+    daily_recommended_spend: Decimal = Field(
+        ...,
+        description="Recommended maximum daily spending allowance to remain within budget (INR)",
+    )
+    historical_average_monthly: Decimal = Field(
+        ...,
+        description="Baseline average monthly spend from past history (INR)",
+    )
+    confidence_score: float = Field(
+        default=0.9,
+        ge=0.0,
+        le=1.0,
+        description="Forecast confidence score between 0.0 and 1.0",
+    )
+    summary: str = Field(
+        ...,
+        description="Executive summary of projected spending trajectory and financial health",
+    )
+    anomalies: list[SpendingAnomalyItem] = Field(
+        default_factory=list,
+        description="List of detected unusual spending spikes and outliers",
+    )
+    category_forecasts: list[ForecastCategoryItem] = Field(
+        default_factory=list,
+        description="Per-category spending projections and risk levels",
+    )
+    proactive_tips: list[str] = Field(
+        default_factory=list,
+        description="2-3 personalized, actionable tips to keep spending under control",
+    )
+
+
+
+class SpendingAnomalyItem(BaseModel):
+    """Detected unusual spending spike or anomaly."""
+
+    title: str = Field(..., description="Transaction or event title")
+    amount: Decimal = Field(..., description="Amount spent in INR")
+    category_name: str = Field(..., description="Category of the anomalous expense")
+    expense_date: date = Field(..., description="Date on which anomaly occurred")
+    severity: str = Field(
+        default="medium",
+        description="'low' | 'medium' | 'high'",
+    )
+    explanation: str = Field(
+        ...,
+        description="Plain-English explanation of why this is considered an anomaly (e.g. '3.2x above your daily dining average')",
+    )
+
+
+class ForecastCategoryItem(BaseModel):
+    """Category-specific month-end spending projection and risk classification."""
+
+    category_name: str = Field(..., description="Name of category")
+    current_spend: Decimal = Field(..., description="Total spent month-to-date in INR")
+    predicted_month_end: Decimal = Field(..., description="Projected spend by end of month in INR")
+    budget_limit: Optional[Decimal] = Field(
+        default=None,
+        description="Active category budget limit if configured",
+    )
+    projected_status: str = Field(
+        default="within_budget",
+        description="'within_budget' | 'at_risk' | 'exceeded'",
+    )
+    risk_level: str = Field(
+        default="low",
+        description="'low' | 'medium' | 'high'",
+    )
+
+
+class SpendingForecastResponse(BaseModel):
+    """Comprehensive AI spending forecast, anomaly alerts, and daily allowance."""
+
+    current_month_to_date: Decimal = Field(..., description="Total spent so far in current month (INR)")
+    predicted_total_month_end: Decimal = Field(..., description="Projected total spend at month end (INR)")
+    days_remaining: int = Field(..., description="Days remaining in current calendar month")
+    daily_recommended_spend: Decimal = Field(
+        ...,
+        description="Recommended maximum daily spending allowance to remain within budget (INR)",
+    )
+    historical_average_monthly: Decimal = Field(
+        ...,
+        description="Baseline average monthly spend from past history (INR)",
+    )
+    confidence_score: float = Field(
+        default=0.9,
+        ge=0.0,
+        le=1.0,
+        description="Forecast confidence score between 0.0 and 1.0",
+    )
+    summary: str = Field(
+        ...,
+        description="Executive summary of projected spending trajectory and financial health",
+    )
+    anomalies: list[SpendingAnomalyItem] = Field(
+        default_factory=list,
+        description="List of detected unusual spending spikes and outliers",
+    )
+    category_forecasts: list[ForecastCategoryItem] = Field(
+        default_factory=list,
+        description="Per-category spending projections and risk levels",
+    )
+    proactive_tips: list[str] = Field(
+        default_factory=list,
+        description="2-3 personalized, actionable tips to keep spending under control",
+    )
+
+
+

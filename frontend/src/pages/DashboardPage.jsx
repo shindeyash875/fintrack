@@ -19,6 +19,7 @@ import BudgetModal from '../components/budgets/BudgetModal';
 import ReceiptScannerModal from '../components/expenses/ReceiptScannerModal';
 import ExpenseModal from '../components/expenses/ExpenseModal';
 import AIQuickInput from '../components/expenses/AIQuickInput';
+import AIForecastCard from '../components/dashboard/AIForecastCard';
 import CategoryPieChart from '../components/dashboard/CategoryPieChart';
 import SpendingTrendChart from '../components/dashboard/SpendingTrendChart';
 import MonthCompareWidget from '../components/dashboard/MonthCompareWidget';
@@ -272,6 +273,9 @@ export const DashboardPage = () => {
 
       {/* Month-over-Month Comparison Widget (FR-23) */}
       <MonthCompareWidget compareData={compareData} isLoading={isLoadingCompare} />
+
+      {/* AI Spending Forecast & Anomaly Detection (Feature 4) */}
+      <AIForecastCard onRefreshOverview={fetchOverview} />
 
       {/* Phase 5: Visual Charts Grid (FR-19, FR-20, FR-22) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">

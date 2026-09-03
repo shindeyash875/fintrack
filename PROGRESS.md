@@ -972,6 +972,48 @@
 - **Documentation:**
   - `PROGRESS.md` [MODIFIED]
 
+---
+
+## Milestone Completed: Feature 4 — Predictive Spending Forecast & Anomaly Detection Alerts
+
+### 1. Work Completed
+- **Predictive Run-Rate Engine & Statistical Anomaly Detection (`GET /api/v1/ai/forecast`):**
+  - Added `SpendingAnomalyItem`, `ForecastCategoryItem`, and `SpendingForecastResponse` schemas in `backend/app/schemas/ai.py`.
+  - Implemented `AIService.get_spending_forecast` in `backend/app/services/ai_service.py`:
+    - Projects total month-end spend using day-of-month velocity and historical comparison baselines.
+    - Calculates safe daily spending allowances (`daily_recommended_spend`) for remaining calendar days.
+    - Evaluates category run-rates against budget caps with risk levels (`low` | `medium` | `high`).
+    - Detects statistical anomalies/spending spikes (>2.5x mean transaction value in past 30 days) with plain-English contextual explanations.
+    - Leverages Multi-Model Universal AI (Gemini / OpenAI / Claude) with fallback logic to generate an executive synthesis and 3 proactive tips.
+  - Implemented authenticated `GET /api/v1/ai/forecast` endpoint in `backend/app/api/v1/endpoints/ai.py` with 30/minute rate limiting.
+- **Frontend Predictive Forecast Card (`AIForecastCard.jsx`):**
+  - Built `frontend/src/components/dashboard/AIForecastCard.jsx`:
+    - Visual month-end projected spending vs baseline indicator (`On Track` / `Over Baseline`).
+    - Safe daily spending allowance target pill (`🎯 ₹XXX/day`).
+    - Statistical spending spike & anomaly alert cards with expandable details.
+    - Category trajectory risk meters with budget comparisons.
+    - Proactive AI tips for cashflow optimization.
+    - Manual recalculation button with live spinning state.
+  - Mounted `AIForecastCard` in `frontend/src/pages/DashboardPage.jsx` directly above core analytics charts.
+- **Testing & Verification:**
+  - Unit tests for `get_spending_forecast` and integration tests for `GET /api/v1/ai/forecast` in `backend/tests/test_ai_features.py`.
+  - Backend test suite: **51 of 51 passed**.
+  - Frontend Vitest suite: **56 of 56 passed**.
+  - Frontend production build: **0 errors**.
+
+### 2. Files Modified / Created
+- **Backend:**
+  - `backend/app/schemas/ai.py` [MODIFIED]
+  - `backend/app/services/ai_service.py` [MODIFIED]
+  - `backend/app/api/v1/endpoints/ai.py` [MODIFIED]
+  - `backend/tests/test_ai_features.py` [MODIFIED]
+- **Frontend:**
+  - `frontend/src/components/dashboard/AIForecastCard.jsx` [NEW]
+  - `frontend/src/pages/DashboardPage.jsx` [MODIFIED]
+- **Documentation:**
+  - `PROGRESS.md` [MODIFIED]
+
+
 
 
 
