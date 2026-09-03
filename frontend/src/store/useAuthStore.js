@@ -1,76 +1,95 @@
 import { create } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
 import { authApi } from '../api/endpoints/auth';
 
-export const useAuthStore = create((set, get) => ({
-  user: null,
-  accessToken: null,
-  isAuthenticated: false,
-  isAuthLoading: true,
-  authError: null,
-
-  setAccessToken: (token) => {
-    set({
-      accessToken: token,
-      isAuthenticated: Boolean(token),
-    });
-  },
-
-  setUser: (user) => {
-    set({ user });
-  },
-
-  setAuth: (user, token) => {
-    set({
-      user,
-      accessToken: token,
-      isAuthenticated: true,
-      authError: null,
-    });
-  },
-
-  clearAuth: () => {
-    set({
+export const useAuthStore = create(
+  persist(
+    (set, get) => ({
       user: null,
       accessToken: null,
       isAuthenticated: false,
+      isAuthLoading: false,
       authError: null,
-    });
-  },
 
-  setAuthLoading: (isLoading) => {
-    set({ isAuthLoading: isLoading });
-  },
+      setAccessToken: (token) => {
+        set({
+          accessToken: token,
+          isAuthenticated: Boolean(token),
+        });
+      },
 
-  setAuthError: (error) => {
-    set({ authError: error });
-  },
+      setUser: (user) => {
+        set({ user });
+      },
 
-  // Initialize and check current session on app boot
-  checkAuth: async () => {
-    set({ isAuthLoading: true });
-    try {
-      // Attempt silent refresh via HttpOnly cookie
-      const res = await authApi.refresh();
-      const { user, access_token } = res.data || res;
-      set({
-        user,
-        accessToken: access_token,
-        isAuthenticated: true,
-        isAuthLoading: false,
-        authError: null,
-      });
-      return true;
-    } catch {
-      // No active session or cookie expired
-      set({
-        user: null,
-        accessToken: null,
-        isAuthenticated: false,
-        isAuthLoading: false,
-      });
-      return false;
-    }
-  },
+      setAuth: (user, token) => {
+        set({
+          user,
+          accessToken: token,
+          isAuthenticated: true,
+          authError: null,
+          isAuthLoading: false,
+        });
+      },
+
+      clearAuth: () => {
+        set({
+          user: null,
+          accessToken: null,
+          isAuthenticated: false,
+          authError: null,
+          isAuthLoading: false,
+        });
+      },
+
+      setAuthLoading: (isLoading) => {
+        set({ isAuthLoading: isLoading });
+      },
+
+      setAuthError: (error) => {
+        set({ authError: error });
+      },
+
+      // Initialize and check current session on app boot
+      checkAuth: async () => {
+        const currentToken = get().accessToken;
+
+        try {
+          // Attempt silent refresh via HttpOnly cookie
+          const res = await authApi.refresh();
+          const { user, access_token } = res.data || res;
+          set({
+            user,
+            accessToken: access_token,
+            isAuthenticated: true,
+            isAuthLoading: false,
+            authError: null,
+          });
+          return true;
+        } catch {
+          // If cookie refresh fails, but we have a valid stored access token, verify with /auth/me
+          if (currentToken) {
+            try {
+              const meRes = await authApi.getMe();
+              const meUser = meRes.data || meRes;
+              set({
+                user: meUser,
+                isAuthenticated: true,
+                isAuthLoading: false,
+              });
+              return true;
+            } catch {
+              // Token genuinely expired or revoked
+              get().clearAuth();
+              return false;
+            }
+          }
+
+          // No active session
+          get().clearAuth();
+          return false;
+        }
+      },
 
   // Login with email + password
   login: async (email, password) => {
@@ -192,6 +211,17 @@ export const useAuthStore = create((set, get) => ({
   resendVerification: async (email) => {
     return await authApi.resendVerification({ email });
   },
-}));
+    }),
+    {
+      name: 'fintrack_auth',
+      storage: createJSONStorage(() => localStorage),
+      partialize: (state) => ({
+        user: state.user,
+        accessToken: state.accessToken,
+        isAuthenticated: state.isAuthenticated,
+      }),
+    }
+  )
+);
 
 export default useAuthStore;

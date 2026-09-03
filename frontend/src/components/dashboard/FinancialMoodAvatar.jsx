@@ -8,16 +8,46 @@ import { useBudgetStore } from '../../store/useBudgetStore';
 import { useUIStore } from '../../store/useUIStore';
 
 export const FinancialMoodAvatar = ({ summary, onOpenBudgetModal, onOpenAIAdvisor }) => {
-  const { status: budgetStatus } = useBudgetStore();
+  const { status: budgetStatus, budgets } = useBudgetStore();
   const { openGlobalAIChat } = useUIStore();
   const [pokeCount, setPokeCount] = useState(0);
   const [isWobbling, setIsWobbling] = useState(false);
   const [useMarathiFlair, setUseMarathiFlair] = useState(false);
 
-  // Financial calculations
-  const spent = Number(summary?.total_spent_current_month || 0);
-  const budget = Number(summary?.active_budget_total || budgetStatus?.total_budget || 0);
-  const remaining = Number(summary?.remaining_budget ?? (budget - spent));
+  // 1. Overall monthly budget limit
+  const overallLimit = Number(
+    summary?.overall_budget_status?.limit_amount ??
+    budgetStatus?.overall?.limit_amount ??
+    0
+  );
+
+  // 2. Sum of category budgets (if user configured category-level budgets)
+  const categoryBudgetsSum = Array.isArray(budgetStatus?.categories) && budgetStatus.categories.length > 0
+    ? budgetStatus.categories.reduce((acc, curr) => acc + Number(curr.limit_amount || 0), 0)
+    : Array.isArray(budgets) && budgets.length > 0
+    ? budgets.reduce((acc, curr) => acc + Number(curr.limit_amount || 0), 0)
+    : 0;
+
+  // Active budget is either overall budget or sum of category budgets
+  const budget = overallLimit > 0 ? overallLimit : categoryBudgetsSum;
+
+  // Current spent amount
+  const spent = Number(
+    summary?.overall_budget_status?.spent_amount ??
+    budgetStatus?.overall?.spent_amount ??
+    summary?.total_spent_current_month ??
+    0
+  );
+
+  // Remaining budget
+  const remaining = budget > 0 
+    ? Number(
+        summary?.overall_budget_status?.remaining_amount ??
+        budgetStatus?.overall?.remaining_amount ??
+        (budget - spent)
+      )
+    : 0;
+
   const daysPassed = Number(summary?.days_passed_in_month || new Date().getDate());
   const now = new Date();
   const totalDays = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
