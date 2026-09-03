@@ -87,6 +87,34 @@ class CategoryService:
             )
 
     @staticmethod
+    async def get_or_create(session: AsyncSession, name: str, user_id: uuid.UUID) -> Category:
+        """
+        Fetches an existing category by name (case-insensitive) or creates a new one automatically.
+        """
+        normalized_name = normalize_title_case(name.strip())
+        stmt = select(Category).where(
+            Category.user_id == user_id,
+            func.lower(Category.name) == func.lower(normalized_name),
+        )
+        existing = (await session.execute(stmt)).scalar_one_or_none()
+        if existing:
+            return existing
+
+        category = Category(user_id=user_id, name=normalized_name)
+        session.add(category)
+        try:
+            await session.commit()
+            await session.refresh(category)
+            return category
+        except IntegrityError:
+            await session.rollback()
+            stmt = select(Category).where(
+                Category.user_id == user_id,
+                func.lower(Category.name) == func.lower(normalized_name),
+            )
+            return (await session.execute(stmt)).scalar_one()
+
+    @staticmethod
     async def update(
         session: AsyncSession,
         category: Category,

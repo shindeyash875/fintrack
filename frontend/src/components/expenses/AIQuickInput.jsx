@@ -164,6 +164,9 @@ export const AIQuickInput = ({ onExpenseCreated, onOpenEditModal, className = ''
       await expensesApi.create(payload);
       addToast(`Logged ₹${Number(parsedResult.amount).toFixed(2)} for ${parsedResult.title}!`, 'success');
       
+      // Auto-refresh categories and parent dashboard
+      fetchCategories();
+
       // Reset component state
       setInputText('');
       setParsedResult(null);
@@ -330,9 +333,33 @@ export const AIQuickInput = ({ onExpenseCreated, onOpenEditModal, className = ''
 
               {/* Badges */}
               <div className="flex items-center gap-2 flex-wrap text-xs text-slate-300">
+                {/* Interactive Category Selector */}
                 <div className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-700/60 border border-slate-600/50 text-slate-200">
-                  <Tag className="w-3 h-3 text-emerald-400" />
-                  <span>{parsedResult.suggested_category_name || 'General'}</span>
+                  <Tag className="w-3 h-3 text-emerald-400 shrink-0" />
+                  <select
+                    value={parsedResult.suggested_category_id || ''}
+                    onChange={(e) => {
+                      const selectedId = e.target.value;
+                      const selectedCat = categories.find((c) => c.id === selectedId);
+                      setParsedResult((prev) => ({
+                        ...prev,
+                        suggested_category_id: selectedId,
+                        suggested_category_name: selectedCat ? selectedCat.name : prev.suggested_category_name,
+                      }));
+                    }}
+                    className="bg-transparent border-0 text-slate-200 text-xs font-medium focus:outline-none focus:ring-0 cursor-pointer max-w-[140px] truncate"
+                  >
+                    {categories.map((cat) => (
+                      <option key={cat.id} value={cat.id} className="bg-slate-800 text-white">
+                        {cat.name}
+                      </option>
+                    ))}
+                    {!categories.some((c) => c.id === parsedResult.suggested_category_id) && parsedResult.suggested_category_name && (
+                      <option value={parsedResult.suggested_category_id || ''} className="bg-slate-800 text-white">
+                        {parsedResult.suggested_category_name}
+                      </option>
+                    )}
+                  </select>
                 </div>
 
                 {parsedResult.payment_mode && (

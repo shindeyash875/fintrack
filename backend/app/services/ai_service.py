@@ -1,8 +1,9 @@
 import calendar
 import logging
+import re
 from datetime import date, timedelta
 from decimal import Decimal
-from typing import List, Optional
+from typing import Dict, List, Optional, Tuple
 from uuid import UUID
 
 from pydantic import BaseModel
@@ -22,15 +23,206 @@ from app.schemas.ai import (
 )
 from app.services.ai.factory import AIFactory
 from app.services.budget_service import BudgetService
+from app.services.category_service import CategoryService
 from app.services.dashboard_service import DashboardService
 
 logger = logging.getLogger(__name__)
+
+# Standard Indian & Universal expense domain keyword map
+CATEGORY_DOMAIN_KEYWORDS: Dict[str, List[str]] = {
+    "Food & Dining": [
+        "food", "dining", "restaurant", "cafe", "chai", "tea", "coffee", "breakfast",
+        "lunch", "dinner", "snack", "snacks", "pizza", "burger", "swiggy", "zomato",
+        "mcdonald", "kfc", "starbucks", "biryani", "dosa", "thali", "mess", "canteen",
+        "sweets", "bakery", "pastry", "shawarma", "subway", "dominos", "ice cream"
+    ],
+    "Transportation": [
+        "uber", "ola", "rapido", "cab", "taxi", "auto", "rickshaw", "petrol", "diesel",
+        "fuel", "cng", "bus", "train", "metro", "flight", "toll", "parking", "transport",
+        "travel", "irctc", "ticket", "petrol pump", "indianoil", "hp petrol", "bharat petroleum"
+    ],
+    "Groceries": [
+        "grocery", "groceries", "supermarket", "dmart", "d-mart", "blinkit", "zepto",
+        "instamart", "bigbasket", "milk", "vegetables", "fruits", "kirana", "ration",
+        "curd", "eggs", "oil", "atta", "paneer", "dairy", "provision"
+    ],
+    "Bills & Utilities": [
+        "rent", "electricity", "power", "water", "gas", "cylinder", "wifi", "broadband",
+        "internet", "recharge", "mobile", "dth", "maintenance", "bill", "bills", "utility",
+        "maid", "cook", "society", "jio", "airtel", "vi", "tataplay", "piped gas"
+    ],
+    "Shopping": [
+        "shopping", "amazon", "flipkart", "myntra", "ajio", "clothes", "shoes", "electronics",
+        "mall", "store", "purchase", "dress", "shirt", "pants", "jeans", "tshirt", "watch",
+        "zara", "h&m", "trends", "pantaloons", "footwear", "gadget", "croma", "reliance digital"
+    ],
+    "Entertainment": [
+        "movie", "cinema", "theatre", "netflix", "prime", "hotstar", "spotify", "game",
+        "gaming", "concert", "party", "outing", "club", "pub", "event", "show", "pvr",
+        "inox", "cinepolis", "bookmyshow", "youtube premium"
+    ],
+    "Health & Medical": [
+        "medicine", "pharmacy", "medical", "doctor", "clinic", "hospital", "gym", "fitness",
+        "medicines", "apollo", "practo", "test", "lab", "tablets", "syrup", "pharmeasy",
+        "netmeds", "1mg", "dentist", "consultation"
+    ],
+    "Education": [
+        "books", "course", "tuition", "school", "college", "exam", "fees", "udemy",
+        "coursera", "stationery", "pen", "notebook", "classes", "coaching"
+    ],
+    "Personal Care": [
+        "salon", "spa", "haircut", "barber", "cosmetics", "grooming", "parlour", "facial",
+        "massage", "skincare", "nykaa"
+    ],
+}
 
 
 class AIService:
     """
     High-level AI service orchestrating business domain logic and LLM adapters.
     """
+
+    @classmethod
+    async def _smart_resolve_category(
+        cls,
+        session: AsyncSession,
+        user_id: UUID,
+        suggested_name: Optional[str],
+        context_text: str,
+        existing_categories: List[Category],
+    ) -> Tuple[UUID, str]:
+        """
+        Intelligently matches or creates the exact category for an expense.
+        1. Exact/substring match against user's categories.
+        2. Domain keyword match against user's categories.
+        3. Auto-creates the matched domain category or suggested category if not present.
+        """
+        combined_text = f"{suggested_name or ''} {context_text}".lower()
+
+        # Step 1: Direct match with user's existing categories
+        if suggested_name:
+            s_name_lower = suggested_name.strip().lower()
+            for cat in existing_categories:
+                c_name_lower = cat.name.lower()
+                if c_name_lower == s_name_lower or s_name_lower in c_name_lower or c_name_lower in s_name_lower:
+                    return cat.id, cat.name
+
+        # Step 2: Domain keyword matching
+        target_domain_name: Optional[str] = None
+        for domain_name, keywords in CATEGORY_DOMAIN_KEYWORDS.items():
+            if any(kw in combined_text for kw in keywords):
+                target_domain_name = domain_name
+                break
+
+        if target_domain_name:
+            # Check if user already has a category matching this domain
+            for cat in existing_categories:
+                c_name_lower = cat.name.lower()
+                d_name_lower = target_domain_name.lower()
+                if d_name_lower in c_name_lower or c_name_lower in d_name_lower:
+                    return cat.id, cat.name
+
+            # User doesn't have this domain category yet -> auto-create it!
+            created_cat = await CategoryService.get_or_create(session, target_domain_name, user_id)
+            return created_cat.id, created_cat.name
+
+        # Step 3: If AI provided a distinct category name, get or create it
+        if suggested_name and len(suggested_name.strip()) >= 2:
+            resolved_cat = await CategoryService.get_or_create(session, suggested_name.strip(), user_id)
+            return resolved_cat.id, resolved_cat.name
+
+        # Step 4: Fallback to first existing category or auto-create 'General'
+        if existing_categories:
+            return existing_categories[0].id, existing_categories[0].name
+
+        fallback_cat = await CategoryService.get_or_create(session, "General", user_id)
+        return fallback_cat.id, fallback_cat.name
+
+    @staticmethod
+    def _fallback_parse_expense(text: str, today: date) -> ParsedExpenseData:
+        """
+        Resilient rule-based / regex parser when remote LLM is unavailable.
+        """
+        lower_text = text.lower()
+
+        # 1. Extract Amount
+        amount = Decimal("0.00")
+        k_match = re.search(r'(?:₹|rs\.?|inr)?\s*(\d+(?:\.\d+)?)\s*k\b', lower_text)
+        if k_match:
+            try:
+                amount = Decimal(str(float(k_match.group(1)) * 1000))
+            except Exception:
+                pass
+
+        if amount == 0:
+            curr_match = re.search(r'(?:₹|rs\.?|inr)\s*(\d+(?:,\d+)*(?:\.\d+)?)', lower_text)
+            if curr_match:
+                try:
+                    amount = Decimal(curr_match.group(1).replace(',', ''))
+                except Exception:
+                    pass
+
+        if amount == 0:
+            num_rs_match = re.search(r'(\d+(?:,\d+)*(?:\.\d+)?)\s*(?:rs|rupees|inr)', lower_text)
+            if num_rs_match:
+                try:
+                    amount = Decimal(num_rs_match.group(1).replace(',', ''))
+                except Exception:
+                    pass
+
+        if amount == 0:
+            generic_match = re.search(r'\b(\d+(?:,\d+)*(?:\.\d+)?)\b', lower_text)
+            if generic_match:
+                try:
+                    amount = Decimal(generic_match.group(1).replace(',', ''))
+                except Exception:
+                    pass
+
+        # 2. Extract Payment Mode
+        payment_mode = None
+        if any(w in lower_text for w in ["upi", "gpay", "google pay", "phonepe", "paytm", "bhim", "cred"]):
+            payment_mode = "upi"
+        elif any(w in lower_text for w in ["credit card", "debit card", "card", "cc", "dc", "pos"]):
+            payment_mode = "card"
+        elif any(w in lower_text for w in ["cash", "notes"]):
+            payment_mode = "cash"
+        elif any(w in lower_text for w in ["netbanking", "bank transfer", "neft", "rtgs", "imps"]):
+            payment_mode = "bank_transfer"
+
+        # 3. Extract Date
+        expense_date = today
+        if "yesterday" in lower_text:
+            expense_date = today - timedelta(days=1)
+        elif "day before yesterday" in lower_text:
+            expense_date = today - timedelta(days=2)
+
+        # 4. Extract Category Domain
+        matched_cat_name = "General"
+        for cat_domain, keywords in CATEGORY_DOMAIN_KEYWORDS.items():
+            if any(kw in lower_text for kw in keywords):
+                matched_cat_name = cat_domain
+                break
+
+        # Clean title
+        clean_title = text.strip()
+        clean_title = re.sub(r'(?:spent|paid|bought|for|at|via|on)?\s*(?:₹|rs\.?|inr)?\s*\d+(?:,\d+)*(?:\.\d+)?\s*(?:k|rs\.?|inr|rupees)?', '', clean_title, flags=re.IGNORECASE)
+        clean_title = re.sub(r'\b(via|using|by|through)?\s*(upi|gpay|google pay|phonepe|paytm|cash|credit card|debit card|card|bank transfer)\b', '', clean_title, flags=re.IGNORECASE)
+        clean_title = re.sub(r'\b(today|yesterday|day before yesterday)\b', '', clean_title, flags=re.IGNORECASE)
+        clean_title = re.sub(r'^\s*(spent|paid|bought|for)\s+', '', clean_title, flags=re.IGNORECASE)
+        clean_title = clean_title.strip(" ,.-")
+        if not clean_title or len(clean_title) < 2:
+            clean_title = f"{matched_cat_name} Expense"
+        else:
+            clean_title = clean_title.title()
+
+        return ParsedExpenseData(
+            title=clean_title,
+            amount=amount if amount > 0 else Decimal("100.00"),
+            expense_date=expense_date,
+            suggested_category_name=matched_cat_name,
+            payment_mode=payment_mode,
+            raw_summary=f"₹{amount} spent on {clean_title} on {expense_date.isoformat()}",
+        )
 
     @classmethod
     async def scan_receipt(
@@ -50,7 +242,7 @@ class AIService:
         categories: List[Category] = list(res.scalars().all())
 
         category_names = [c.name for c in categories]
-        categories_context = ", ".join(category_names) if category_names else "General, Food, Groceries, Transport, Bills, Shopping, Other"
+        categories_context = ", ".join(category_names) if category_names else "Food & Dining, Groceries, Transportation, Bills & Utilities, Shopping, Entertainment, Health & Medical"
 
         system_instruction = (
             "You are an expert OCR and financial data extraction assistant for the FinTrack app in India.\n"
@@ -81,25 +273,16 @@ class AIService:
             temperature=0.1,
         )
 
-        # 2. Match extracted category against user's actual categories
-        if extracted.suggested_category_name and categories:
-            s_name_lower = extracted.suggested_category_name.strip().lower()
-            matched_cat: Optional[Category] = None
-
-            # Exact or substring match
-            for cat in categories:
-                c_name_lower = cat.name.lower()
-                if c_name_lower == s_name_lower or s_name_lower in c_name_lower or c_name_lower in s_name_lower:
-                    matched_cat = cat
-                    break
-
-            if matched_cat:
-                extracted.suggested_category_id = matched_cat.id
-                extracted.suggested_category_name = matched_cat.name
-            elif categories:
-                # Fallback to first category if no match
-                extracted.suggested_category_id = categories[0].id
-                extracted.suggested_category_name = categories[0].name
+        # 2. Smart category matching & resolution
+        cat_id, cat_name = await cls._smart_resolve_category(
+            session=session,
+            user_id=user_id,
+            suggested_name=extracted.suggested_category_name,
+            context_text=f"{extracted.title} {extracted.notes or ''}",
+            existing_categories=categories,
+        )
+        extracted.suggested_category_id = cat_id
+        extracted.suggested_category_name = cat_name
 
         # 3. Guard against future date hallucination
         if extracted.expense_date > date.today():
@@ -125,7 +308,7 @@ class AIService:
         categories: List[Category] = list(res.scalars().all())
 
         category_names = [c.name for c in categories]
-        categories_context = ", ".join(category_names) if category_names else "General, Food, Groceries, Transport, Bills, Shopping, Other"
+        categories_context = ", ".join(category_names) if category_names else "Food & Dining, Groceries, Transportation, Bills & Utilities, Shopping, Entertainment, Health & Medical"
 
         today = date.today()
         system_instruction = (
@@ -138,38 +321,35 @@ class AIService:
             "2. 'amount': Extract the exact positive number in Indian Rupees (INR). Parse formats like '350', '2.5k' (=2500), '120 rs', '₹450'.\n"
             "3. 'expense_date': Resolve relative dates based on today's date (e.g., 'today' -> today, 'yesterday' -> 1 day ago, 'last Monday' -> previous Monday). Defaults to today. Must NEVER be in the future.\n"
             "4. 'payment_mode': Detect payment mode: 'upi' (Google Pay, PhonePe, Paytm, UPI), 'card' (credit card, debit card, CC), or 'cash'. If not mentioned, return null.\n"
-            "5. 'suggested_category_name': Choose the MOST appropriate category from the user's category list above.\n"
+            "5. 'suggested_category_name': Choose the MOST appropriate category for this expense.\n"
             "6. 'notes': Any additional context or location mentioned in the text.\n"
             "7. 'raw_summary': A clean one-line human summary of what was understood (e.g., '₹350 spent on Uber via UPI on 2026-09-03')."
         )
 
         prompt = f"Parse this expense phrase: \"{text.strip()}\""
 
-        provider = AIFactory.get_provider()
-        extracted: ParsedExpenseData = await provider.generate_structured(
-            prompt=prompt,
-            response_schema=ParsedExpenseData,
-            system_prompt=system_instruction,
-            temperature=0.1,
+        try:
+            provider = AIFactory.get_provider()
+            extracted: ParsedExpenseData = await provider.generate_structured(
+                prompt=prompt,
+                response_schema=ParsedExpenseData,
+                system_prompt=system_instruction,
+                temperature=0.1,
+            )
+        except Exception as ai_err:
+            logger.warning(f"[AIService] AI provider parse failed ({ai_err}), using resilient rule-based NLP fallback.")
+            extracted = cls._fallback_parse_expense(text=text, today=today)
+
+        # 2. Smart category matching & resolution
+        cat_id, cat_name = await cls._smart_resolve_category(
+            session=session,
+            user_id=user_id,
+            suggested_name=extracted.suggested_category_name,
+            context_text=f"{extracted.title} {text}",
+            existing_categories=categories,
         )
-
-        # 2. Match extracted category against user's actual categories
-        if extracted.suggested_category_name and categories:
-            s_name_lower = extracted.suggested_category_name.strip().lower()
-            matched_cat: Optional[Category] = None
-
-            for cat in categories:
-                c_name_lower = cat.name.lower()
-                if c_name_lower == s_name_lower or s_name_lower in c_name_lower or c_name_lower in s_name_lower:
-                    matched_cat = cat
-                    break
-
-            if matched_cat:
-                extracted.suggested_category_id = matched_cat.id
-                extracted.suggested_category_name = matched_cat.name
-            elif categories:
-                extracted.suggested_category_id = categories[0].id
-                extracted.suggested_category_name = categories[0].name
+        extracted.suggested_category_id = cat_id
+        extracted.suggested_category_name = cat_name
 
         # 3. Guard against future date hallucination
         if extracted.expense_date > today:
