@@ -13,6 +13,11 @@ export const useUIStore = create((set, get) => ({
   openGlobalReceiptScanner: () => set({ isGlobalReceiptScannerOpen: true }),
   closeGlobalReceiptScanner: () => set({ isGlobalReceiptScannerOpen: false }),
 
+  isGlobalAIChatOpen: false,
+  openGlobalAIChat: () => set({ isGlobalAIChatOpen: true }),
+  closeGlobalAIChat: () => set({ isGlobalAIChatOpen: false }),
+  toggleGlobalAIChat: () => set((state) => ({ isGlobalAIChatOpen: !state.isGlobalAIChatOpen })),
+
   isGlobalBudgetOpen: false,
   openGlobalBudget: () => set({ isGlobalBudgetOpen: true }),
   closeGlobalBudget: () => set({ isGlobalBudgetOpen: false }),

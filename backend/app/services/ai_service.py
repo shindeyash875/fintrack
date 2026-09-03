@@ -7,8 +7,15 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.category import Category
-from app.schemas.ai import ParsedExpenseData, ScannedReceiptData
+from app.schemas.ai import (
+    AIChatMessage,
+    AIChatResponse,
+    ParsedExpenseData,
+    ScannedReceiptData,
+)
 from app.services.ai.factory import AIFactory
+from app.services.budget_service import BudgetService
+from app.services.dashboard_service import DashboardService
 
 logger = logging.getLogger(__name__)
 
@@ -162,4 +169,126 @@ class AIService:
             extracted.expense_date = today
 
         return extracted
+
+    @classmethod
+    async def chat_with_advisor(
+        cls,
+        session: AsyncSession,
+        user_id: UUID,
+        message: str,
+        history: Optional[List[AIChatMessage]] = None,
+    ) -> AIChatResponse:
+        """
+        Interactive personal financial advisor chatbot grounded in real-time user financial data.
+        """
+        # 1. Fetch real-time user financial context
+        today = date.today()
+        summary = await DashboardService.get_summary(session, user_id, today=today)
+        comparison = await DashboardService.get_compare(session, user_id, today=today)
+        budget_status = await BudgetService.get_status(session, period_month=today, user_id=user_id)
+
+        # 2. Format grounding snapshot
+        top_cats = (
+            ", ".join(
+                [
+                    f"{c.category_name}: ₹{float(c.total_amount):.2f} ({c.percentage:.1f}%)"
+                    for c in summary.top_categories
+                ]
+            )
+            if summary.top_categories
+            else "No spending recorded this month"
+        )
+        recent_txs = (
+            "; ".join([f"{e.title} (₹{float(e.amount):.2f} on {e.expense_date})" for e in summary.recent_expenses[:5]])
+            if summary.recent_expenses
+            else "No recent transactions"
+        )
+
+        overall_budget_str = "Not set"
+        if budget_status.overall:
+            overall_budget_str = (
+                f"Limit ₹{float(budget_status.overall.limit_amount):.2f}, "
+                f"Spent ₹{float(budget_status.overall.spent_amount):.2f} "
+                f"({budget_status.overall.percentage_used:.1f}%, Status: {budget_status.overall.status})"
+            )
+
+        overspent_list = [b for b in budget_status.categories if b.status == "over_budget"]
+        overspent_str = (
+            ", ".join([f"{b.category_name} (Spent ₹{float(b.spent_amount):.2f} of ₹{float(b.limit_amount):.2f})" for b in overspent_list])
+            if overspent_list
+            else "None (All category budgets on track)"
+        )
+
+        mom_str = (
+            f"Change from last month: {comparison.percentage_change:+.1f}%"
+            if comparison.previous_month_total > 0
+            else "No previous month baseline available"
+        )
+
+        grounded_context = (
+            f"--- USER'S LIVE FINANCIAL PROFILE (REAL GROUND TRUTH) ---\n"
+            f"Today's Date: {today.isoformat()} ({today.strftime('%B %Y')})\n"
+            f"Total Spent This Month ({today.strftime('%B')}): ₹{float(summary.total_spent_current_month):.2f}\n"
+            f"Overall Monthly Budget: {overall_budget_str}\n"
+            f"Month-over-Month Trend: {mom_str}\n"
+            f"Top Spending Categories This Month: {top_cats}\n"
+            f"Overspending Categories: {overspent_str}\n"
+            f"Recent Transactions: {recent_txs}\n"
+            f"Total Lifetime Spent in FinTrack: ₹{float(summary.total_spent_overall):.2f}\n"
+            f"----------------------------------------------------------"
+        )
+
+        system_instruction = (
+            "You are FinTrack AI, an intelligent, empathetic, and highly practical personal financial advisor and copilot.\n"
+            "You are speaking to a user about their personal finances in India.\n\n"
+            f"{grounded_context}\n\n"
+            "Instructions:\n"
+            "1. Ground all your advice, answers, and analysis strictly in the real financial numbers provided above. Use the Indian Rupee symbol (₹).\n"
+            "2. If the user asks about their spending, budgets, savings, or habits, cite their actual categories, amounts, and percentages.\n"
+            "3. Be concise, structured, and polite. Use Markdown formatting (bold numbers, bullet points, headers) for easy reading.\n"
+            "4. If the user asks for suggestions to save money, give 2-3 specific, realistic, and actionable tips targeting their highest spend categories.\n"
+            "5. If no data exists or spending is 0, give friendly encouragement on how to start tracking.\n"
+            "6. Keep responses under 200 words unless the user explicitly asks for a detailed breakdown."
+        )
+
+        # Build prompt with history
+        history_text = ""
+        if history:
+            history_lines = []
+            for h in history[-6:]:  # Keep last 6 turns for context
+                role_label = "User" if h.role == "user" else "Advisor"
+                history_lines.append(f"{role_label}: {h.content}")
+            history_text = "Conversation History:\n" + "\n".join(history_lines) + "\n\n"
+
+        prompt = f"{history_text}User: {message}\nAdvisor:"
+
+        provider = AIFactory.get_provider()
+        reply_text = await provider.generate_text(
+            prompt=prompt,
+            system_prompt=system_instruction,
+            temperature=0.4,
+            max_tokens=800,
+        )
+
+        # Generate smart suggested follow-up prompts
+        suggested_actions = [
+            "How can I cut expenses by 10%?",
+            "What is my biggest expense category?",
+            "Am I on track for my budget?",
+        ]
+
+        return AIChatResponse(
+            reply=reply_text.strip(),
+            suggested_actions=suggested_actions,
+            referenced_metrics={
+                "total_spent_current_month": float(summary.total_spent_current_month),
+                "top_category": (
+                    summary.top_categories[0].category_name
+                    if summary.top_categories
+                    else None
+                ),
+                "overspending_count": len(overspent_list),
+            },
+        )
+
 

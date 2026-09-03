@@ -11,7 +11,7 @@ from sqlalchemy import select
 from app.core.config import settings
 from app.models.category import Category
 from app.models.user import User
-from app.schemas.ai import ParsedExpenseData, ScannedReceiptData
+from app.schemas.ai import AIChatResponse, ParsedExpenseData, ScannedReceiptData
 from app.services.ai.base import AIConfigurationError, AIProviderError
 from app.services.ai.claude_provider import ClaudeProvider
 from app.services.ai.factory import AIFactory
@@ -332,4 +332,74 @@ async def test_parse_expense_endpoint_empty_text(auth_client: AsyncClient):
     )
     # Validation error or bad request
     assert response.status_code in [400, 422]
+
+
+# =========================================================================
+# 6. AI Financial Advisor Chat Tests (Feature 3)
+# =========================================================================
+
+@pytest.mark.asyncio
+async def test_ai_service_chat_with_advisor(test_user: User):
+    test_engine = create_async_engine(settings.test_database_url, poolclass=NullPool)
+    test_session_maker = async_sessionmaker(test_engine, class_=AsyncSession, expire_on_commit=False)
+
+    async with test_session_maker() as session:
+        mock_reply = "You have spent **₹350.00** this month, primarily on **Transport** (100.0%). You are well within your budget limits!"
+
+        with patch.object(GeminiProvider, "generate_text", new_callable=AsyncMock) as mock_text:
+            mock_text.return_value = mock_reply
+            with patch("app.core.config.settings.AI_API_KEY", "test-api-key"):
+                chat_res = await AIService.chat_with_advisor(
+                    session=session,
+                    user_id=test_user.id,
+                    message="How much did I spend this month?",
+                    history=[],
+                )
+
+                assert isinstance(chat_res, AIChatResponse)
+                assert "₹350.00" in chat_res.reply
+                assert len(chat_res.suggested_actions) > 0
+                assert chat_res.referenced_metrics is not None
+
+    await test_engine.dispose()
+
+
+@pytest.mark.asyncio
+async def test_chat_endpoint(auth_client: AsyncClient, test_user: User):
+    mock_chat_res = AIChatResponse(
+        reply="Based on your records, your highest spending category is **Food**.",
+        suggested_actions=["How can I save ₹2,000?", "Show my top 3 expenses"],
+        referenced_metrics={"total_spent_current_month": 1250.0, "top_category": "Food"},
+    )
+
+    with patch.object(AIService, "chat_with_advisor", new_callable=AsyncMock) as mock_chat:
+        mock_chat.return_value = mock_chat_res
+
+        response = await auth_client.post(
+            "/api/v1/ai/chat",
+            json={
+                "message": "Where is most of my money going?",
+                "history": [
+                    {"role": "user", "content": "Hello advisor!"},
+                    {"role": "assistant", "content": "Hello! How can I help with your finances today?"},
+                ],
+            },
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["success"] is True
+        assert "Food" in data["data"]["reply"]
+        assert len(data["data"]["suggested_actions"]) == 2
+        assert data["data"]["referenced_metrics"]["top_category"] == "Food"
+
+
+@pytest.mark.asyncio
+async def test_chat_endpoint_empty_message(auth_client: AsyncClient):
+    response = await auth_client.post(
+        "/api/v1/ai/chat",
+        json={"message": "   "},
+    )
+    assert response.status_code in [400, 422]
+
 

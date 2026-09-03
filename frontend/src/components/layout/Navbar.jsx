@@ -1,12 +1,18 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Menu, Wallet, Download, User, LogOut, KeyRound, Globe, ChevronDown, Camera } from 'lucide-react';
+import { Menu, Wallet, Download, User, LogOut, KeyRound, Globe, ChevronDown, Camera, Sparkles } from 'lucide-react';
 import { useUIStore } from '../../store/useUIStore';
 import { useAuthStore } from '../../store/useAuthStore';
 import ChangePasswordModal from '../auth/ChangePasswordModal';
 import ActiveSessionsModal from '../auth/ActiveSessionsModal';
 
 export const Navbar = () => {
-  const { toggleSidebar, isInstallable, triggerPWAInstall, openGlobalReceiptScanner } = useUIStore();
+  const {
+    toggleSidebar,
+    isInstallable,
+    triggerPWAInstall,
+    openGlobalReceiptScanner,
+    openGlobalAIChat,
+  } = useUIStore();
   const { user, logout } = useAuthStore();
 
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -86,16 +92,30 @@ export const Navbar = () => {
             <span className="font-semibold">₹ INR</span>
           </div>
 
+          {/* AI Financial Advisor Copilot Quick Action */}
+          <button
+            type="button"
+            onClick={openGlobalAIChat}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 hover:from-emerald-700 hover:to-teal-800 text-white text-xs font-semibold shadow-xs active:scale-95 transition-all min-h-[36px] border border-emerald-400/30"
+            title="Ask FinTrack AI Financial Advisor"
+          >
+            <Sparkles className="w-3.5 h-3.5 text-emerald-200 animate-pulse" />
+            <span className="hidden sm:inline">Ask AI</span>
+            <span className="px-1 py-0.2 rounded text-[9px] uppercase font-extrabold bg-white/20 text-white">
+              Advisor
+            </span>
+          </button>
+
           {/* AI Scan Receipt Quick Action */}
           <button
             type="button"
             onClick={openGlobalReceiptScanner}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white text-xs font-semibold shadow-xs active:scale-95 transition-all min-h-[36px]"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold shadow-xs active:scale-95 transition-all min-h-[36px] border border-slate-200"
             title="Scan Receipt or UPI screenshot with AI"
           >
-            <Camera className="w-3.5 h-3.5" />
+            <Camera className="w-3.5 h-3.5 text-slate-600" />
             <span className="hidden sm:inline">Scan Receipt</span>
-            <span className="px-1 py-0.2 rounded text-[9px] uppercase font-bold bg-white/20 text-white">
+            <span className="px-1 py-0.2 rounded text-[9px] uppercase font-bold bg-slate-300/80 text-slate-800">
               AI
             </span>
           </button>

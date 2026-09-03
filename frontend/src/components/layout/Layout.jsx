@@ -5,6 +5,8 @@ import BottomNav from './BottomNav';
 import ToastContainer from '../common/Toast';
 import ExpenseModal from '../expenses/ExpenseModal';
 import ReceiptScannerModal from '../expenses/ReceiptScannerModal';
+import { AIChatAdvisorModal } from '../ai/AIChatAdvisorModal';
+import { AIFloatingTrigger } from '../ai/AIFloatingTrigger';
 import BudgetModal from '../budgets/BudgetModal';
 import CategoryManageModal from '../categories/CategoryManageModal';
 import SettingsModal from '../common/SettingsModal';
@@ -102,6 +104,10 @@ export const Layout = ({ children }) => {
         onClose={() => setIsImportOpen(false)}
         onSuccess={handleDataRefresh}
       />
+
+      {/* FinTrack AI Copilot Floating Button & Chat Advisor Modal */}
+      <AIFloatingTrigger />
+      <AIChatAdvisorModal />
 
       {/* Toast Alerts */}
       <ToastContainer />

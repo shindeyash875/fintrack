@@ -929,5 +929,49 @@
 - **Documentation:**
   - `PROGRESS.md` [MODIFIED]
 
+---
+
+## Milestone Completed: Feature 3 — FinTrack AI Financial Advisor (Interactive Chatbot & Contextual Insights)
+
+### 1. Work Completed
+- **Backend Grounded Financial Advisor Engine (`POST /api/v1/ai/chat`):**
+  - Created `AIChatMessage`, `AIChatRequest`, and `AIChatResponse` schemas in `backend/app/schemas/ai.py`.
+  - Implemented `AIService.chat_with_advisor` in `backend/app/services/ai_service.py`:
+    - Gathers real-time financial ground truth (current month total, MoM comparison, budget limit statuses, category rankings, overspending categories, and recent transactions).
+    - Injects structured profile data into LLM system prompt to eliminate hallucinations and ground all advice in actual INR financial records.
+    - Generates dynamic follow-up suggested questions and referenced financial metrics.
+  - Implemented authenticated `POST /api/v1/ai/chat` endpoint in `backend/app/api/v1/endpoints/ai.py` with rate limiting and robust error handling.
+- **Frontend AI Copilot UI (`AIChatAdvisorModal.jsx` & `AIFloatingTrigger.jsx`):**
+  - Built `frontend/src/components/ai/AIChatAdvisorModal.jsx` featuring:
+    - Floating expandable glassmorphic chat window with distinct user & assistant bubbles.
+    - Custom Markdown rendering (headers, bullet points, bold numbers, emoji accents).
+    - 🎙️ **Speech-to-Text Voice Recording** using Web Speech API (`en-IN` model).
+    - Instant conversation reset button and window expand/collapse controls.
+    - Clickable follow-up prompt suggestion chips and initial financial questions.
+  - Built `frontend/src/components/ai/AIFloatingTrigger.jsx` providing a persistent glowing `✨ Ask AI Advisor` button in the bottom-right of the screen across all views.
+  - Integrated direct AI Copilot triggers in `Navbar.jsx`, `Sidebar.jsx`, and `Layout.jsx`.
+- **Testing & Verification:**
+  - Added unit tests for `chat_with_advisor` domain logic and endpoint tests for `POST /api/v1/ai/chat` in `backend/tests/test_ai_features.py`.
+  - Backend test suite: **49 of 49 passed**.
+  - Frontend Vitest suite: **56 of 56 passed**.
+  - Frontend production build (`npm run build`): **0 errors**.
+
+### 2. Files Modified / Created
+- **Backend:**
+  - `backend/app/schemas/ai.py` [MODIFIED]
+  - `backend/app/services/ai_service.py` [MODIFIED]
+  - `backend/app/api/v1/endpoints/ai.py` [MODIFIED]
+  - `backend/tests/test_ai_features.py` [MODIFIED]
+- **Frontend:**
+  - `frontend/src/store/useUIStore.js` [MODIFIED]
+  - `frontend/src/components/ai/AIChatAdvisorModal.jsx` [NEW]
+  - `frontend/src/components/ai/AIFloatingTrigger.jsx` [NEW]
+  - `frontend/src/components/layout/Layout.jsx` [MODIFIED]
+  - `frontend/src/components/layout/Sidebar.jsx` [MODIFIED]
+  - `frontend/src/components/layout/Navbar.jsx` [MODIFIED]
+- **Documentation:**
+  - `PROGRESS.md` [MODIFIED]
+
+
 
 

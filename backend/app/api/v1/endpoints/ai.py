@@ -5,7 +5,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.dependencies import get_current_user, get_db, limiter
 from app.models.user import User
-from app.schemas.ai import ParseExpenseRequest, ParsedExpenseData, ScannedReceiptData
+from app.schemas.ai import (
+    AIChatRequest,
+    AIChatResponse,
+    ParseExpenseRequest,
+    ParsedExpenseData,
+    ScannedReceiptData,
+)
 from app.schemas.common import ApiResponse
 from app.services.ai.base import AIConfigurationError, AIProviderError
 from app.services.ai_service import AIService
@@ -138,4 +144,56 @@ async def parse_expense(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to parse expense text due to an internal error.",
         )
+
+
+@router.post(
+    "/chat",
+    response_model=ApiResponse[AIChatResponse],
+    summary="Interactive AI Financial Advisor Chatbot",
+)
+@limiter.limit("20/minute")
+async def chat_with_advisor(
+    request: Request,
+    payload: AIChatRequest,
+    current_user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_db),
+):
+    """
+    Chats with the FinTrack AI Financial Advisor, grounded in real-time user financial data
+    (monthly spending, category breakdowns, budget statuses, and recent transactions).
+    """
+    if not payload.message or not payload.message.strip():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Message cannot be empty.",
+        )
+
+    try:
+        chat_response = await AIService.chat_with_advisor(
+            session=session,
+            user_id=current_user.id,
+            message=payload.message.strip(),
+            history=payload.history or [],
+        )
+        return ApiResponse(success=True, data=chat_response)
+
+    except AIConfigurationError as exc:
+        logger.warning(f"[AI Config Error] {exc}")
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=str(exc),
+        )
+    except AIProviderError as exc:
+        logger.error(f"[AI Provider Error] {exc}")
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=f"AI Advisor service error: {exc}",
+        )
+    except Exception as exc:
+        logger.error(f"[AI Chat Error] Unexpected exception: {exc}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to communicate with AI Financial Advisor due to an internal error.",
+        )
+
 

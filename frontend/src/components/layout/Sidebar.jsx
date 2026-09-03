@@ -20,6 +20,7 @@ export const Sidebar = () => {
     isSidebarOpen,
     closeSidebar,
     openGlobalReceiptScanner,
+    openGlobalAIChat,
     openGlobalBudget,
     openGlobalCategory,
     openGlobalSettings,
@@ -38,6 +39,7 @@ export const Sidebar = () => {
       {isSidebarOpen && (
         <div
           onClick={closeSidebar}
+          aria-label="Close sidebar backdrop"
           className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-40 lg:hidden transition-opacity"
         />
       )}
@@ -90,18 +92,36 @@ export const Sidebar = () => {
             );
           })}
 
+          {/* AI Financial Advisor Trigger */}
+          <button
+            onClick={() => {
+              closeSidebar();
+              openGlobalAIChat();
+            }}
+            className="w-full flex items-center justify-between px-3.5 py-3 rounded-xl text-sm font-medium bg-gradient-to-r from-emerald-500/20 via-teal-500/15 to-emerald-500/10 border border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/30 transition-all min-h-[44px] text-left focus:outline-none group mt-2 shadow-xs"
+          >
+            <div className="flex items-center gap-3">
+              <Sparkles className="w-5 h-5 shrink-0 text-emerald-400 group-hover:scale-110 transition-transform animate-pulse" />
+              <span>AI Advisor</span>
+            </div>
+            <span className="px-1.5 py-0.5 rounded-full text-[10px] uppercase font-bold bg-emerald-500/40 text-emerald-200 border border-emerald-400/40">
+              Copilot
+            </span>
+          </button>
+
+          {/* AI Receipt Scanner Trigger */}
           <button
             onClick={() => {
               closeSidebar();
               openGlobalReceiptScanner();
             }}
-            className="w-full flex items-center justify-between px-3.5 py-3 rounded-xl text-sm font-medium bg-gradient-to-r from-emerald-500/15 to-teal-500/10 border border-emerald-500/20 text-emerald-300 hover:bg-emerald-500/25 transition-all min-h-[44px] text-left focus:outline-none group mt-2"
+            className="w-full flex items-center justify-between px-3.5 py-3 rounded-xl text-sm font-medium bg-slate-800/60 hover:bg-slate-800 text-slate-300 hover:text-white transition-all min-h-[44px] text-left focus:outline-none group mt-1.5 border border-slate-700/50"
           >
             <div className="flex items-center gap-3">
-              <Camera className="w-5 h-5 shrink-0 text-emerald-400 group-hover:scale-110 transition-transform" />
+              <Camera className="w-5 h-5 shrink-0 text-teal-400 group-hover:scale-110 transition-transform" />
               <span>Scan Receipt</span>
             </div>
-            <span className="px-1.5 py-0.5 rounded-full text-[10px] uppercase font-bold bg-emerald-500/30 text-emerald-300 border border-emerald-400/30">
+            <span className="px-1.5 py-0.5 rounded-full text-[10px] uppercase font-bold bg-teal-500/30 text-teal-300 border border-teal-400/30">
               AI
             </span>
           </button>

@@ -91,3 +91,49 @@ class ParsedExpenseData(BaseModel):
         description="Clean one-line human summary of what was understood",
     )
 
+
+class AIChatMessage(BaseModel):
+    """Single message in a conversational AI chat history."""
+
+    role: str = Field(
+        ...,
+        description="'user' or 'assistant' or 'system'",
+    )
+    content: str = Field(
+        ...,
+        description="Text content of the message",
+    )
+
+
+class AIChatRequest(BaseModel):
+    """Request payload for chatting with the FinTrack AI Financial Advisor."""
+
+    message: str = Field(
+        ...,
+        min_length=1,
+        max_length=1500,
+        description="User question or statement regarding their finances",
+    )
+    history: Optional[list[AIChatMessage]] = Field(
+        default_factory=list,
+        description="Prior conversational turns for context awareness",
+    )
+
+
+class AIChatResponse(BaseModel):
+    """Structured response from the FinTrack AI Financial Advisor."""
+
+    reply: str = Field(
+        ...,
+        description="Markdown-formatted AI financial advice grounded in user's real data",
+    )
+    suggested_actions: list[str] = Field(
+        default_factory=list,
+        description="Suggested quick follow-up questions or action prompts",
+    )
+    referenced_metrics: Optional[dict] = Field(
+        default=None,
+        description="Key financial metrics cited during analysis (total spent, top category, etc.)",
+    )
+
+
