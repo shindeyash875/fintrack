@@ -1033,6 +1033,20 @@
   - Backend pytest suite: **51 of 51 passed**.
   - Frontend Vitest suite: **56 of 56 passed**.
 
+---
+
+## Phase 4.2: AI Financial Advisor Chatbot Response Unwrapping & Resilience
+
+### 1. Work Completed
+- **Frontend Response Unwrapping Fix (`AIChatAdvisorModal.jsx`):**
+  - Resolved `res.data.data` evaluation bug where Axios response interceptor (`src/api/client.js`) already unwrapped `response.data`, resulting in `res.data.data === undefined` and throwing false "No response from advisor" errors. Updated to `const aiResponse = res?.data || res`.
+- **Backend Chat Resilience & Grounded Fallback (`AIService.chat_with_advisor` & `POST /api/v1/ai/chat`):**
+  - Hardened dictionary/object parsing for conversational history (`history` items).
+  - Added full try-catch fallback returning real-time grounded financial snapshots (`total_spent_current_month`, `top_categories`, `budget_status`) so chatbot continues assisting user even if remote LLM provider is slow or throttled.
+- **Testing & Verification:**
+  - Frontend Vitest suite: **56 of 56 passed**.
+  - Backend pytest suite: **51 of 51 passed**.
+
 
 
 
