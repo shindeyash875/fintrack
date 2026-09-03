@@ -11,7 +11,7 @@ from sqlalchemy import select
 from app.core.config import settings
 from app.models.category import Category
 from app.models.user import User
-from app.schemas.ai import ScannedReceiptData
+from app.schemas.ai import ParsedExpenseData, ScannedReceiptData
 from app.services.ai.base import AIConfigurationError, AIProviderError
 from app.services.ai.claude_provider import ClaudeProvider
 from app.services.ai.factory import AIFactory
@@ -33,7 +33,7 @@ def test_ai_factory_provider_resolution():
     gemini = AIFactory.get_provider(provider_name="gemini", api_key="test-gemini-key")
     assert isinstance(gemini, GeminiProvider)
     assert gemini.api_key == "test-gemini-key"
-    assert gemini.model_name == "gemini-2.0-flash"
+    assert gemini.model_name == "gemini-3.6-flash"
 
     openai = AIFactory.get_provider(provider_name="openai", api_key="test-openai-key", model_name="gpt-4o-mini")
     assert isinstance(openai, OpenAIProvider)
@@ -46,8 +46,9 @@ def test_ai_factory_provider_resolution():
 
 
 def test_ai_factory_missing_api_key():
-    with pytest.raises(AIConfigurationError):
-        AIFactory.get_provider(provider_name="gemini", api_key="")
+    with patch("app.core.config.settings.AI_API_KEY", None), patch("app.core.config.settings.GEMINI_API_KEY", None):
+        with pytest.raises(AIConfigurationError):
+            AIFactory.get_provider(provider_name="gemini", api_key="")
 
 
 def test_ai_factory_unsupported_provider():
@@ -247,3 +248,88 @@ async def test_scan_receipt_endpoint(auth_client: AsyncClient, test_user: User):
         assert data["data"]["title"] == "Zara Fashion"
         assert float(data["data"]["amount"]) == 2490.00
         assert data["data"]["suggested_category_name"] == "Shopping"
+
+
+# =========================================================================
+# 5. Natural Language Parsing Tests (Feature 2)
+# =========================================================================
+
+@pytest.mark.asyncio
+async def test_ai_service_parse_natural_language_expense(test_user: User):
+    test_engine = create_async_engine(settings.test_database_url, poolclass=NullPool)
+    test_session_maker = async_sessionmaker(test_engine, class_=AsyncSession, expire_on_commit=False)
+
+    async with test_session_maker() as session:
+        # Find user's existing Transport category
+        res = await session.execute(select(Category).where(Category.user_id == test_user.id, Category.name == "Transport"))
+        transport_cat = res.scalar_one_or_none()
+        assert transport_cat is not None
+
+        mock_parsed = ParsedExpenseData(
+            title="Uber to office",
+            amount=350.00,
+            expense_date="2026-09-03",
+            payment_mode="upi",
+            suggested_category_name="Transport",
+            notes="Morning commute",
+            confidence=0.96,
+            raw_summary="₹350 spent on Uber via UPI",
+        )
+
+        with patch.object(GeminiProvider, "generate_structured", new_callable=AsyncMock) as mock_generate:
+            mock_generate.return_value = mock_parsed
+            with patch("app.core.config.settings.AI_API_KEY", "test-api-key"):
+                res_data = await AIService.parse_natural_language_expense(
+                    session=session,
+                    user_id=test_user.id,
+                    text="Spent 350 on Uber to office via UPI today",
+                )
+
+                assert res_data.title == "Uber to office"
+                assert float(res_data.amount) == 350.00
+                assert res_data.payment_mode == "upi"
+                assert res_data.suggested_category_id == transport_cat.id
+                assert res_data.suggested_category_name == "Transport"
+
+    await test_engine.dispose()
+
+
+@pytest.mark.asyncio
+async def test_parse_expense_endpoint(auth_client: AsyncClient, test_user: User):
+    mock_parsed = ParsedExpenseData(
+        title="Dinner at Barbeque Nation",
+        amount=2450.00,
+        expense_date="2026-09-02",
+        payment_mode="card",
+        suggested_category_name="Food",
+        notes="Dinner with team",
+        confidence=0.98,
+        raw_summary="₹2450 for dinner at Barbeque Nation via Card",
+    )
+
+    with patch.object(AIService, "parse_natural_language_expense", new_callable=AsyncMock) as mock_parse:
+        mock_parse.return_value = mock_parsed
+
+        response = await auth_client.post(
+            "/api/v1/ai/parse-expense",
+            json={"text": "Dinner at Barbeque Nation 2450 credit card yesterday"},
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["success"] is True
+        assert data["data"]["title"] == "Dinner at Barbeque Nation"
+        assert float(data["data"]["amount"]) == 2450.00
+        assert data["data"]["payment_mode"] == "card"
+        assert data["data"]["suggested_category_name"] == "Food"
+
+
+@pytest.mark.asyncio
+async def test_parse_expense_endpoint_empty_text(auth_client: AsyncClient):
+    response = await auth_client.post(
+        "/api/v1/ai/parse-expense",
+        json={"text": "   "},
+    )
+    # Validation error or bad request
+    assert response.status_code in [400, 422]
+

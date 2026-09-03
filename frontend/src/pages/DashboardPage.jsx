@@ -17,6 +17,8 @@ import BudgetTracker from '../components/budgets/BudgetTracker';
 import OverspendingBanner from '../components/budgets/OverspendingBanner';
 import BudgetModal from '../components/budgets/BudgetModal';
 import ReceiptScannerModal from '../components/expenses/ReceiptScannerModal';
+import ExpenseModal from '../components/expenses/ExpenseModal';
+import AIQuickInput from '../components/expenses/AIQuickInput';
 import CategoryPieChart from '../components/dashboard/CategoryPieChart';
 import SpendingTrendChart from '../components/dashboard/SpendingTrendChart';
 import MonthCompareWidget from '../components/dashboard/MonthCompareWidget';
@@ -39,6 +41,8 @@ export const DashboardPage = () => {
 
   const [isBudgetModalOpen, setIsBudgetModalOpen] = useState(false);
   const [isReceiptScannerOpen, setIsReceiptScannerOpen] = useState(false);
+  const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
+  const [prefillExpense, setPrefillExpense] = useState(null);
   const { fetchAll, status } = useBudgetStore();
 
   // Fetch Summary & MoM comparison
@@ -122,11 +126,28 @@ export const DashboardPage = () => {
               AI
             </span>
           </button>
-          <Button onClick={() => navigate('/expenses')} icon={Plus} size="md" className="flex-1 sm:flex-none">
+          <Button
+            onClick={() => {
+              setPrefillExpense(null);
+              setIsExpenseModalOpen(true);
+            }}
+            icon={Plus}
+            size="md"
+            className="flex-1 sm:flex-none"
+          >
             Add Expense
           </Button>
         </div>
       </div>
+
+      {/* AI Quick Input Bar (Feature 2) */}
+      <AIQuickInput
+        onExpenseCreated={fetchOverview}
+        onOpenEditModal={(prefill) => {
+          setPrefillExpense(prefill);
+          setIsExpenseModalOpen(true);
+        }}
+      />
 
       {/* Overspending Alert Banner */}
       <OverspendingBanner onManageBudgets={() => setIsBudgetModalOpen(true)} />
@@ -342,6 +363,17 @@ export const DashboardPage = () => {
         isOpen={isReceiptScannerOpen}
         onClose={() => setIsReceiptScannerOpen(false)}
         onExpenseCreated={fetchOverview}
+      />
+
+      {/* Expense Modal (for full edit or manual add) */}
+      <ExpenseModal
+        isOpen={isExpenseModalOpen}
+        onClose={() => {
+          setIsExpenseModalOpen(false);
+          setPrefillExpense(null);
+        }}
+        expenseToEdit={prefillExpense}
+        onSuccess={fetchOverview}
       />
     </div>
   );

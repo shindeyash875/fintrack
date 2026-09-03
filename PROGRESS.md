@@ -892,4 +892,42 @@
   - `DOCS/expensetracker prd final.md` [MODIFIED]
   - `PROGRESS.md` [MODIFIED]
 
+---
+
+## Milestone Completed: Feature 2 — Natural Language & Voice Quick-Add Expense Parser
+
+### 1. Work Completed
+- **Backend Natural Language Parsing (`POST /api/v1/ai/parse-expense`):**
+  - Created `ParseExpenseRequest` and `ParsedExpenseData` Pydantic schemas in `backend/app/schemas/ai.py`.
+  - Implemented `AIService.parse_natural_language_expense` in `backend/app/services/ai_service.py` with multi-model structured output extraction, category context matching, and date normalization.
+  - Implemented authenticated `POST /api/v1/ai/parse-expense` endpoint in `backend/app/api/v1/endpoints/ai.py` with rate limiting and error handling.
+- **Frontend AI Quick-Add Bar with Voice Input (`AIQuickInput.jsx`):**
+  - Built `frontend/src/components/expenses/AIQuickInput.jsx` featuring:
+    - Glowing glassmorphic input with rotating inspiration prompts and quick clickable suggestion chips.
+    - 🎙️ **Speech-to-Text Voice Recording** using browser `SpeechRecognition` / `webkitSpeechRecognition` with live audio pulse animation.
+    - AI parsing progress animation.
+    - Parsed expense confirmation card with confidence score, category badge, payment mode badge, and date badge.
+    - 1-Click **"✓ Save Expense"** button creating the transaction instantly and refreshing dashboard state in real time.
+    - **"✏️ Edit Details"** button opening `ExpenseModal` prefilled with parsed data.
+  - Integrated `AIQuickInput` prominently at the top of `DashboardPage.jsx` and `ExpensesPage.jsx`.
+- **Testing & Verification:**
+  - Created unit and endpoint tests in `backend/tests/test_ai_features.py` for natural language parsing and category resolution.
+  - Full backend pytest suite: **46 of 46 passed**.
+  - Full frontend Vitest suite: **56 of 56 passed**.
+  - Production build (`npm run build`) succeeded with 0 errors.
+
+### 2. Files Modified / Created
+- **Backend:**
+  - `backend/app/schemas/ai.py` [MODIFIED]
+  - `backend/app/services/ai_service.py` [MODIFIED]
+  - `backend/app/api/v1/endpoints/ai.py` [MODIFIED]
+  - `backend/tests/test_ai_features.py` [MODIFIED]
+- **Frontend:**
+  - `frontend/src/components/expenses/AIQuickInput.jsx` [NEW]
+  - `frontend/src/pages/DashboardPage.jsx` [MODIFIED]
+  - `frontend/src/pages/ExpensesPage.jsx` [MODIFIED]
+- **Documentation:**
+  - `PROGRESS.md` [MODIFIED]
+
+
 

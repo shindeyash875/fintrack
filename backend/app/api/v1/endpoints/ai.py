@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.dependencies import get_current_user, get_db, limiter
 from app.models.user import User
-from app.schemas.ai import ScannedReceiptData
+from app.schemas.ai import ParseExpenseRequest, ParsedExpenseData, ScannedReceiptData
 from app.schemas.common import ApiResponse
 from app.services.ai.base import AIConfigurationError, AIProviderError
 from app.services.ai_service import AIService
@@ -88,3 +88,54 @@ async def scan_receipt(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to scan receipt image due to an internal error.",
         )
+
+
+@router.post(
+    "/parse-expense",
+    response_model=ApiResponse[ParsedExpenseData],
+    summary="Parse natural language or voice expense text using AI",
+)
+@limiter.limit("20/minute")
+async def parse_expense(
+    request: Request,
+    payload: ParseExpenseRequest,
+    current_user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_db),
+):
+    """
+    Parses unstructured text (e.g. 'Spent 350 on Uber to office via UPI today')
+    into clean structured financial data (amount, category, payment mode, date).
+    """
+    if not payload.text or not payload.text.strip():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Expense text cannot be empty.",
+        )
+
+    try:
+        parsed_data = await AIService.parse_natural_language_expense(
+            session=session,
+            user_id=current_user.id,
+            text=payload.text.strip(),
+        )
+        return ApiResponse(success=True, data=parsed_data)
+
+    except AIConfigurationError as exc:
+        logger.warning(f"[AI Config Error] {exc}")
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=str(exc),
+        )
+    except AIProviderError as exc:
+        logger.error(f"[AI Provider Error] {exc}")
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=f"AI parsing service error: {exc}",
+        )
+    except Exception as exc:
+        logger.error(f"[AI Parse Error] Unexpected exception: {exc}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to parse expense text due to an internal error.",
+        )
+

@@ -30,6 +30,7 @@ import EmptyState from '../components/common/EmptyState';
 import { TableRowSkeleton } from '../components/common/Skeleton';
 import ExpenseModal from '../components/expenses/ExpenseModal';
 import ReceiptScannerModal from '../components/expenses/ReceiptScannerModal';
+import AIQuickInput from '../components/expenses/AIQuickInput';
 import CategoryManageModal from '../components/categories/CategoryManageModal';
 import DeleteConfirmModal from '../components/common/DeleteConfirmModal';
 import ExportModal from '../components/expenses/ExportModal';
@@ -244,6 +245,17 @@ export const ExpensesPage = () => {
           </Button>
         </div>
       </div>
+
+      {/* AI Quick Input Bar (Feature 2) */}
+      <AIQuickInput
+        onExpenseCreated={() => {
+          fetchExpenses();
+        }}
+        onOpenEditModal={(prefill) => {
+          setExpenseToEdit(prefill);
+          setIsExpenseModalOpen(true);
+        }}
+      />
 
       {/* Search & Filter Bar */}
       <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-sm space-y-4">
