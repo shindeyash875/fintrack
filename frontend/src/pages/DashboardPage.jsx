@@ -35,6 +35,8 @@ import TopCategoriesList from '../components/dashboard/TopCategoriesList';
 import AnimatedCounter from '../components/common/AnimatedCounter';
 import Sparkline from '../components/dashboard/Sparkline';
 import SpotlightCard from '../components/common/SpotlightCard';
+import FinTrackCard3D from '../components/dashboard/FinTrackCard3D';
+import Coin3D from '../components/common/Coin3D';
 import { useBudgetStore } from '../store/useBudgetStore';
 import { useUIStore } from '../store/useUIStore';
 
@@ -155,7 +157,8 @@ export const DashboardPage = () => {
       {/* Top Header */}
       <motion.div variants={itemVariants} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
         <div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2.5">
+            <Coin3D size="sm" variant="gold" />
             <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 dark:text-white font-['Outfit']">
               Financial Dashboard
             </h1>
@@ -288,7 +291,7 @@ export const DashboardPage = () => {
         </div>
       )}
 
-      {/* Bento Grid Metric Cards with Interactive Cursor Spotlight (FR-17, FR-25) */}
+      {/* 3D Bento Grid: Interactive FinTrack Metal Card + 3D Parallax Metric Cards */}
       {isLoadingSummary ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-4">
           <CardSkeleton />
@@ -297,174 +300,186 @@ export const DashboardPage = () => {
           <CardSkeleton />
         </div>
       ) : (
-        <motion.div variants={itemVariants} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-4">
-          {/* Card 1: Total Spend Current Month */}
-          <SpotlightCard
-            spotlightColor="rgba(16, 185, 129, 0.16)"
-            darkSpotlightColor="rgba(16, 185, 129, 0.25)"
-            className="p-4 sm:p-5 flex flex-col justify-between"
-          >
-            <div>
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                  This Month
-                </span>
-                <div className="w-8 h-8 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
-                  <Wallet className="w-4 h-4" />
+        <motion.div variants={itemVariants} className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
+          {/* 3D Holographic Metal Card (lg:col-span-5 xl:col-span-4) */}
+          <div className="lg:col-span-5 xl:col-span-4 flex justify-center lg:justify-start">
+            <FinTrackCard3D
+              currentMonthSpent={summary?.total_spent_current_month || 0}
+              budgetStatus={status?.overall || summary?.overall_budget_status}
+              className="w-full"
+            />
+          </div>
+
+          {/* 2x2 Bento Metric Cards (lg:col-span-7 xl:col-span-8) */}
+          <div className="lg:col-span-7 xl:col-span-8 grid grid-cols-1 sm:grid-cols-2 gap-3.5 sm:gap-4">
+            {/* Card 1: Total Spend Current Month */}
+            <SpotlightCard
+              spotlightColor="rgba(16, 185, 129, 0.16)"
+              darkSpotlightColor="rgba(16, 185, 129, 0.25)"
+              className="p-4 sm:p-5 flex flex-col justify-between"
+            >
+              <div>
+                <div className="flex items-center justify-between translate-z-20">
+                  <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                    This Month
+                  </span>
+                  <div className="w-8 h-8 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center translate-z-40 shadow-xs">
+                    <Wallet className="w-4 h-4" />
+                  </div>
                 </div>
+                <p className="mt-2 text-2xl font-bold text-slate-900 dark:text-white font-['Outfit'] translate-z-40 drop-shadow-xs">
+                  <AnimatedCounter
+                    value={summary?.total_spent_current_month || 0}
+                    prefix="₹"
+                  />
+                </p>
               </div>
-              <p className="mt-2.5 text-2xl font-bold text-slate-900 dark:text-white font-['Outfit']">
-                <AnimatedCounter
-                  value={summary?.total_spent_current_month || 0}
-                  prefix="₹"
+              <div className="mt-3 pt-2.5 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between translate-z-20">
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                  Avg {formatCurrency(summary?.average_daily_spend)}/day
+                </p>
+                <Sparkline
+                  data={sparklinePoints}
+                  color="#10b981"
+                  gradientId="sparkline-month"
+                  width={70}
+                  height={24}
                 />
-              </p>
-            </div>
-            <div className="mt-3 pt-2.5 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between">
-              <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                Avg {formatCurrency(summary?.average_daily_spend)}/day
-              </p>
-              <Sparkline
-                data={sparklinePoints}
-                color="#10b981"
-                gradientId="sparkline-month"
-                width={70}
-                height={24}
-              />
-            </div>
-          </SpotlightCard>
+              </div>
+            </SpotlightCard>
 
-          {/* Card 2: Overall Lifetime Spend */}
-          <SpotlightCard
-            spotlightColor="rgba(59, 130, 246, 0.16)"
-            darkSpotlightColor="rgba(59, 130, 246, 0.25)"
-            className="p-4 sm:p-5 flex flex-col justify-between"
-          >
-            <div>
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                  Total Lifetime
-                </span>
-                <div className="w-8 h-8 rounded-xl bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 flex items-center justify-center">
-                  <TrendingUp className="w-4 h-4" />
+            {/* Card 2: Overall Lifetime Spend */}
+            <SpotlightCard
+              spotlightColor="rgba(59, 130, 246, 0.16)"
+              darkSpotlightColor="rgba(59, 130, 246, 0.25)"
+              className="p-4 sm:p-5 flex flex-col justify-between"
+            >
+              <div>
+                <div className="flex items-center justify-between translate-z-20">
+                  <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                    Total Lifetime
+                  </span>
+                  <div className="w-8 h-8 rounded-xl bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 flex items-center justify-center translate-z-40 shadow-xs">
+                    <TrendingUp className="w-4 h-4" />
+                  </div>
                 </div>
+                <p className="mt-2 text-2xl font-bold text-slate-900 dark:text-white font-['Outfit'] translate-z-40 drop-shadow-xs">
+                  <AnimatedCounter
+                    value={summary?.total_spent_overall || 0}
+                    prefix="₹"
+                  />
+                </p>
               </div>
-              <p className="mt-2.5 text-2xl font-bold text-slate-900 dark:text-white font-['Outfit']">
-                <AnimatedCounter
-                  value={summary?.total_spent_overall || 0}
-                  prefix="₹"
+              <div className="mt-3 pt-2.5 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between translate-z-20">
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">All transactions</p>
+                <Sparkline
+                  data={sparklinePoints.map((x) => x * 1.5)}
+                  color="#3b82f6"
+                  gradientId="sparkline-life"
+                  width={70}
+                  height={24}
                 />
-              </p>
-            </div>
-            <div className="mt-3 pt-2.5 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between">
-              <p className="text-[11px] text-slate-500 dark:text-slate-400">All recorded transactions</p>
-              <Sparkline
-                data={sparklinePoints.map((x) => x * 1.5)}
-                color="#3b82f6"
-                gradientId="sparkline-life"
-                width={70}
-                height={24}
-              />
-            </div>
-          </SpotlightCard>
+              </div>
+            </SpotlightCard>
 
-          {/* Card 3: Budget Goal Status */}
-          {(() => {
-            const liveOverall = status ? status.overall : summary?.overall_budget_status;
-            const isOver = liveOverall && Number(liveOverall.remaining_amount) < 0;
-            const isNear = liveOverall && liveOverall.status === 'near_limit';
+            {/* Card 3: Budget Goal Status */}
+            {(() => {
+              const liveOverall = status ? status.overall : summary?.overall_budget_status;
+              const isOver = liveOverall && Number(liveOverall.remaining_amount) < 0;
+              const isNear = liveOverall && liveOverall.status === 'near_limit';
 
-            return (
-              <SpotlightCard
-                spotlightColor={isOver ? 'rgba(244, 63, 94, 0.18)' : 'rgba(16, 185, 129, 0.18)'}
-                darkSpotlightColor={isOver ? 'rgba(244, 63, 94, 0.25)' : 'rgba(16, 185, 129, 0.25)'}
-                onClick={() => setIsBudgetModalOpen(true)}
-                className="p-4 sm:p-5 flex flex-col justify-between cursor-pointer group"
-                title="Click to manage budget goals"
-              >
-                <div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
-                      Remaining Budget
-                    </span>
-                    <div
-                      className={`w-8 h-8 rounded-xl flex items-center justify-center ${
-                        isOver
-                          ? 'bg-rose-50 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400'
-                          : isNear
-                          ? 'bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400'
-                          : 'bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400'
+              return (
+                <SpotlightCard
+                  spotlightColor={isOver ? 'rgba(244, 63, 94, 0.18)' : 'rgba(16, 185, 129, 0.18)'}
+                  darkSpotlightColor={isOver ? 'rgba(244, 63, 94, 0.25)' : 'rgba(16, 185, 129, 0.25)'}
+                  onClick={() => setIsBudgetModalOpen(true)}
+                  className="p-4 sm:p-5 flex flex-col justify-between cursor-pointer group"
+                  title="Click to manage budget goals"
+                >
+                  <div>
+                    <div className="flex items-center justify-between translate-z-20">
+                      <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
+                        Remaining Budget
+                      </span>
+                      <div
+                        className={`w-8 h-8 rounded-xl flex items-center justify-center translate-z-40 shadow-xs ${
+                          isOver
+                            ? 'bg-rose-50 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400'
+                            : isNear
+                            ? 'bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400'
+                            : 'bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400'
+                        }`}
+                      >
+                        <Target className="w-4 h-4" />
+                      </div>
+                    </div>
+                    <p
+                      className={`mt-2 text-2xl font-bold font-['Outfit'] translate-z-40 drop-shadow-xs ${
+                        isOver ? 'text-rose-600 dark:text-rose-400' : 'text-slate-900 dark:text-white'
                       }`}
                     >
-                      <Target className="w-4 h-4" />
-                    </div>
+                      {liveOverall ? (
+                        <AnimatedCounter
+                          value={Number(liveOverall.remaining_amount)}
+                          prefix="₹"
+                        />
+                      ) : (
+                        'No Goal Set'
+                      )}
+                    </p>
                   </div>
-                  <p
-                    className={`mt-2.5 text-2xl font-bold font-['Outfit'] ${
-                      isOver ? 'text-rose-600 dark:text-rose-400' : 'text-slate-900 dark:text-white'
-                    }`}
-                  >
-                    {liveOverall ? (
-                      <AnimatedCounter
-                        value={Number(liveOverall.remaining_amount)}
-                        prefix="₹"
-                      />
-                    ) : (
-                      'No Goal Set'
-                    )}
-                  </p>
-                </div>
-                <div className="mt-3 pt-2.5 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between">
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
-                    {liveOverall
-                      ? `${liveOverall.percentage_used}% used`
-                      : 'Click to set goal →'}
-                  </p>
-                  <Sparkline
-                    data={isOver ? [50, 40, 30, 20, 10, 5, 0] : [10, 20, 35, 45, 60, 75, 90]}
-                    color={isOver ? '#f43f5e' : '#10b981'}
-                    gradientId="sparkline-budget"
-                    width={70}
-                    height={24}
-                  />
-                </div>
-              </SpotlightCard>
-            );
-          })()}
+                  <div className="mt-3 pt-2.5 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between translate-z-20">
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
+                      {liveOverall
+                        ? `${liveOverall.percentage_used}% used`
+                        : 'Click to set goal →'}
+                    </p>
+                    <Sparkline
+                      data={isOver ? [50, 40, 30, 20, 10, 5, 0] : [10, 20, 35, 45, 60, 75, 90]}
+                      color={isOver ? '#f43f5e' : '#10b981'}
+                      gradientId="sparkline-budget"
+                      width={70}
+                      height={24}
+                    />
+                  </div>
+                </SpotlightCard>
+              );
+            })()}
 
-          {/* Card 4: Weekly Pace */}
-          <SpotlightCard
-            spotlightColor="rgba(168, 85, 247, 0.16)"
-            darkSpotlightColor="rgba(168, 85, 247, 0.25)"
-            className="p-4 sm:p-5 flex flex-col justify-between"
-          >
-            <div>
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                  Weekly Pace
-                </span>
-                <div className="w-8 h-8 rounded-xl bg-purple-50 dark:bg-purple-950/50 text-purple-600 dark:text-purple-400 flex items-center justify-center">
-                  <CreditCard className="w-4 h-4" />
+            {/* Card 4: Weekly Pace */}
+            <SpotlightCard
+              spotlightColor="rgba(168, 85, 247, 0.16)"
+              darkSpotlightColor="rgba(168, 85, 247, 0.25)"
+              className="p-4 sm:p-5 flex flex-col justify-between"
+            >
+              <div>
+                <div className="flex items-center justify-between translate-z-20">
+                  <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                    Weekly Pace
+                  </span>
+                  <div className="w-8 h-8 rounded-xl bg-purple-50 dark:bg-purple-950/50 text-purple-600 dark:text-purple-400 flex items-center justify-center translate-z-40 shadow-xs">
+                    <CreditCard className="w-4 h-4" />
+                  </div>
                 </div>
+                <p className="mt-2 text-2xl font-bold text-slate-900 dark:text-white font-['Outfit'] translate-z-40 drop-shadow-xs">
+                  <AnimatedCounter
+                    value={summary?.average_weekly_spend || 0}
+                    prefix="₹"
+                  />
+                </p>
               </div>
-              <p className="mt-2.5 text-2xl font-bold text-slate-900 dark:text-white font-['Outfit']">
-                <AnimatedCounter
-                  value={summary?.average_weekly_spend || 0}
-                  prefix="₹"
+              <div className="mt-3 pt-2.5 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between translate-z-20">
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">7-day run rate</p>
+                <Sparkline
+                  data={sparklinePoints.map((x, i) => x * (1 + i * 0.1))}
+                  color="#a855f7"
+                  gradientId="sparkline-weekly"
+                  width={70}
+                  height={24}
                 />
-              </p>
-            </div>
-            <div className="mt-3 pt-2.5 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between">
-              <p className="text-[11px] text-slate-500 dark:text-slate-400">7-day run rate</p>
-              <Sparkline
-                data={sparklinePoints.map((x, i) => x * (1 + i * 0.1))}
-                color="#a855f7"
-                gradientId="sparkline-weekly"
-                width={70}
-                height={24}
-              />
-            </div>
-          </SpotlightCard>
+              </div>
+            </SpotlightCard>
+          </div>
         </motion.div>
       )}
 

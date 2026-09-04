@@ -28,7 +28,7 @@ export const Modal = ({
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-2.5 sm:p-4 md:p-6 overflow-hidden">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-2.5 sm:p-4 md:p-6 overflow-hidden perspective-1200">
           {/* Backdrop */}
           <motion.div
             initial={{ opacity: 0 }}
@@ -38,15 +38,16 @@ export const Modal = ({
             className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity"
           />
 
-          {/* Modal Card */}
+          {/* Modal Card with 3D Perspective Spring Pop */}
           <motion.div
             role="dialog"
             aria-modal="true"
             aria-labelledby="modal-title"
-            initial={{ opacity: 0, scale: 0.95, y: 12 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 12 }}
-            transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+            initial={{ opacity: 0, scale: 0.94, y: 16, rotateX: 6 }}
+            animate={{ opacity: 1, scale: 1, y: 0, rotateX: 0 }}
+            exit={{ opacity: 0, scale: 0.94, y: 16, rotateX: 6 }}
+            transition={{ type: 'spring', damping: 26, stiffness: 320 }}
+            style={{ transformStyle: 'preserve-3d' }}
             className={`relative w-full ${maxWidth} bg-white dark:bg-slate-900 rounded-2xl sm:rounded-3xl shadow-2xl border border-slate-200/80 dark:border-slate-800 overflow-hidden z-10 flex flex-col max-h-[calc(100dvh-1.5rem)] sm:max-h-[88vh] text-slate-900 dark:text-slate-100`}
           >
             {/* Header */}

@@ -2,6 +2,7 @@ import React from 'react';
 import { Award, ArrowRight } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useUIStore } from '../../store/useUIStore';
+import Coin3D from '../common/Coin3D';
 
 const RANK_BADGE_CLASSES = [
   'bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border-amber-200 dark:border-amber-800', // #1 Gold
@@ -46,8 +47,8 @@ export const TopCategoriesList = ({ categories = [], isLoading = false }) => {
     <div className="bg-white dark:bg-slate-900 rounded-2xl p-4 sm:p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm flex flex-col justify-between">
       <div>
         <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <Award className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+          <div className="flex items-center gap-2.5">
+            <Coin3D size="sm" variant="gold" />
             <div>
               <h3 className="text-base font-bold text-slate-900 dark:text-white font-['Outfit']">
                 Top Categories

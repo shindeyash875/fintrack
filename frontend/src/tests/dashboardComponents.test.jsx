@@ -147,3 +147,27 @@ describe('SpendingTrendChart', () => {
     expect(onGranularityChange).toHaveBeenCalledWith('monthly');
   });
 });
+
+describe('Coin3D & FinTrackCard3D Components', () => {
+  it('renders Coin3D with gold and emerald variants', async () => {
+    const { Coin3D } = await import('../components/common/Coin3D');
+    render(<Coin3D size="md" variant="gold" />);
+    expect(screen.getByTitle('3D Wealth Coin')).toBeInTheDocument();
+  });
+
+  it('renders FinTrackCard3D with spend readout and flips to show health score', async () => {
+    const { FinTrackCard3D } = await import('../components/dashboard/FinTrackCard3D');
+    render(
+      <FinTrackCard3D 
+        currentMonthSpent={12500} 
+        budgetStatus={{ percentage_used: 45, remaining_amount: 15000 }} 
+      />
+    );
+
+    expect(screen.getAllByText(/FinTrack/i).length).toBeGreaterThan(0);
+    expect(screen.getByText(/Platinum/i)).toBeInTheDocument();
+    expect(screen.getByText(/Month Spend/i)).toBeInTheDocument();
+    expect(screen.getByText(/Financial Health Score/i)).toBeInTheDocument();
+  });
+});
+
