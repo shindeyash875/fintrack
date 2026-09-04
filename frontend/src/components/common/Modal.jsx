@@ -47,17 +47,17 @@ export const Modal = ({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 12 }}
             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-            className={`relative w-full ${maxWidth} bg-white rounded-2xl sm:rounded-3xl shadow-2xl border border-slate-200/80 overflow-hidden z-10 flex flex-col max-h-[calc(100dvh-1.5rem)] sm:max-h-[88vh]`}
+            className={`relative w-full ${maxWidth} bg-white dark:bg-slate-900 rounded-2xl sm:rounded-3xl shadow-2xl border border-slate-200/80 dark:border-slate-800 overflow-hidden z-10 flex flex-col max-h-[calc(100dvh-1.5rem)] sm:max-h-[88vh] text-slate-900 dark:text-slate-100`}
           >
             {/* Header */}
-            <div className="shrink-0 flex items-center justify-between px-5 sm:px-6 py-3.5 sm:py-4 border-b border-slate-100 bg-white">
-              <h3 id="modal-title" className="text-base sm:text-lg font-semibold text-slate-800 font-['Outfit']">
+            <div className="shrink-0 flex items-center justify-between px-5 sm:px-6 py-3.5 sm:py-4 border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900">
+              <h3 id="modal-title" className="text-base sm:text-lg font-semibold text-slate-800 dark:text-white font-['Outfit']">
                 {title}
               </h3>
               <button
                 onClick={onClose}
                 aria-label="Close dialog"
-                className="p-2 -mr-1 text-slate-400 hover:text-slate-700 rounded-xl hover:bg-slate-100 transition-colors focus:outline-none min-w-[40px] min-h-[40px] flex items-center justify-center"
+                className="p-2 -mr-1 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors focus:outline-none min-w-[40px] min-h-[40px] flex items-center justify-center"
               >
                 <X className="w-5 h-5" />
               </button>

@@ -14,9 +14,12 @@ import {
   TrendingUp,
   Award,
   PieChart,
+  Sun,
+  Moon,
 } from 'lucide-react';
 import { useUIStore } from '../../store/useUIStore';
 import { useAuthStore } from '../../store/useAuthStore';
+import { ThemeToggle } from '../common/ThemeToggle';
 
 export const Sidebar = () => {
   const navigate = useNavigate();
@@ -31,7 +34,9 @@ export const Sidebar = () => {
     openGlobalBudget,
     openGlobalCategory,
     openGlobalSettings,
+    theme,
   } = useUIStore();
+  const isDark = theme === 'dark';
 
   const { user, logout } = useAuthStore();
 
@@ -245,10 +250,23 @@ export const Sidebar = () => {
           </div>
         </nav>
 
-        {/* User Card & Logout in Footer */}
-        <div className="p-4 border-t border-slate-800/80 pb-safe">
+        {/* User Card, Theme Toggle & Logout in Footer */}
+        <div className="p-4 border-t border-slate-800/80 pb-safe space-y-2">
+          {/* Quick Theme Switcher */}
+          <div className="flex items-center justify-between px-3 py-2 rounded-2xl bg-slate-800/40 border border-slate-800/80">
+            <div className="flex items-center gap-2 text-xs text-slate-400 font-medium">
+              {isDark ? (
+                <Moon className="w-4 h-4 text-indigo-400" />
+              ) : (
+                <Sun className="w-4 h-4 text-amber-400" />
+              )}
+              <span>Appearance</span>
+            </div>
+            <ThemeToggle className="!min-h-[32px] !min-w-[32px] !p-1.5" />
+          </div>
+
           {user && (
-            <div className="bg-slate-800/60 rounded-2xl p-3 mb-2 flex items-center justify-between border border-slate-700/50">
+            <div className="bg-slate-800/60 rounded-2xl p-3 flex items-center justify-between border border-slate-700/50">
               <div className="truncate mr-2">
                 <p className="text-xs font-semibold text-white truncate">
                   {user.full_name || 'Account'}

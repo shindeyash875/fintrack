@@ -11,6 +11,7 @@ import {
 import Modal from './Modal';
 import Button from './Button';
 import { useUIStore } from '../../store/useUIStore';
+import ThemeToggle from './ThemeToggle';
 
 export const SettingsModal = ({
   isOpen,
@@ -97,6 +98,21 @@ export const SettingsModal = ({
           </div>
         </div>
 
+        {/* Theme & Appearance */}
+        <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/80">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <h4 className="text-sm font-bold text-slate-900 dark:text-white font-['Outfit']">
+                Appearance
+              </h4>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                Customize your color theme preference
+              </p>
+            </div>
+            <ThemeToggle variant="segmented" />
+          </div>
+        </div>
+
         {/* Quick Management Actions */}
         <div className="space-y-2">
           <h5 className="text-xs font-semibold uppercase tracking-wider text-slate-400">
@@ -108,11 +124,11 @@ export const SettingsModal = ({
                 onClose();
                 onOpenCategories?.();
               }}
-              className="flex items-center justify-between p-3 rounded-xl border border-slate-200 hover:border-emerald-300 hover:bg-emerald-50/50 transition-colors text-left group min-h-[44px]"
+              className="flex items-center justify-between p-3 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-emerald-300 dark:hover:border-emerald-500 hover:bg-emerald-50/50 dark:hover:bg-slate-800 transition-colors text-left group min-h-[44px]"
             >
               <div className="flex items-center gap-3">
-                <Tag className="w-4 h-4 text-emerald-600" />
-                <span className="text-sm font-medium text-slate-700 group-hover:text-slate-900">
+                <Tag className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                <span className="text-sm font-medium text-slate-700 dark:text-slate-200 group-hover:text-slate-900 dark:group-hover:text-white">
                   Manage Categories
                 </span>
               </div>
@@ -124,11 +140,11 @@ export const SettingsModal = ({
                 onClose();
                 onOpenExport?.();
               }}
-              className="flex items-center justify-between p-3 rounded-xl border border-slate-200 hover:border-emerald-300 hover:bg-emerald-50/50 transition-colors text-left group min-h-[44px]"
+              className="flex items-center justify-between p-3 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-emerald-300 dark:hover:border-emerald-500 hover:bg-emerald-50/50 dark:hover:bg-slate-800 transition-colors text-left group min-h-[44px]"
             >
               <div className="flex items-center gap-3">
-                <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
-                <span className="text-sm font-medium text-slate-700 group-hover:text-slate-900">
+                <FileSpreadsheet className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                <span className="text-sm font-medium text-slate-700 dark:text-slate-200 group-hover:text-slate-900 dark:group-hover:text-white">
                   Export Data (CSV / JSON)
                 </span>
               </div>
@@ -138,26 +154,26 @@ export const SettingsModal = ({
         </div>
 
         {/* App & Database Status */}
-        <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 text-xs space-y-2">
-          <div className="flex items-center justify-between text-slate-600">
+        <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 text-xs space-y-2">
+          <div className="flex items-center justify-between text-slate-600 dark:text-slate-300">
             <span className="flex items-center gap-1.5">
-              <Database className="w-3.5 h-3.5 text-emerald-600" />
+              <Database className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
               Database
             </span>
-            <span className="flex items-center gap-1 font-semibold text-emerald-700">
+            <span className="flex items-center gap-1 font-semibold text-emerald-700 dark:text-emerald-400">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
               Live PostgreSQL
             </span>
           </div>
 
-          <div className="flex items-center justify-between text-slate-600">
+          <div className="flex items-center justify-between text-slate-600 dark:text-slate-300">
             <span>Display Currency</span>
-            <span className="font-semibold text-slate-800">INR (₹)</span>
+            <span className="font-semibold text-slate-800 dark:text-slate-100">INR (₹)</span>
           </div>
 
-          <div className="flex items-center justify-between text-slate-600">
+          <div className="flex items-center justify-between text-slate-600 dark:text-slate-300">
             <span>App Version</span>
-            <span className="font-semibold text-slate-800">FinTrack PWA v1.0</span>
+            <span className="font-semibold text-slate-800 dark:text-slate-100">FinTrack PWA v1.0</span>
           </div>
         </div>
       </div>

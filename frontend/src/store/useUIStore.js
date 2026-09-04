@@ -1,6 +1,58 @@
 import { create } from 'zustand';
 
+const getInitialTheme = () => {
+  if (typeof window === 'undefined') return 'light';
+  try {
+    const saved = localStorage.getItem('fintrack_theme');
+    if (saved === 'dark' || saved === 'light') return saved;
+    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      return 'dark';
+    }
+  } catch (e) {
+    // Ignore localStorage errors in private mode
+  }
+  return 'light';
+};
+
+const applyThemeToDOM = (theme) => {
+  if (typeof document === 'undefined') return;
+  const isDark = theme === 'dark';
+  if (isDark) {
+    document.documentElement.classList.add('dark');
+  } else {
+    document.documentElement.classList.remove('dark');
+  }
+};
+
+// Initial DOM sync on load
+if (typeof window !== 'undefined') {
+  applyThemeToDOM(getInitialTheme());
+}
+
 export const useUIStore = create((set, get) => ({
+  // Theme state ('light' | 'dark')
+  theme: getInitialTheme(),
+  setTheme: (newTheme) => {
+    try {
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('fintrack_theme', newTheme);
+      }
+    } catch (e) {}
+    applyThemeToDOM(newTheme);
+    set({ theme: newTheme });
+  },
+  toggleTheme: () => {
+    const current = get().theme;
+    const nextTheme = current === 'dark' ? 'light' : 'dark';
+    try {
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('fintrack_theme', nextTheme);
+      }
+    } catch (e) {}
+    applyThemeToDOM(nextTheme);
+    set({ theme: nextTheme });
+  },
+
   isSidebarOpen: false,
   toggleSidebar: () => set((state) => ({ isSidebarOpen: !state.isSidebarOpen })),
   closeSidebar: () => set({ isSidebarOpen: false }),

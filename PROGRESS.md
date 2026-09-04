@@ -1069,6 +1069,31 @@
 - **Backend (Pytest):** **58 of 58 tests passed** (including 23 comprehensive AI feature tests).
 - **Frontend (Vitest):** **67 of 67 tests passed** across 11 test suites.
 
+---
+
+## Phase 6: Dark / Light Mode Theme System & Appearance Settings
+
+### 1. Work Completed
+- **Tailwind Class Strategy Configuration (`frontend/tailwind.config.js`):**
+  - Configured `darkMode: 'class'` to allow dynamic switching and theme persistence via CSS class binding on `document.documentElement`.
+- **Global Theme State & DOM Synchronization (`frontend/src/store/useUIStore.js`):**
+  - Added reactive `theme` state (`'light' | 'dark'`), `setTheme(theme)`, and `toggleTheme()`.
+  - Automatic `localStorage` persistence (`'fintrack_theme'`) and system preference fallback (`window.matchMedia('(prefers-color-scheme: dark)')`).
+  - Seamless DOM synchronization adding/removing `.dark` class from `document.documentElement`.
+- **Theme Changer UI Component (`frontend/src/components/common/ThemeToggle.jsx`):**
+  - `variant="icon"`: Animated Sun/Moon button with rotation micro-animations and accessibility ARIA labels.
+  - `variant="segmented"`: Segmented tab selector with distinct Light and Dark button options.
+- **App-Wide UI Integration:**
+  - **Top Navigation (`Navbar.jsx`):** Added primary Theme Toggle next to currency badge and an instant Theme Switcher row in the user profile dropdown.
+  - **Sidebar Footer (`Sidebar.jsx`):** Added an Appearance card with Theme Toggle above user account info.
+  - **Settings Modal (`SettingsModal.jsx`):** Added a dedicated "Appearance & Theme" section with segmented Light/Dark controls.
+  - **Modals & Cards Pass (`Modal.jsx`, `Layout.jsx`, `Button.jsx`, `EmptyState.jsx`, `Skeleton.jsx`, `DeleteConfirmModal.jsx`):** Added full dark mode support (`dark:bg-slate-900`, `dark:border-slate-800`, `dark:text-white`, `dark:text-slate-300`).
+- **Comprehensive Testing & Verification:**
+  - Created `frontend/src/tests/theme.test.jsx` (5 tests covering state toggling, localStorage persistence, DOM sync, icon toggle clicks, segmented switcher, and SettingsModal integration).
+  - Frontend Vitest suite: **72 of 72 tests passed** (12 of 12 test suites).
+  - Backend Pytest suite: **58 of 58 tests passed**.
+  - Verified 100% adherence to AGENTS.md rules (no inline styles, Tailwind CSS only, no secrets exposed).
+
 
 
 
