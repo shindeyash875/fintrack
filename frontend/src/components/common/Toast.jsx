@@ -13,9 +13,9 @@ export const ToastContainer = () => {
   };
 
   const colors = {
-    success: 'bg-emerald-50 text-emerald-800 border-emerald-200',
-    error: 'bg-rose-50 text-rose-800 border-rose-200',
-    info: 'bg-blue-50 text-blue-800 border-blue-200',
+    success: 'bg-emerald-50 dark:bg-emerald-950/90 text-emerald-800 dark:text-emerald-200 border-emerald-200 dark:border-emerald-800',
+    error: 'bg-rose-50 dark:bg-rose-950/90 text-rose-800 dark:text-rose-200 border-rose-200 dark:border-rose-800',
+    info: 'bg-blue-50 dark:bg-blue-950/90 text-blue-800 dark:text-blue-200 border-blue-200 dark:border-blue-800',
   };
 
   return (
@@ -38,7 +38,7 @@ export const ToastContainer = () => {
               <p className="text-xs sm:text-sm font-medium flex-1">{toast.message}</p>
               <button
                 onClick={() => removeToast(toast.id)}
-                className="p-1.5 -mr-1 -mt-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-200/50 transition-colors focus:outline-none min-h-[36px] min-w-[36px] flex items-center justify-center"
+                className="p-1.5 -mr-1 -mt-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors focus:outline-none min-h-[36px] min-w-[36px] flex items-center justify-center"
               >
                 <X className="w-4 h-4" />
               </button>

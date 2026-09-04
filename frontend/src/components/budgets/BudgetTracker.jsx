@@ -53,28 +53,28 @@ export const BudgetTracker = () => {
       case 'on_track':
         return {
           label: 'On Track',
-          badgeClass: 'bg-emerald-50 text-emerald-700 border-emerald-200/80',
+          badgeClass: 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border-emerald-200/80 dark:border-emerald-800',
           barClass: 'bg-emerald-500',
           icon: CheckCircle2,
         };
       case 'near_limit':
         return {
           label: 'Near Limit',
-          badgeClass: 'bg-amber-50 text-amber-700 border-amber-200/80',
+          badgeClass: 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border-amber-200/80 dark:border-amber-800',
           barClass: 'bg-amber-500',
           icon: AlertTriangle,
         };
       case 'over_budget':
         return {
           label: 'Over Budget',
-          badgeClass: 'bg-rose-50 text-rose-700 border-rose-200/80',
+          badgeClass: 'bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-400 border-rose-200/80 dark:border-rose-800',
           barClass: 'bg-rose-500',
           icon: Flame,
         };
       default:
         return {
           label: 'On Track',
-          badgeClass: 'bg-slate-50 text-slate-700 border-slate-200/80',
+          badgeClass: 'bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200/80 dark:border-slate-700',
           barClass: 'bg-emerald-500',
           icon: CheckCircle2,
         };
@@ -88,39 +88,39 @@ export const BudgetTracker = () => {
   return (
     <div className="space-y-6">
       {/* Header & Month Navigation */}
-      <div className="bg-white rounded-2xl p-4 sm:p-6 border border-slate-200/80 shadow-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl p-4 sm:p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <Target className="w-5 h-5 text-emerald-600" />
-            <h2 className="text-lg sm:text-xl font-bold tracking-tight text-slate-900 font-['Outfit']">
+            <Target className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+            <h2 className="text-lg sm:text-xl font-bold tracking-tight text-slate-900 dark:text-white font-['Outfit']">
               Budget & Spending Goals
             </h2>
           </div>
-          <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">
             Monitor real-time remaining balances against your monthly targets.
           </p>
         </div>
 
         {/* Controls: Month Nav + Manage Button */}
         <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-          <div className="flex items-center bg-slate-100/80 rounded-xl p-1 border border-slate-200">
+          <div className="flex items-center bg-slate-100/80 dark:bg-slate-800/80 rounded-xl p-1 border border-slate-200 dark:border-slate-700">
             <button
               onClick={handlePrevMonth}
-              className="p-1.5 text-slate-600 hover:text-slate-900 hover:bg-white rounded-lg transition-colors"
+              className="p-1.5 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-700 rounded-lg transition-colors"
               title="Previous Month"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
             <button
               onClick={handleCurrentMonth}
-              className="px-3 py-1 text-xs font-semibold text-slate-700 hover:text-slate-900"
+              className="px-3 py-1 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white"
               title="Jump to current month"
             >
               {formatMonthYear(currentPeriodDate)}
             </button>
             <button
               onClick={handleNextMonth}
-              className="p-1.5 text-slate-600 hover:text-slate-900 hover:bg-white rounded-lg transition-colors"
+              className="p-1.5 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-700 rounded-lg transition-colors"
               title="Next Month"
             >
               <ChevronRight className="w-4 h-4" />
@@ -147,7 +147,7 @@ export const BudgetTracker = () => {
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.2 }}
-              className="bg-white rounded-2xl p-5 sm:p-6 border border-slate-200/80 shadow-sm"
+              className="bg-white dark:bg-slate-900 rounded-2xl p-5 sm:p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm"
             >
               {(() => {
                 const badgeInfo = getStatusBadge(overall.status, overall.percentage_used);
@@ -170,7 +170,7 @@ export const BudgetTracker = () => {
                             {badgeInfo.label} • {overall.percentage_used}%
                           </span>
                         </div>
-                        <h3 className="text-xl font-bold text-slate-900 font-['Outfit'] mt-1">
+                        <h3 className="text-xl font-bold text-slate-900 dark:text-white font-['Outfit'] mt-1">
                           Overall Monthly Budget
                         </h3>
                       </div>
@@ -181,7 +181,7 @@ export const BudgetTracker = () => {
                         </p>
                         <p
                           className={`text-2xl font-bold font-['Outfit'] ${
-                            isOver ? 'text-rose-600' : 'text-emerald-600'
+                            isOver ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'
                           }`}
                         >
                           {isOver
@@ -193,7 +193,7 @@ export const BudgetTracker = () => {
 
                     {/* Progress Bar with 3-tier colors */}
                     <div className="space-y-2">
-                      <div className="h-3 w-full bg-slate-100 rounded-full overflow-hidden p-0.5">
+                      <div className="h-3 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden p-0.5">
                         <motion.div
                           initial={{ width: 0 }}
                           animate={{ width: `${progressWidth}%` }}
@@ -201,7 +201,7 @@ export const BudgetTracker = () => {
                           className={`h-full rounded-full ${badgeInfo.barClass}`}
                         />
                       </div>
-                      <div className="flex justify-between text-xs text-slate-500 font-medium">
+                      <div className="flex justify-between text-xs text-slate-500 dark:text-slate-400 font-medium">
                         <span>Spent: {formatCurrency(overall.spent_amount)}</span>
                         <span>Target: {formatCurrency(overall.limit_amount)}</span>
                       </div>
@@ -211,10 +211,10 @@ export const BudgetTracker = () => {
               })()}
             </motion.div>
           ) : (
-            <div className="bg-slate-50 rounded-2xl p-5 border border-dashed border-slate-300 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="bg-slate-50 dark:bg-slate-800/50 rounded-2xl p-5 border border-dashed border-slate-300 dark:border-slate-700 flex flex-col sm:flex-row items-center justify-between gap-4">
               <div>
-                <p className="text-sm font-semibold text-slate-800">No overall monthly limit set</p>
-                <p className="text-xs text-slate-500">
+                <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">No overall monthly limit set</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
                   Setting an overall monthly goal lets you track total spending pace at a glance.
                 </p>
               </div>
@@ -227,7 +227,7 @@ export const BudgetTracker = () => {
           {/* Category-Specific Budgets Grid */}
           {categories.length > 0 && (
             <div className="space-y-4">
-              <h3 className="text-sm font-bold uppercase tracking-wider text-slate-500">
+              <h3 className="text-sm font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                 Category Spending Limits ({categories.length})
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -243,11 +243,11 @@ export const BudgetTracker = () => {
                       initial={{ opacity: 0, scale: 0.98 }}
                       animate={{ opacity: 1, scale: 1 }}
                       transition={{ duration: 0.2 }}
-                      className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm hover:shadow-md transition-shadow flex flex-col justify-between"
+                      className="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200/80 dark:border-slate-800 shadow-sm hover:shadow-md transition-shadow flex flex-col justify-between"
                     >
                       <div>
                         <div className="flex items-center justify-between mb-3">
-                          <span className="text-sm font-bold text-slate-900 truncate">
+                          <span className="text-sm font-bold text-slate-900 dark:text-white truncate">
                             {cat.category_name}
                           </span>
                           <span
@@ -260,10 +260,10 @@ export const BudgetTracker = () => {
 
                         <div className="space-y-1 mb-4">
                           <div className="flex justify-between text-xs">
-                            <span className="text-slate-500">Remaining</span>
+                            <span className="text-slate-500 dark:text-slate-400">Remaining</span>
                             <span
                               className={`font-bold ${
-                                isOver ? 'text-rose-600' : 'text-emerald-600'
+                                isOver ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'
                               }`}
                             >
                               {isOver
@@ -271,7 +271,7 @@ export const BudgetTracker = () => {
                                 : formatCurrency(cat.remaining_amount)}
                             </span>
                           </div>
-                          <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
+                          <div className="h-2 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
                             <motion.div
                               initial={{ width: 0 }}
                               animate={{ width: `${progressWidth}%` }}
@@ -282,7 +282,7 @@ export const BudgetTracker = () => {
                         </div>
                       </div>
 
-                      <div className="flex justify-between text-[11px] text-slate-400 pt-2 border-t border-slate-100 font-medium">
+                      <div className="flex justify-between text-[11px] text-slate-400 dark:text-slate-500 pt-2 border-t border-slate-100 dark:border-slate-800 font-medium">
                         <span>Spent: {formatCurrency(cat.spent_amount)}</span>
                         <span>Limit: {formatCurrency(cat.limit_amount)}</span>
                       </div>
@@ -295,14 +295,14 @@ export const BudgetTracker = () => {
         </div>
       ) : (
         /* Empty State */
-        <div className="bg-white rounded-2xl p-8 border border-slate-200/80 shadow-sm text-center">
-          <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto mb-3">
+        <div className="bg-white dark:bg-slate-900 rounded-2xl p-8 border border-slate-200/80 dark:border-slate-800 shadow-sm text-center">
+          <div className="w-12 h-12 rounded-2xl bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mx-auto mb-3">
             <Target className="w-6 h-6" />
           </div>
-          <h3 className="text-base font-bold text-slate-900 font-['Outfit']">
+          <h3 className="text-base font-bold text-slate-900 dark:text-white font-['Outfit']">
             No budget goals set for {formatMonthYear(currentPeriodDate)}
           </h3>
-          <p className="text-xs sm:text-sm text-slate-500 max-w-md mx-auto mt-1 mb-5">
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 max-w-md mx-auto mt-1 mb-5">
             Take control of your finances by setting an overall monthly spending ceiling or specific category limits.
           </p>
           <Button onClick={() => setIsModalOpen(true)} icon={Plus} size="md">

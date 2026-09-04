@@ -1094,6 +1094,44 @@
   - Backend Pytest suite: **58 of 58 tests passed**.
   - Verified 100% adherence to AGENTS.md rules (no inline styles, Tailwind CSS only, no secrets exposed).
 
+---
+
+## Milestone Completed: Dark Theme Text Visibility, Contrast Polish & Full UI Compatibility
+
+### 1. Work Completed
+- **Global Styles & System Integration (`frontend/src/styles/index.css`):**
+  - Configured `html.dark` root color-scheme, dark slate-950 background, and contrasting text tokens.
+  - Added dark mode color-scheme overrides for `<input>`, `<select>`, `<textarea>` form controls ensuring zero unreadable text on dark backgrounds.
+  - Styled dark scrollbars (`scrollbar-color: #334155 #0f172a`) for sleek native rendering.
+- **App-Wide Text Contrast & Dark Mode Component Polish:**
+  - **Dashboard (`DashboardPage.jsx`):** Added `dark:text-white` to main headings, `dark:bg-slate-900` metric cards, dark badge backgrounds (`dark:bg-emerald-950/50`, `dark:bg-amber-950/50`, `dark:bg-rose-950/50`), and dark recent transaction list items.
+  - **Expenses Screen (`ExpensesPage.jsx`):** Added dark mode support to search inputs, category/sort select dropdowns, table cells, mobile cards, active filter tags, and pagination controls.
+  - **Dashboard Analytics Widgets:**
+    - `MonthCompareWidget.jsx`: Updated card background (`dark:from-slate-900 dark:to-slate-900/80`), text contrast, badges, and loading skeleton.
+    - `TopCategoriesList.jsx`: Added dark card container, heading, and ranked category rows with emerald progress bars.
+    - `CategoryPieChart.jsx`: Added dark card container, toggle buttons, and legend text colors.
+    - `SpendingTrendChart.jsx`: Added dark card container, granularity toggles, and chart headers.
+  - **Modals & Dialogs:**
+    - `ExpenseModal.jsx`: Fixed all labels (`dark:text-slate-300`), inputs/selects/textareas (`dark:bg-slate-800 dark:border-slate-700 dark:text-white`), quick category creation panel, payment mode buttons, and sticky footer (`bg-white/95 dark:bg-slate-900/95`).
+    - `ReceiptScannerModal.jsx`: Added dark OCR banner, dropzone, scan overlay, error cards, and extracted details readout.
+    - `BudgetModal.jsx`: Added dark month selector header, inputs, category select, and active budget limit rows.
+    - `BudgetTracker.jsx`: Updated overall monthly budget card, progress tracks, category spending limit cards, month navigation controls, and empty state with dark mode compatibility.
+    - `OverspendingBanner.jsx`: Updated alert banners (`dark:bg-rose-950/40`, `dark:bg-amber-950/40`), icons, and text contrast.
+    - `CategoryManageModal.jsx`: Added dark input box, delete/reassign alert box, and category items with inline rename inputs.
+    - `ExportModal.jsx`: Added dark format cards, scope buttons, and check indicators.
+    - `ImportModal.jsx`: Added dark CSV dropzone, required column callout, metric summary cards, and skipped error rows list.
+    - `ChangePasswordModal.jsx`: Added dark modal card, header, inputs, lock icons, and error/success alerts.
+    - `ActiveSessionsModal.jsx`: Added dark session rows, device icons, IP text, and action buttons.
+    - `SettingsModal.jsx`: Added dark PWA install banner (`dark:to-slate-900 dark:border-emerald-900/60`), titles, and descriptions.
+    - `Toast.jsx`: Updated variant backgrounds (`dark:bg-emerald-950/90`, `dark:bg-rose-950/90`, `dark:bg-blue-950/90`) and dismiss button hover states.
+    - `ErrorBoundary.jsx`: Added dark fallback screen, card container, error details box, and action buttons.
+
+### 2. Testing & Quality Verification
+- **Frontend (Vitest):** **72 of 72 tests passed** across 12 test suites.
+- **Backend (Pytest):** **58 of 58 tests passed** across all endpoint, service, and isolation tests.
+- **Rule Compliance:** 100% adherence to all AGENTS.md rules (no inline styles, Tailwind CSS only, no secrets exposed, PostgreSQL isolation preserved).
+
+
 
 
 

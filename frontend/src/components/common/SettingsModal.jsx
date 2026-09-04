@@ -68,16 +68,16 @@ export const SettingsModal = ({
     <Modal isOpen={isOpen} onClose={onClose} title="App Options & Settings" maxWidth="max-w-md">
       <div className="space-y-5">
         {/* PWA Install Banner */}
-        <div className="p-4 rounded-2xl bg-gradient-to-br from-emerald-500/10 via-emerald-500/5 to-slate-50 border border-emerald-200/80">
+        <div className="p-4 rounded-2xl bg-gradient-to-br from-emerald-500/10 via-emerald-500/5 to-slate-50 dark:to-slate-900 border border-emerald-200/80 dark:border-emerald-900/60">
           <div className="flex items-start gap-3">
             <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-md shadow-emerald-600/20">
               <Smartphone className="w-5 h-5" />
             </div>
             <div className="flex-1">
-              <h4 className="text-sm font-bold text-slate-900 font-['Outfit']">
+              <h4 className="text-sm font-bold text-slate-900 dark:text-white font-['Outfit']">
                 {isStandalone ? 'FinTrack Installed' : 'Install FinTrack App'}
               </h4>
-              <p className="text-xs text-slate-600 mt-0.5">
+              <p className="text-xs text-slate-600 dark:text-slate-300 mt-0.5">
                 {isStandalone
                   ? 'Running in full-screen standalone mobile mode.'
                   : 'Add to your device home screen for quick offline access and full-screen mobile experience.'}

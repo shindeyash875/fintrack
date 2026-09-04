@@ -4,8 +4,8 @@ import { ArrowUpRight, ArrowDownRight, Minus, Calendar, Sparkles } from 'lucide-
 export const MonthCompareWidget = ({ compareData, isLoading = false }) => {
   if (isLoading) {
     return (
-      <div className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-sm animate-pulse h-36 flex items-center justify-center">
-        <div className="w-6 h-6 rounded-full border-2 border-slate-100 border-t-emerald-500 animate-spin" />
+      <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm animate-pulse h-36 flex items-center justify-center">
+        <div className="w-6 h-6 rounded-full border-2 border-slate-100 dark:border-slate-800 border-t-emerald-500 animate-spin" />
       </div>
     );
   }
@@ -36,19 +36,19 @@ export const MonthCompareWidget = ({ compareData, isLoading = false }) => {
   const isZeroChange = diff === 0;
 
   return (
-    <div className="bg-gradient-to-br from-white to-slate-50/50 rounded-2xl p-4 sm:p-6 border border-slate-200/80 shadow-sm relative overflow-hidden">
+    <div className="bg-gradient-to-br from-white to-slate-50/50 dark:from-slate-900 dark:to-slate-900/80 rounded-2xl p-4 sm:p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm relative overflow-hidden">
       <div className="flex items-start justify-between gap-3">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <Calendar className="w-4 h-4 text-emerald-600" />
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
+            <Calendar className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
               Month-over-Month
             </span>
           </div>
-          <h4 className="text-xl font-bold text-slate-900 font-['Outfit']">
+          <h4 className="text-xl font-bold text-slate-900 dark:text-white font-['Outfit']">
             {formatCurrency(current)}
           </h4>
-          <p className="text-xs text-slate-500 mt-0.5">
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
             vs {formatCurrency(previous)} last month
           </p>
         </div>
@@ -56,23 +56,23 @@ export const MonthCompareWidget = ({ compareData, isLoading = false }) => {
         {/* Change Indicator Badge */}
         <div className="flex flex-col items-end">
           {isZeroChange ? (
-            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-600">
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
               <Minus className="w-3.5 h-3.5" />
               0.0%
             </span>
           ) : is_increase ? (
-            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-rose-50 text-rose-600 border border-rose-100">
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 border border-rose-100 dark:border-rose-900/50">
               <ArrowUpRight className="w-3.5 h-3.5" />
               +{percentage_change}%
             </span>
           ) : (
-            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-600 border border-emerald-100">
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-900/50">
               <ArrowDownRight className="w-3.5 h-3.5" />
               {percentage_change}%
             </span>
           )}
 
-          <span className="text-[11px] font-semibold text-slate-400 mt-1.5">
+          <span className="text-[11px] font-semibold text-slate-400 dark:text-slate-500 mt-1.5">
             {isZeroChange
               ? 'Identical to last month'
               : is_increase
@@ -83,7 +83,7 @@ export const MonthCompareWidget = ({ compareData, isLoading = false }) => {
       </div>
 
       {/* Encouraging Context Note */}
-      <div className="mt-4 pt-3 border-t border-slate-100 flex items-center gap-1.5 text-xs text-slate-500">
+      <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
         <Sparkles className="w-3.5 h-3.5 text-amber-500 shrink-0" />
         <span>
           {isZeroChange

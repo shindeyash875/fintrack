@@ -154,12 +154,12 @@ export const BudgetModal = ({ isOpen, onClose, initialCategoryId = null, onBudge
     >
       <div className="space-y-6">
         {/* Month Selector Header */}
-        <div className="bg-slate-50 p-4 rounded-xl border border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-xl border border-slate-200/80 dark:border-slate-700 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-2">
-            <Calendar className="w-5 h-5 text-emerald-600 shrink-0" />
+            <Calendar className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0" />
             <div>
-              <p className="text-sm font-semibold text-slate-800">Target Budget Period</p>
-              <p className="text-xs text-slate-500">Budgets apply on a calendar month basis</p>
+              <p className="text-sm font-semibold text-slate-800 dark:text-white">Target Budget Period</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400">Budgets apply on a calendar month basis</p>
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
@@ -178,23 +178,23 @@ export const BudgetModal = ({ isOpen, onClose, initialCategoryId = null, onBudge
               type="month"
               value={selectedMonth}
               onChange={handleMonthChange}
-              className="flex-1 sm:flex-initial px-3 py-2 text-sm font-medium bg-white border border-slate-300 rounded-xl shadow-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-slate-900 min-h-[44px]"
+              className="flex-1 sm:flex-initial px-3 py-2 text-sm font-medium bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl shadow-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-slate-900 dark:text-white min-h-[44px]"
             />
           </div>
         </div>
 
         {/* Set/Edit Budget Form */}
-        <form onSubmit={handleSubmit(onSubmit)} className="bg-white p-4 rounded-xl border border-slate-200 space-y-4">
+        <form onSubmit={handleSubmit(onSubmit)} className="bg-white dark:bg-slate-800/80 p-4 rounded-xl border border-slate-200 dark:border-slate-700 space-y-4">
           <div className="flex items-center justify-between">
-            <h4 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-              <Target className="w-4 h-4 text-emerald-600" />
+            <h4 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+              <Target className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
               {editingBudgetId ? 'Update Spending Limit' : 'Set New Spending Limit'}
             </h4>
             {editingBudgetId && (
               <button
                 type="button"
                 onClick={handleCancelEdit}
-                className="text-xs text-slate-500 hover:text-slate-800 font-medium underline min-h-[36px] flex items-center"
+                className="text-xs text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 font-medium underline min-h-[36px] flex items-center"
               >
                 Cancel Edit
               </button>
@@ -204,7 +204,7 @@ export const BudgetModal = ({ isOpen, onClose, initialCategoryId = null, onBudge
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {/* Scope / Category Selector */}
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1.5">
+              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-300 mb-1.5">
                 Budget Scope
               </label>
               <select
@@ -213,12 +213,12 @@ export const BudgetModal = ({ isOpen, onClose, initialCategoryId = null, onBudge
                 className={`w-full px-3.5 py-2.5 rounded-xl border text-sm transition-colors focus:outline-none focus:ring-2 ${
                   errors.category_id
                     ? 'border-rose-300 focus:ring-rose-200'
-                    : 'border-slate-300 focus:border-emerald-500 focus:ring-emerald-200'
-                } bg-white text-slate-900 disabled:bg-slate-100 disabled:text-slate-500 min-h-[44px]`}
+                    : 'border-slate-300 dark:border-slate-700 focus:border-emerald-500 focus:ring-emerald-200'
+                } bg-white dark:bg-slate-900 text-slate-900 dark:text-white disabled:bg-slate-100 dark:disabled:bg-slate-800 disabled:text-slate-500 dark:disabled:text-slate-400 min-h-[44px]`}
               >
-                <option value="">🎯 Overall Monthly Budget</option>
+                <option value="" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">🎯 Overall Monthly Budget</option>
                 {categories.map((cat) => (
-                  <option key={cat.id} value={cat.id}>
+                  <option key={cat.id} value={cat.id} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">
                     📁 {cat.name}
                   </option>
                 ))}
@@ -232,11 +232,11 @@ export const BudgetModal = ({ isOpen, onClose, initialCategoryId = null, onBudge
 
             {/* Limit Amount */}
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1.5">
+              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-300 mb-1.5">
                 Limit Amount (₹)
               </label>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400 dark:text-slate-500">
                   <IndianRupee className="w-4 h-4" />
                 </div>
                 <input
@@ -248,8 +248,8 @@ export const BudgetModal = ({ isOpen, onClose, initialCategoryId = null, onBudge
                   className={`w-full pl-9 pr-3.5 py-2.5 rounded-xl border text-sm transition-colors focus:outline-none focus:ring-2 ${
                     errors.limit_amount
                       ? 'border-rose-300 focus:ring-rose-200'
-                      : 'border-slate-300 focus:border-emerald-500 focus:ring-emerald-200'
-                  } bg-white text-slate-900 min-h-[44px]`}
+                      : 'border-slate-300 dark:border-slate-700 focus:border-emerald-500 focus:ring-emerald-200'
+                  } bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 min-h-[44px]`}
                 />
               </div>
               {errors.limit_amount && (
@@ -275,33 +275,33 @@ export const BudgetModal = ({ isOpen, onClose, initialCategoryId = null, onBudge
 
         {/* Existing Active Budgets List */}
         <div>
-          <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">
+          <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">
             Active Budgets for {new Date(selectedMonth + '-01').toLocaleString('default', { month: 'long', year: 'numeric' })}
           </h4>
           {budgets && budgets.length > 0 ? (
-            <div className="divide-y divide-slate-100 rounded-xl border border-slate-200 bg-white overflow-hidden shadow-sm">
+            <div className="divide-y divide-slate-100 dark:divide-slate-700 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 overflow-hidden shadow-sm">
               {budgets.map((b) => {
                 const label = b.category_name ? b.category_name : 'Overall Monthly Budget';
                 const isOverall = !b.category_id;
                 return (
                   <div
                     key={b.id}
-                    className="p-3 sm:p-3.5 flex items-center justify-between hover:bg-slate-50/80 transition-colors"
+                    className="p-3 sm:p-3.5 flex items-center justify-between hover:bg-slate-50/80 dark:hover:bg-slate-700/60 transition-colors"
                   >
                     <div className="flex items-center gap-2.5 sm:gap-3 flex-1 min-w-0 pr-2">
                       <div
                         className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold shrink-0 ${
                           isOverall
-                            ? 'bg-purple-100 text-purple-700'
-                            : 'bg-emerald-100 text-emerald-700'
+                            ? 'bg-purple-100 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300'
+                            : 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300'
                         }`}
                       >
                         {isOverall ? 'ALL' : label.slice(0, 2).toUpperCase()}
                       </div>
                       <div className="min-w-0">
-                        <p className="text-sm font-semibold text-slate-800 truncate">{label}</p>
-                        <p className="text-xs text-slate-500">
-                          Limit: <span className="font-bold text-slate-700">{formatCurrency(b.limit_amount)}</span>
+                        <p className="text-sm font-semibold text-slate-800 dark:text-white truncate">{label}</p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">
+                          Limit: <span className="font-bold text-slate-700 dark:text-slate-200">{formatCurrency(b.limit_amount)}</span>
                         </p>
                       </div>
                     </div>
@@ -310,7 +310,7 @@ export const BudgetModal = ({ isOpen, onClose, initialCategoryId = null, onBudge
                       <button
                         type="button"
                         onClick={() => handleEditBudget(b)}
-                        className="p-2 text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors min-h-[38px] min-w-[38px] flex items-center justify-center"
+                        className="p-2 text-slate-500 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/50 rounded-lg transition-colors min-h-[38px] min-w-[38px] flex items-center justify-center"
                         title="Edit limit"
                       >
                         <Edit2 className="w-4 h-4" />
@@ -319,7 +319,7 @@ export const BudgetModal = ({ isOpen, onClose, initialCategoryId = null, onBudge
                         type="button"
                         disabled={deletingId === b.id}
                         onClick={() => handleDelete(b.id, label)}
-                        className="p-2 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors min-h-[38px] min-w-[38px] flex items-center justify-center"
+                        className="p-2 text-slate-500 dark:text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/50 rounded-lg transition-colors min-h-[38px] min-w-[38px] flex items-center justify-center"
                         title="Remove budget goal"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -330,10 +330,10 @@ export const BudgetModal = ({ isOpen, onClose, initialCategoryId = null, onBudge
               })}
             </div>
           ) : (
-            <div className="text-center py-6 px-4 rounded-xl border border-dashed border-slate-200 bg-slate-50/50">
+            <div className="text-center py-6 px-4 rounded-xl border border-dashed border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/50">
               <AlertCircle className="w-6 h-6 text-slate-400 mx-auto mb-1.5" />
-              <p className="text-xs font-semibold text-slate-600">No budget goals set for this month</p>
-              <p className="text-xs text-slate-400 mt-0.5">
+              <p className="text-xs font-semibold text-slate-600 dark:text-slate-300">No budget goals set for this month</p>
+              <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">
                 Fill the form above to establish your overall monthly goal or category limits.
               </p>
             </div>
@@ -341,7 +341,7 @@ export const BudgetModal = ({ isOpen, onClose, initialCategoryId = null, onBudge
         </div>
 
         {/* Modal Footer */}
-        <div className="flex justify-end pt-2 border-t border-slate-100">
+        <div className="flex justify-end pt-2 border-t border-slate-100 dark:border-slate-800">
           <Button variant="secondary" onClick={onClose}>
             Close
           </Button>

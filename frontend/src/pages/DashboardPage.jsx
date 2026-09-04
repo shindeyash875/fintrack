@@ -106,10 +106,10 @@ export const DashboardPage = () => {
       {/* Top Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 font-['Outfit']">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 dark:text-white font-['Outfit']">
             Financial Dashboard
           </h1>
-          <p className="text-xs sm:text-sm text-slate-500 mt-0.5 sm:mt-1">
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5 sm:mt-1">
             Real-time spending overview, interactive charts & budget goal tracking.
           </p>
         </div>
@@ -165,8 +165,8 @@ export const DashboardPage = () => {
 
       {/* Error state alert */}
       {error && (
-        <div className="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-sm flex items-center gap-3">
-          <AlertTriangle className="w-5 h-5 shrink-0 text-rose-600" />
+        <div className="p-4 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-rose-800 dark:text-rose-300 text-sm flex items-center gap-3">
+          <AlertTriangle className="w-5 h-5 shrink-0 text-rose-600 dark:text-rose-400" />
           <p>{error}</p>
         </div>
       )}
@@ -182,37 +182,37 @@ export const DashboardPage = () => {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           {/* Card 1: Total Spend Current Month */}
-          <div className="bg-white rounded-2xl p-4 sm:p-6 border border-slate-200/80 shadow-sm hover:shadow-md transition-shadow">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl p-4 sm:p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm hover:shadow-md transition-all">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+              <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                 This Month
               </span>
-              <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+              <div className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
                 <Wallet className="w-5 h-5" />
               </div>
             </div>
-            <p className="mt-3 text-2xl font-bold text-slate-900 font-['Outfit']">
+            <p className="mt-3 text-2xl font-bold text-slate-900 dark:text-white font-['Outfit']">
               {formatCurrency(summary?.total_spent_current_month)}
             </p>
-            <p className="mt-1 text-xs text-slate-500">
+            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
               Avg {formatCurrency(summary?.average_daily_spend)} / day
             </p>
           </div>
 
           {/* Card 2: Overall Lifetime Spend */}
-          <div className="bg-white rounded-2xl p-4 sm:p-6 border border-slate-200/80 shadow-sm hover:shadow-md transition-shadow">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl p-4 sm:p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm hover:shadow-md transition-all">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+              <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                 Total Lifetime
               </span>
-              <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+              <div className="w-9 h-9 rounded-xl bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 flex items-center justify-center">
                 <TrendingUp className="w-5 h-5" />
               </div>
             </div>
-            <p className="mt-3 text-2xl font-bold text-slate-900 font-['Outfit']">
+            <p className="mt-3 text-2xl font-bold text-slate-900 dark:text-white font-['Outfit']">
               {formatCurrency(summary?.total_spent_overall)}
             </p>
-            <p className="mt-1 text-xs text-slate-500">All recorded transactions</p>
+            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">All recorded transactions</p>
           </div>
 
           {/* Card 3: Budget Goal Status */}
@@ -224,20 +224,20 @@ export const DashboardPage = () => {
             return (
               <div
                 onClick={() => setIsBudgetModalOpen(true)}
-                className="bg-white rounded-2xl p-4 sm:p-6 border border-slate-200/80 shadow-sm hover:shadow-md hover:border-emerald-300 transition-all cursor-pointer group"
+                className="bg-white dark:bg-slate-900 rounded-2xl p-4 sm:p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm hover:shadow-md hover:border-emerald-300 dark:hover:border-emerald-500 transition-all cursor-pointer group"
                 title="Click to manage budget goals"
               >
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 group-hover:text-emerald-700 transition-colors">
+                  <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
                     Remaining Budget
                   </span>
                   <div
                     className={`w-9 h-9 rounded-xl flex items-center justify-center ${
                       isOver
-                        ? 'bg-rose-50 text-rose-600'
+                        ? 'bg-rose-50 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400'
                         : isNear
-                        ? 'bg-amber-50 text-amber-600'
-                        : 'bg-emerald-50 text-emerald-600'
+                        ? 'bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400'
+                        : 'bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400'
                     }`}
                   >
                     <Target className="w-5 h-5" />
@@ -245,7 +245,7 @@ export const DashboardPage = () => {
                 </div>
                 <p
                   className={`mt-3 text-2xl font-bold font-['Outfit'] ${
-                    isOver ? 'text-rose-600' : 'text-slate-900'
+                    isOver ? 'text-rose-600 dark:text-rose-400' : 'text-slate-900 dark:text-white'
                   }`}
                 >
                   {liveOverall
@@ -254,7 +254,7 @@ export const DashboardPage = () => {
                       : formatCurrency(liveOverall.remaining_amount)
                     : 'No Goal Set'}
                 </p>
-                <p className="mt-1 text-xs text-slate-500">
+                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
                   {liveOverall
                     ? `${liveOverall.percentage_used}% used (${liveOverall.status.replace('_', ' ')})`
                     : 'Click to set monthly goal →'}
@@ -264,19 +264,19 @@ export const DashboardPage = () => {
           })()}
 
           {/* Card 4: Weekly Pace */}
-          <div className="bg-white rounded-2xl p-4 sm:p-6 border border-slate-200/80 shadow-sm hover:shadow-md transition-shadow">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl p-4 sm:p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm hover:shadow-md transition-all">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+              <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                 Weekly Pace
               </span>
-              <div className="w-9 h-9 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center">
+              <div className="w-9 h-9 rounded-xl bg-purple-50 dark:bg-purple-950/50 text-purple-600 dark:text-purple-400 flex items-center justify-center">
                 <CreditCard className="w-5 h-5" />
               </div>
             </div>
-            <p className="mt-3 text-2xl font-bold text-slate-900 font-['Outfit']">
+            <p className="mt-3 text-2xl font-bold text-slate-900 dark:text-white font-['Outfit']">
               {formatCurrency(summary?.average_weekly_spend)}
             </p>
-            <p className="mt-1 text-xs text-slate-500">Estimated 7-day spend rate</p>
+            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Estimated 7-day spend rate</p>
           </div>
         </div>
       )}
@@ -322,14 +322,14 @@ export const DashboardPage = () => {
         />
 
         {/* Recent Transactions List */}
-        <div className="bg-white rounded-2xl p-4 sm:p-6 border border-slate-200/80 shadow-sm flex flex-col justify-between">
+        <div className="bg-white dark:bg-slate-900 rounded-2xl p-4 sm:p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between mb-4">
               <div>
-                <h3 className="text-base font-bold text-slate-900 font-['Outfit']">
+                <h3 className="text-base font-bold text-slate-900 dark:text-white font-['Outfit']">
                   Recent Transactions
                 </h3>
-                <p className="text-xs text-slate-500 font-medium">
+                <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
                   Latest activity logged
                 </p>
               </div>
@@ -343,23 +343,23 @@ export const DashboardPage = () => {
             </div>
 
             {summary && summary.recent_expenses.length > 0 ? (
-              <div className="divide-y divide-slate-100">
+              <div className="divide-y divide-slate-100 dark:divide-slate-800">
                 {summary.recent_expenses.map((exp) => (
                   <div key={exp.id} className="py-3 flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-semibold text-slate-800">{exp.title}</p>
-                      <p className="text-xs text-slate-400">
+                      <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">{exp.title}</p>
+                      <p className="text-xs text-slate-400 dark:text-slate-500">
                         {exp.category_name} • {exp.expense_date}
                       </p>
                     </div>
-                    <span className="text-sm font-bold text-slate-900 font-['Outfit']">
+                    <span className="text-sm font-bold text-slate-900 dark:text-white font-['Outfit']">
                       {formatCurrency(exp.amount)}
                     </span>
                   </div>
                 ))}
               </div>
             ) : (
-              <div className="py-8 text-center text-slate-400 text-xs">
+              <div className="py-8 text-center text-slate-400 dark:text-slate-500 text-xs">
                 No recent transactions found.
               </div>
             )}

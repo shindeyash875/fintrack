@@ -28,24 +28,24 @@ export class ErrorBoundary extends Component {
   render() {
     if (this.state.hasError) {
       return (
-        <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4 sm:p-6">
-          <div className="max-w-md w-full bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/80 shadow-xl shadow-slate-200/50 text-center space-y-6">
-            <div className="w-16 h-16 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center mx-auto shadow-inner">
+        <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex items-center justify-center p-4 sm:p-6">
+          <div className="max-w-md w-full bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 border border-slate-200/80 dark:border-slate-800 shadow-xl shadow-slate-200/50 dark:shadow-none text-center space-y-6">
+            <div className="w-16 h-16 rounded-2xl bg-rose-100 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 flex items-center justify-center mx-auto shadow-inner">
               <AlertOctagon className="w-8 h-8" />
             </div>
 
             <div className="space-y-2">
-              <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 font-['Outfit']">
+              <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-white font-['Outfit']">
                 Something went wrong
               </h1>
-              <p className="text-sm text-slate-500">
+              <p className="text-sm text-slate-500 dark:text-slate-400">
                 An unexpected application error occurred while rendering the page. Your underlying financial data in PostgreSQL remains completely safe.
               </p>
             </div>
 
             {this.state.error && (
-              <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-3 text-left overflow-hidden">
-                <p className="text-[11px] font-mono text-slate-600 break-all">
+              <div className="bg-slate-50 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700 rounded-xl p-3 text-left overflow-hidden">
+                <p className="text-[11px] font-mono text-slate-600 dark:text-slate-300 break-all">
                   {this.state.error.toString()}
                 </p>
               </div>

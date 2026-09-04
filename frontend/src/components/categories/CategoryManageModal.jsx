@@ -146,7 +146,7 @@ export const CategoryManageModal = ({ isOpen, onClose }) => {
             onChange={(e) => setNewCategoryName(e.target.value)}
             placeholder="Add new category (e.g. Subscriptions)"
             maxLength={50}
-            className="flex-1 px-3.5 py-2 text-sm rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+            className="flex-1 px-3.5 py-2 text-sm rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
           />
           <Button
             type="submit"
@@ -161,19 +161,19 @@ export const CategoryManageModal = ({ isOpen, onClose }) => {
 
         {/* Delete / Reassignment Notice Card */}
         {deletingCategory && (
-          <div className="p-4 rounded-xl bg-amber-50 border border-amber-200/80 space-y-3">
-            <div className="flex items-start gap-2.5 text-amber-800">
+          <div className="p-4 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200/80 dark:border-amber-800/60 space-y-3">
+            <div className="flex items-start gap-2.5 text-amber-800 dark:text-amber-200">
               <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
               <div>
                 <p className="text-sm font-semibold">Delete "{deletingCategory.name}"?</p>
                 {deletingCategory.expense_count > 0 ? (
-                  <p className="text-xs text-amber-700 mt-1">
+                  <p className="text-xs text-amber-700 dark:text-amber-300 mt-1">
                     This category is currently linked to{' '}
                     <span className="font-bold">{deletingCategory.expense_count}</span> expense(s).
                     Please select another category to reassign them to before deleting.
                   </p>
                 ) : (
-                  <p className="text-xs text-amber-700 mt-1">
+                  <p className="text-xs text-amber-700 dark:text-amber-300 mt-1">
                     This category has no linked expenses and can be deleted safely.
                   </p>
                 )}
@@ -182,19 +182,19 @@ export const CategoryManageModal = ({ isOpen, onClose }) => {
 
             {deletingCategory.expense_count > 0 && (
               <div>
-                <label className="block text-xs font-medium text-amber-900 mb-1">
+                <label className="block text-xs font-medium text-amber-900 dark:text-amber-200 mb-1">
                   Reassign expenses to:
                 </label>
                 <select
                   value={reassignCategoryId}
                   onChange={(e) => setReassignCategoryId(e.target.value)}
-                  className="w-full px-3 py-2 text-sm rounded-lg border border-amber-300 focus:outline-none focus:ring-2 focus:ring-amber-500 bg-white"
+                  className="w-full px-3 py-2 text-sm rounded-lg border border-amber-300 dark:border-amber-700 focus:outline-none focus:ring-2 focus:ring-amber-500 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
                 >
-                  <option value="">Select replacement category...</option>
+                  <option value="" className="bg-white dark:bg-slate-800 text-slate-900 dark:text-white">Select replacement category...</option>
                   {categories
                     .filter((c) => c.id !== deletingCategory.id)
                     .map((c) => (
-                      <option key={c.id} value={c.id}>
+                      <option key={c.id} value={c.id} className="bg-white dark:bg-slate-800 text-slate-900 dark:text-white">
                         {c.name}
                       </option>
                     ))}
@@ -224,14 +224,14 @@ export const CategoryManageModal = ({ isOpen, onClose }) => {
         )}
 
         {/* Categories List */}
-        <div className="border border-slate-200/80 rounded-xl overflow-hidden divide-y divide-slate-100 max-h-80 overflow-y-auto">
+        <div className="border border-slate-200/80 dark:border-slate-700 rounded-xl overflow-hidden divide-y divide-slate-100 dark:divide-slate-800 max-h-80 overflow-y-auto bg-white dark:bg-slate-900">
           {categories.length === 0 ? (
             <div className="p-4 text-center text-sm text-slate-400">No categories found.</div>
           ) : (
             categories.map((category) => (
               <div
                 key={category.id}
-                className="flex items-center justify-between px-4 py-3 hover:bg-slate-50/60 transition-colors"
+                className="flex items-center justify-between px-4 py-3 hover:bg-slate-50/60 dark:hover:bg-slate-800/60 transition-colors"
               >
                 {editingCategoryId === category.id ? (
                   <div className="flex items-center gap-2 flex-1 mr-2">
@@ -240,20 +240,20 @@ export const CategoryManageModal = ({ isOpen, onClose }) => {
                       value={editingName}
                       onChange={(e) => setEditingName(e.target.value)}
                       maxLength={50}
-                      className="flex-1 px-2.5 py-1 text-sm rounded-lg border border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                      className="flex-1 px-2.5 py-1 text-sm rounded-lg border border-emerald-400 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
                       autoFocus
                     />
                     <button
                       onClick={() => handleSaveEdit(category.id)}
                       disabled={isSavingEdit || !editingName.trim()}
-                      className="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded-md"
+                      className="p-1.5 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/50 rounded-md"
                       title="Save"
                     >
                       <Check className="w-4 h-4" />
                     </button>
                     <button
                       onClick={cancelEditing}
-                      className="p-1.5 text-slate-400 hover:bg-slate-100 rounded-md"
+                      className="p-1.5 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md"
                       title="Cancel"
                     >
                       <X className="w-4 h-4" />
@@ -262,9 +262,9 @@ export const CategoryManageModal = ({ isOpen, onClose }) => {
                 ) : (
                   <>
                     <div className="flex items-center gap-2 min-w-0 flex-1 pr-2">
-                      <Tag className="w-4 h-4 text-emerald-600 shrink-0" />
-                      <span className="text-sm font-medium text-slate-800 truncate">{category.name}</span>
-                      <span className="text-[11px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 font-normal shrink-0">
+                      <Tag className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                      <span className="text-sm font-medium text-slate-800 dark:text-slate-200 truncate">{category.name}</span>
+                      <span className="text-[11px] px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-normal shrink-0">
                         {category.expense_count || 0}
                       </span>
                     </div>
@@ -272,14 +272,14 @@ export const CategoryManageModal = ({ isOpen, onClose }) => {
                     <div className="flex items-center gap-1 shrink-0">
                       <button
                         onClick={() => startEditing(category)}
-                        className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors min-h-[38px] min-w-[38px] flex items-center justify-center"
+                        className="p-2 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors min-h-[38px] min-w-[38px] flex items-center justify-center"
                         title="Rename category"
                       >
                         <Edit2 className="w-4 h-4" />
                       </button>
                       <button
                         onClick={() => handleDeleteClick(category)}
-                        className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors min-h-[38px] min-w-[38px] flex items-center justify-center"
+                        className="p-2 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/50 rounded-lg transition-colors min-h-[38px] min-w-[38px] flex items-center justify-center"
                         title="Delete category"
                       >
                         <Trash2 className="w-4 h-4" />

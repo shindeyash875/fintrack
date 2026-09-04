@@ -86,16 +86,16 @@ export const ImportModal = ({ isOpen, onClose, onSuccess }) => {
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Import Expenses from CSV" size="lg">
       <div className="space-y-6">
-        <p className="text-xs text-slate-500">
+        <p className="text-xs text-slate-500 dark:text-slate-400">
           Upload a CSV file of transactions. Categories not yet in your account will be automatically mapped or created. Duplicate entries are automatically detected and safely skipped.
         </p>
 
         {/* Template info bar */}
-        <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+        <div className="bg-slate-50 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 rounded-xl p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
           <div className="flex items-center gap-2">
-            <FileText className="w-4 h-4 text-emerald-600 shrink-0" />
-            <span className="text-slate-600">
-              Required CSV Columns: <code className="bg-slate-200 px-1 py-0.5 rounded text-slate-800 font-semibold">Date, Title, Amount</code>
+            <FileText className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+            <span className="text-slate-600 dark:text-slate-300">
+              Required CSV Columns: <code className="bg-slate-200 dark:bg-slate-700 px-1 py-0.5 rounded text-slate-800 dark:text-slate-200 font-semibold">Date, Title, Amount</code>
             </span>
           </div>
           <Button
@@ -124,35 +124,35 @@ export const ImportModal = ({ isOpen, onClose, onSuccess }) => {
               htmlFor="csv-file-upload"
               className={`flex flex-col items-center justify-center p-8 border-2 border-dashed rounded-2xl cursor-pointer transition-all ${
                 file
-                  ? 'border-emerald-500 bg-emerald-50/30'
-                  : 'border-slate-300 hover:border-emerald-400 bg-slate-50/50'
+                  ? 'border-emerald-500 bg-emerald-50/30 dark:bg-emerald-950/30'
+                  : 'border-slate-300 dark:border-slate-700 hover:border-emerald-400 bg-slate-50/50 dark:bg-slate-800/50'
               }`}
             >
               {file ? (
                 <div className="flex flex-col items-center text-center space-y-2">
-                  <div className="w-12 h-12 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center">
+                  <div className="w-12 h-12 rounded-xl bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 flex items-center justify-center">
                     <FileCheck className="w-6 h-6" />
                   </div>
                   <div>
-                    <p className="text-sm font-bold text-slate-800">{file.name}</p>
-                    <p className="text-xs text-slate-500 font-medium">
+                    <p className="text-sm font-bold text-slate-800 dark:text-white">{file.name}</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
                       {(file.size / 1024).toFixed(1)} KB • Ready to import
                     </p>
                   </div>
-                  <span className="text-xs font-semibold text-emerald-600 hover:underline pt-1">
+                  <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:underline pt-1">
                     Click to change file
                   </span>
                 </div>
               ) : (
                 <div className="flex flex-col items-center text-center space-y-2">
-                  <div className="w-12 h-12 rounded-xl bg-slate-100 text-slate-500 flex items-center justify-center">
+                  <div className="w-12 h-12 rounded-xl bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-300 flex items-center justify-center">
                     <Upload className="w-6 h-6" />
                   </div>
                   <div>
-                    <p className="text-sm font-bold text-slate-800">
+                    <p className="text-sm font-bold text-slate-800 dark:text-white">
                       Click to browse or drop your CSV file here
                     </p>
-                    <p className="text-xs text-slate-400">Supports standard UTF-8 CSV documents</p>
+                    <p className="text-xs text-slate-400 dark:text-slate-500">Supports standard UTF-8 CSV documents</p>
                   </div>
                 </div>
               )}
@@ -164,29 +164,29 @@ export const ImportModal = ({ isOpen, onClose, onSuccess }) => {
         {result && (
           <div className="space-y-4">
             <div className="grid grid-cols-3 gap-3">
-              <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3.5 text-center">
-                <p className="text-xl font-bold text-emerald-700 font-['Outfit']">
+              <div className="bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-xl p-3.5 text-center">
+                <p className="text-xl font-bold text-emerald-700 dark:text-emerald-300 font-['Outfit']">
                   {result.imported_count}
                 </p>
-                <p className="text-xs font-semibold text-emerald-800 uppercase tracking-wider mt-0.5">
+                <p className="text-xs font-semibold text-emerald-800 dark:text-emerald-200 uppercase tracking-wider mt-0.5">
                   Imported
                 </p>
               </div>
 
-              <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5 text-center">
-                <p className="text-xl font-bold text-slate-700 font-['Outfit']">
+              <div className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3.5 text-center">
+                <p className="text-xl font-bold text-slate-700 dark:text-slate-200 font-['Outfit']">
                   {result.skipped_duplicates_count}
                 </p>
-                <p className="text-xs font-semibold text-slate-600 uppercase tracking-wider mt-0.5">
+                <p className="text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider mt-0.5">
                   Duplicates
                 </p>
               </div>
 
-              <div className="bg-rose-50 border border-rose-200 rounded-xl p-3.5 text-center">
-                <p className="text-xl font-bold text-rose-700 font-['Outfit']">
+              <div className="bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 rounded-xl p-3.5 text-center">
+                <p className="text-xl font-bold text-rose-700 dark:text-rose-300 font-['Outfit']">
                   {result.errors.length}
                 </p>
-                <p className="text-xs font-semibold text-rose-800 uppercase tracking-wider mt-0.5">
+                <p className="text-xs font-semibold text-rose-800 dark:text-rose-200 uppercase tracking-wider mt-0.5">
                   Errors
                 </p>
               </div>
@@ -195,15 +195,15 @@ export const ImportModal = ({ isOpen, onClose, onSuccess }) => {
             {/* Error Rows Table if any */}
             {result.errors.length > 0 && (
               <div className="space-y-2">
-                <div className="flex items-center gap-1.5 text-xs font-bold text-rose-700">
+                <div className="flex items-center gap-1.5 text-xs font-bold text-rose-700 dark:text-rose-400">
                   <AlertCircle className="w-4 h-4" />
                   <span>The following rows had issues and were skipped:</span>
                 </div>
-                <div className="max-h-40 overflow-y-auto border border-rose-100 rounded-xl divide-y divide-rose-100 text-xs bg-rose-50/40">
+                <div className="max-h-40 overflow-y-auto border border-rose-100 dark:border-rose-900/60 rounded-xl divide-y divide-rose-100 dark:divide-rose-900/40 text-xs bg-rose-50/40 dark:bg-rose-950/20">
                   {result.errors.map((err, i) => (
                     <div key={i} className="p-2.5 flex items-start gap-2">
-                      <span className="font-bold text-rose-800 shrink-0">Row {err.row_number}:</span>
-                      <span className="text-rose-700">{err.error}</span>
+                      <span className="font-bold text-rose-800 dark:text-rose-300 shrink-0">Row {err.row_number}:</span>
+                      <span className="text-rose-700 dark:text-rose-200">{err.error}</span>
                     </div>
                   ))}
                 </div>
@@ -213,7 +213,7 @@ export const ImportModal = ({ isOpen, onClose, onSuccess }) => {
         )}
 
         {/* Modal Buttons */}
-        <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
+        <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100 dark:border-slate-800">
           {result ? (
             <>
               <Button variant="secondary" onClick={handleReset} className="flex-1 sm:flex-none">
