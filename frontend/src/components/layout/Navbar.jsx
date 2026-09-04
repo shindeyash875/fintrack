@@ -87,38 +87,10 @@ export const Navbar = () => {
           )}
 
           {/* Live Currency Pill */}
-          <div className="hidden md:flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-full bg-emerald-50 border border-emerald-200/80 text-emerald-700 text-xs font-medium shrink-0">
+          <div className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-full bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/80 dark:border-emerald-800/60 text-emerald-700 dark:text-emerald-300 text-xs font-medium shrink-0">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
             <span className="font-semibold">₹ INR</span>
           </div>
-
-          {/* AI Financial Advisor Copilot Quick Action (Desktop only; mobile uses floating trigger) */}
-          <button
-            type="button"
-            onClick={openGlobalAIChat}
-            className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 hover:from-emerald-700 hover:to-teal-800 text-white text-xs font-semibold shadow-xs active:scale-95 transition-all min-h-[36px] border border-emerald-400/30"
-            title="Ask FinTrack AI Financial Advisor"
-          >
-            <Sparkles className="w-3.5 h-3.5 text-emerald-200 animate-pulse" />
-            <span>Ask AI</span>
-            <span className="px-1 py-0.2 rounded text-[9px] uppercase font-extrabold bg-white/20 text-white">
-              Advisor
-            </span>
-          </button>
-
-          {/* AI Scan Receipt Quick Action */}
-          <button
-            type="button"
-            onClick={openGlobalReceiptScanner}
-            className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold shadow-xs active:scale-95 transition-all min-h-[36px] border border-slate-200"
-            title="Scan Receipt or UPI screenshot with AI"
-          >
-            <Camera className="w-3.5 h-3.5 text-slate-600" />
-            <span>Scan Receipt</span>
-            <span className="px-1 py-0.2 rounded text-[9px] uppercase font-bold bg-slate-300/80 text-slate-800">
-              AI
-            </span>
-          </button>
 
           {/* User Profile Dropdown */}
           <div className="relative" ref={dropdownRef}>

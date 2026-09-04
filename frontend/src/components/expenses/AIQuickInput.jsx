@@ -14,7 +14,8 @@ import {
   Calendar, 
   Tag, 
   Zap,
-  Volume2
+  Volume2,
+  Camera
 } from 'lucide-react';
 import { aiApi } from '../../api/endpoints/ai';
 import { expensesApi } from '../../api/endpoints/expenses';
@@ -40,7 +41,7 @@ export const AIQuickInput = ({ onExpenseCreated, onOpenEditModal, className = ''
 
   const recognitionRef = useRef(null);
   const { categories, fetchCategories } = useCategoryStore();
-  const { addToast } = useUIStore();
+  const { addToast, openGlobalReceiptScanner } = useUIStore();
 
   // Cycle sample prompts for inspiration
   useEffect(() => {
@@ -226,7 +227,7 @@ export const AIQuickInput = ({ onExpenseCreated, onOpenEditModal, className = ''
           <span className="text-xs sm:text-sm font-bold tracking-tight text-emerald-300 font-['Outfit'] flex items-center gap-1.5">
             AI Quick-Add Expense
             <span className="px-1.5 py-0.2 rounded-full text-[9px] uppercase font-bold bg-emerald-400/20 text-emerald-300 border border-emerald-400/30">
-              Type or Speak
+              Type • Speak • Scan
             </span>
           </span>
         </div>
@@ -249,10 +250,21 @@ export const AIQuickInput = ({ onExpenseCreated, onOpenEditModal, className = ''
             onChange={(e) => setInputText(e.target.value)}
             disabled={isParsing || isSaving}
             placeholder={`e.g., "${SAMPLE_PROMPTS[sampleIndex]}"`}
-            className="w-full pl-4 pr-24 sm:pr-28 py-3 rounded-xl bg-slate-800/80 border border-slate-700/80 hover:border-emerald-500/40 focus:border-emerald-400 focus:bg-slate-800 text-white placeholder-slate-400 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 transition-all duration-150 shadow-inner"
+            className="w-full pl-4 pr-32 sm:pr-36 py-3 rounded-xl bg-slate-800/80 border border-slate-700/80 hover:border-emerald-500/40 focus:border-emerald-400 focus:bg-slate-800 text-white placeholder-slate-400 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 transition-all duration-150 shadow-inner"
           />
 
           <div className="absolute right-1.5 flex items-center gap-1">
+            {/* Scan Receipt Action Button */}
+            <button
+              type="button"
+              onClick={openGlobalReceiptScanner}
+              disabled={isParsing || isSaving}
+              title="Scan Bill or Receipt with AI Vision"
+              className="p-2 rounded-lg bg-slate-700/70 hover:bg-emerald-600/30 text-slate-300 hover:text-emerald-300 transition-all duration-150 flex items-center justify-center min-h-[34px] min-w-[34px] focus:outline-none"
+            >
+              <Camera className="w-4 h-4" />
+            </button>
+
             {/* Voice Input Button */}
             {speechSupported && (
               <button

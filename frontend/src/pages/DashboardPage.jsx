@@ -128,18 +128,7 @@ export const DashboardPage = () => {
             <TrendingUp className="w-4 h-4" />
             <span>AI Forecast</span>
             <span className="ml-0.5 px-1.5 py-0.2 rounded-full text-[10px] uppercase font-bold bg-indigo-400/30 text-indigo-100 border border-indigo-300/40">
-              New
-            </span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setIsReceiptScannerOpen(true)}
-            className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl text-sm font-semibold bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white shadow-sm hover:shadow transition-all duration-150 flex-1 sm:flex-none"
-          >
-            <Camera className="w-4 h-4" />
-            <span>Scan Receipt</span>
-            <span className="ml-0.5 px-1.5 py-0.2 rounded-full text-[10px] uppercase font-bold bg-emerald-400/30 text-emerald-100 border border-emerald-300/40">
-              AI
+              Insights
             </span>
           </button>
           <Button
