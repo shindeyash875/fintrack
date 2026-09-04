@@ -16,6 +16,10 @@ import {
   PieChart,
   Sun,
   Moon,
+  Users,
+  Calendar,
+  Hourglass,
+  Command,
 } from 'lucide-react';
 import { useUIStore } from '../../store/useUIStore';
 import { useAuthStore } from '../../store/useAuthStore';
@@ -34,6 +38,10 @@ export const Sidebar = () => {
     openGlobalBudget,
     openGlobalCategory,
     openGlobalSettings,
+    openCommandPalette,
+    openBillSplitter,
+    openSubscriptions,
+    openTimeMachine,
     theme,
   } = useUIStore();
   const isDark = theme === 'dark';
@@ -82,7 +90,7 @@ export const Sidebar = () => {
         </div>
 
         {/* Navigation Links */}
-        <nav className="flex-1 px-4 py-6 space-y-1.5 overflow-y-auto">
+        <nav className="flex-1 px-4 py-4 space-y-1.5 overflow-y-auto">
           {navItems.map((item) => {
             const Icon = item.icon;
             return (
@@ -91,7 +99,7 @@ export const Sidebar = () => {
                 to={item.path}
                 onClick={() => closeSidebar()}
                 className={({ isActive }) =>
-                  `flex items-center gap-3 px-3.5 py-3 rounded-xl text-sm font-medium transition-all min-h-[44px] ${
+                  `flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all min-h-[40px] ${
                     isActive
                       ? 'bg-emerald-500 text-white shadow-md shadow-emerald-500/20'
                       : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'
@@ -104,16 +112,33 @@ export const Sidebar = () => {
             );
           })}
 
-          {/* AI Financial Advisor Trigger */}
+          {/* Spotlight Palette Launcher in Sidebar */}
+          <button
+            onClick={() => {
+              closeSidebar();
+              openCommandPalette();
+            }}
+            className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold bg-slate-800/80 hover:bg-slate-800 text-slate-300 hover:text-white transition-all min-h-[38px] text-left focus:outline-none group border border-slate-700/60"
+          >
+            <div className="flex items-center gap-2.5">
+              <Command className="w-4 h-4 text-emerald-400 group-hover:rotate-45 transition-transform" />
+              <span>Spotlight Palette</span>
+            </div>
+            <span className="px-1.5 py-0.5 rounded bg-slate-900 border border-slate-700 font-mono text-[10px] text-slate-400">
+              Ctrl K
+            </span>
+          </button>
+
+          {/* AI Advisor Trigger */}
           <button
             onClick={() => {
               closeSidebar();
               openGlobalAIChat();
             }}
-            className="w-full flex items-center justify-between px-3.5 py-3 rounded-xl text-sm font-medium bg-gradient-to-r from-emerald-500/20 via-teal-500/15 to-emerald-500/10 border border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/30 transition-all min-h-[44px] text-left focus:outline-none group mt-2 shadow-xs"
+            className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium bg-gradient-to-r from-emerald-500/20 via-teal-500/15 to-emerald-500/10 border border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/30 transition-all min-h-[40px] text-left focus:outline-none group mt-2 shadow-xs"
           >
-            <div className="flex items-center gap-3">
-              <Sparkles className="w-5 h-5 shrink-0 text-emerald-400 group-hover:scale-110 transition-transform animate-pulse" />
+            <div className="flex items-center gap-2.5">
+              <Sparkles className="w-4 h-4 shrink-0 text-emerald-400 group-hover:scale-110 transition-transform animate-pulse" />
               <span>AI Advisor</span>
             </div>
             <span className="px-1.5 py-0.5 rounded-full text-[10px] uppercase font-bold bg-emerald-500/40 text-emerald-200 border border-emerald-400/40">
@@ -127,14 +152,14 @@ export const Sidebar = () => {
               closeSidebar();
               openGlobalReceiptScanner();
             }}
-            className="w-full flex items-center justify-between px-3.5 py-3 rounded-xl text-sm font-medium bg-slate-800/60 hover:bg-slate-800 text-slate-300 hover:text-white transition-all min-h-[44px] text-left focus:outline-none group mt-1.5 border border-slate-700/50"
+            className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium bg-slate-800/60 hover:bg-slate-800 text-slate-300 hover:text-white transition-all min-h-[40px] text-left focus:outline-none group border border-slate-700/50"
           >
-            <div className="flex items-center gap-3">
-              <Camera className="w-5 h-5 shrink-0 text-teal-400 group-hover:scale-110 transition-transform" />
+            <div className="flex items-center gap-2.5">
+              <Camera className="w-4 h-4 shrink-0 text-teal-400 group-hover:scale-110 transition-transform" />
               <span>Scan Receipt</span>
             </div>
             <span className="px-1.5 py-0.5 rounded-full text-[10px] uppercase font-bold bg-teal-500/30 text-teal-300 border border-teal-400/30">
-              AI
+              AI OCR
             </span>
           </button>
 
@@ -148,10 +173,10 @@ export const Sidebar = () => {
                 if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
               }, 100);
             }}
-            className="w-full flex items-center justify-between px-3.5 py-3 rounded-xl text-sm font-medium bg-indigo-950/40 hover:bg-indigo-900/50 text-indigo-300 hover:text-white transition-all min-h-[44px] text-left focus:outline-none group mt-1.5 border border-indigo-800/40"
+            className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium bg-indigo-950/40 hover:bg-indigo-900/50 text-indigo-300 hover:text-white transition-all min-h-[40px] text-left focus:outline-none group border border-indigo-800/40"
           >
-            <div className="flex items-center gap-3">
-              <TrendingUp className="w-5 h-5 shrink-0 text-indigo-400 group-hover:scale-110 transition-transform" />
+            <div className="flex items-center gap-2.5">
+              <TrendingUp className="w-4 h-4 shrink-0 text-indigo-400 group-hover:scale-110 transition-transform" />
               <span>AI Forecast</span>
             </div>
             <span className="px-1.5 py-0.5 rounded-full text-[10px] uppercase font-bold bg-indigo-500/30 text-indigo-200 border border-indigo-400/30">
@@ -165,10 +190,10 @@ export const Sidebar = () => {
               closeSidebar();
               openGlobalMonthlyDigest();
             }}
-            className="w-full flex items-center justify-between px-3.5 py-3 rounded-xl text-sm font-medium bg-amber-950/40 hover:bg-amber-900/50 text-amber-300 hover:text-white transition-all min-h-[44px] text-left focus:outline-none group mt-1.5 border border-amber-800/40"
+            className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium bg-amber-950/40 hover:bg-amber-900/50 text-amber-300 hover:text-white transition-all min-h-[40px] text-left focus:outline-none group border border-amber-800/40"
           >
-            <div className="flex items-center gap-3">
-              <Award className="w-5 h-5 shrink-0 text-amber-400 group-hover:scale-110 transition-transform" />
+            <div className="flex items-center gap-2.5">
+              <Award className="w-4 h-4 shrink-0 text-amber-400 group-hover:scale-110 transition-transform" />
               <span>Monthly Digest</span>
             </div>
             <span className="px-1.5 py-0.5 rounded-full text-[10px] uppercase font-bold bg-amber-500/30 text-amber-200 border border-amber-400/30">
@@ -182,10 +207,10 @@ export const Sidebar = () => {
               closeSidebar();
               openGlobalAffordability();
             }}
-            className="w-full flex items-center justify-between px-3.5 py-3 rounded-xl text-sm font-medium bg-teal-950/40 hover:bg-teal-900/50 text-teal-300 hover:text-white transition-all min-h-[44px] text-left focus:outline-none group mt-1.5 border border-teal-800/40"
+            className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium bg-teal-950/40 hover:bg-teal-900/50 text-teal-300 hover:text-white transition-all min-h-[40px] text-left focus:outline-none group border border-teal-800/40"
           >
-            <div className="flex items-center gap-3">
-              <Target className="w-5 h-5 shrink-0 text-teal-400 group-hover:scale-110 transition-transform" />
+            <div className="flex items-center gap-2.5">
+              <Target className="w-4 h-4 shrink-0 text-teal-400 group-hover:scale-110 transition-transform" />
               <span>Can I Afford This?</span>
             </div>
             <span className="px-1.5 py-0.5 rounded-full text-[10px] uppercase font-bold bg-teal-500/30 text-teal-200 border border-teal-400/30">
@@ -199,10 +224,10 @@ export const Sidebar = () => {
               closeSidebar();
               openGlobalAutoBudget();
             }}
-            className="w-full flex items-center justify-between px-3.5 py-3 rounded-xl text-sm font-medium bg-violet-950/40 hover:bg-violet-900/50 text-violet-300 hover:text-white transition-all min-h-[44px] text-left focus:outline-none group mt-1.5 border border-violet-800/40"
+            className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium bg-violet-950/40 hover:bg-violet-900/50 text-violet-300 hover:text-white transition-all min-h-[40px] text-left focus:outline-none group border border-violet-800/40"
           >
-            <div className="flex items-center gap-3">
-              <PieChart className="w-5 h-5 shrink-0 text-violet-400 group-hover:scale-110 transition-transform" />
+            <div className="flex items-center gap-2.5">
+              <PieChart className="w-4 h-4 shrink-0 text-violet-400 group-hover:scale-110 transition-transform" />
               <span>Smart Auto-Budget</span>
             </div>
             <span className="px-1.5 py-0.5 rounded-full text-[10px] uppercase font-bold bg-violet-500/30 text-violet-200 border border-violet-400/30">
@@ -210,8 +235,67 @@ export const Sidebar = () => {
             </span>
           </button>
 
-          <div className="pt-4 mt-4 border-t border-slate-800/80">
-            <p className="px-3 text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-2">
+          {/* Smart Financial Tools Section ("Hatke" Suite) */}
+          <div className="pt-3 mt-3 border-t border-slate-800/80">
+            <p className="px-3 text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-1.5">
+              Smart Financial Tools
+            </p>
+
+            {/* Bill Splitter */}
+            <button
+              onClick={() => {
+                closeSidebar();
+                openBillSplitter();
+              }}
+              className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium text-slate-300 hover:bg-slate-800 hover:text-white transition-all min-h-[40px] text-left focus:outline-none group"
+            >
+              <div className="flex items-center gap-2.5">
+                <Users className="w-4 h-4 text-emerald-400 group-hover:scale-110 transition-transform" />
+                <span>Bill & Group Split</span>
+              </div>
+              <span className="px-1.5 py-0.2 rounded text-[10px] bg-emerald-500/20 text-emerald-400 font-bold">
+                WhatsApp
+              </span>
+            </button>
+
+            {/* Subscriptions Radar */}
+            <button
+              onClick={() => {
+                closeSidebar();
+                openSubscriptions();
+              }}
+              className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium text-slate-300 hover:bg-slate-800 hover:text-white transition-all min-h-[40px] text-left focus:outline-none group"
+            >
+              <div className="flex items-center gap-2.5">
+                <Calendar className="w-4 h-4 text-blue-400 group-hover:scale-110 transition-transform" />
+                <span>Subscriptions Radar</span>
+              </div>
+              <span className="px-1.5 py-0.2 rounded text-[10px] bg-blue-500/20 text-blue-400 font-bold">
+                Radar
+              </span>
+            </button>
+
+            {/* Time Machine Wealth Simulator */}
+            <button
+              onClick={() => {
+                closeSidebar();
+                openTimeMachine();
+              }}
+              className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium text-slate-300 hover:bg-slate-800 hover:text-white transition-all min-h-[40px] text-left focus:outline-none group"
+            >
+              <div className="flex items-center gap-2.5">
+                <Hourglass className="w-4 h-4 text-violet-400 group-hover:scale-110 transition-transform" />
+                <span>Wealth Time Machine</span>
+              </div>
+              <span className="px-1.5 py-0.2 rounded text-[10px] bg-violet-500/20 text-violet-400 font-bold">
+                SIP
+              </span>
+            </button>
+          </div>
+
+          {/* Management Section */}
+          <div className="pt-3 mt-3 border-t border-slate-800/80">
+            <p className="px-3 text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-1.5">
               Management
             </p>
 
@@ -220,9 +304,9 @@ export const Sidebar = () => {
                 closeSidebar();
                 openGlobalBudget();
               }}
-              className="w-full flex items-center gap-3 px-3.5 py-3 rounded-xl text-sm font-medium text-slate-400 hover:bg-slate-800 hover:text-slate-200 transition-all min-h-[44px] text-left focus:outline-none"
+              className="w-full flex items-center gap-2.5 px-3.5 py-2 rounded-xl text-sm font-medium text-slate-400 hover:bg-slate-800 hover:text-slate-200 transition-all min-h-[38px] text-left focus:outline-none"
             >
-              <Target className="w-5 h-5 shrink-0 text-emerald-400" />
+              <Target className="w-4 h-4 shrink-0 text-emerald-400" />
               <span>Budget Goals</span>
             </button>
 
@@ -231,9 +315,9 @@ export const Sidebar = () => {
                 closeSidebar();
                 openGlobalCategory();
               }}
-              className="w-full flex items-center gap-3 px-3.5 py-3 rounded-xl text-sm font-medium text-slate-400 hover:bg-slate-800 hover:text-slate-200 transition-all min-h-[44px] text-left focus:outline-none"
+              className="w-full flex items-center gap-2.5 px-3.5 py-2 rounded-xl text-sm font-medium text-slate-400 hover:bg-slate-800 hover:text-slate-200 transition-all min-h-[38px] text-left focus:outline-none"
             >
-              <Tag className="w-5 h-5 shrink-0 text-emerald-400" />
+              <Tag className="w-4 h-4 shrink-0 text-emerald-400" />
               <span>Categories</span>
             </button>
 
@@ -242,9 +326,9 @@ export const Sidebar = () => {
                 closeSidebar();
                 openGlobalSettings();
               }}
-              className="w-full flex items-center gap-3 px-3.5 py-3 rounded-xl text-sm font-medium text-slate-400 hover:bg-slate-800 hover:text-slate-200 transition-all min-h-[44px] text-left focus:outline-none"
+              className="w-full flex items-center gap-2.5 px-3.5 py-2 rounded-xl text-sm font-medium text-slate-400 hover:bg-slate-800 hover:text-slate-200 transition-all min-h-[38px] text-left focus:outline-none"
             >
-              <SlidersHorizontal className="w-5 h-5 shrink-0 text-slate-400" />
+              <SlidersHorizontal className="w-4 h-4 shrink-0 text-slate-400" />
               <span>App Settings</span>
             </button>
           </div>
@@ -287,7 +371,7 @@ export const Sidebar = () => {
             </div>
           )}
 
-          <div className="bg-slate-800/30 rounded-xl p-2.5 text-[11px] text-slate-500 text-center">
+          <div className="bg-slate-800/30 rounded-xl p-2 text-[11px] text-slate-500 text-center">
             FinTrack v1.0 • Isolated Secure Cloud
           </div>
         </div>

@@ -15,6 +15,10 @@ import ImportModal from '../expenses/ImportModal';
 import { MonthlyDigestModal } from '../ai/MonthlyDigestModal';
 import { AffordabilitySimulatorModal } from '../ai/AffordabilitySimulatorModal';
 import { AutoBudgetGeneratorModal } from '../ai/AutoBudgetGeneratorModal';
+import CommandPalette from '../common/CommandPalette';
+import BillSplitterModal from '../tools/BillSplitterModal';
+import SubscriptionsModal from '../tools/SubscriptionsModal';
+import TimeMachineModal from '../tools/TimeMachineModal';
 import { useUIStore } from '../../store/useUIStore';
 import { useExpenseStore } from '../../store/useExpenseStore';
 import { useBudgetStore } from '../../store/useBudgetStore';
@@ -39,7 +43,17 @@ export const Layout = ({ children }) => {
     closeGlobalAffordability,
     isGlobalAutoBudgetOpen,
     closeGlobalAutoBudget,
+    isBillSplitterOpen,
+    closeBillSplitter,
+    isSubscriptionsOpen,
+    closeSubscriptions,
+    isTimeMachineOpen,
+    closeTimeMachine,
   } = useUIStore();
+
+  const { fetchExpenses } = useExpenseStore();
+  const { fetchBudgets } = useBudgetStore();
+  const { fetchCategories } = useCategoryStore();
 
   const [isExportOpen, setIsExportOpen] = useState(false);
   const [isImportOpen, setIsImportOpen] = useState(false);
@@ -66,6 +80,9 @@ export const Layout = ({ children }) => {
 
       {/* Mobile Bottom Navigation Bar (< 1024px) */}
       <BottomNav />
+
+      {/* Spotlight Command Palette (Ctrl+K / Cmd+K) */}
+      <CommandPalette />
 
       {/* Global Quick Modals triggered from BottomNav / Sidebar */}
       <ExpenseModal
@@ -127,6 +144,24 @@ export const Layout = ({ children }) => {
         isOpen={isGlobalAutoBudgetOpen}
         onClose={closeGlobalAutoBudget}
         onBudgetApplied={handleDataRefresh}
+      />
+
+      {/* Feature Suite: Smart Tools Modals */}
+      <BillSplitterModal
+        isOpen={isBillSplitterOpen}
+        onClose={closeBillSplitter}
+        onSuccess={handleDataRefresh}
+      />
+
+      <SubscriptionsModal
+        isOpen={isSubscriptionsOpen}
+        onClose={closeSubscriptions}
+        onSuccess={handleDataRefresh}
+      />
+
+      <TimeMachineModal
+        isOpen={isTimeMachineOpen}
+        onClose={closeTimeMachine}
       />
 
       {/* FinTrack AI Copilot Floating Button & Chat Advisor Modal */}

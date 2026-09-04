@@ -1,5 +1,20 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Menu, Wallet, Download, User, LogOut, KeyRound, Globe, ChevronDown, Camera, Sparkles, Sun, Moon } from 'lucide-react';
+import {
+  Menu,
+  Wallet,
+  Download,
+  User,
+  LogOut,
+  KeyRound,
+  Globe,
+  ChevronDown,
+  Camera,
+  Sparkles,
+  Sun,
+  Moon,
+  Search,
+  Command,
+} from 'lucide-react';
 import { useUIStore } from '../../store/useUIStore';
 import { useAuthStore } from '../../store/useAuthStore';
 import { ThemeToggle } from '../common/ThemeToggle';
@@ -13,6 +28,7 @@ export const Navbar = () => {
     triggerPWAInstall,
     openGlobalReceiptScanner,
     openGlobalAIChat,
+    openCommandPalette,
     theme,
     toggleTheme,
   } = useUIStore();
@@ -78,6 +94,20 @@ export const Navbar = () => {
         </div>
 
         <div className="flex items-center gap-2 sm:gap-3.5">
+          {/* Spotlight Search Launcher (Ctrl+K) */}
+          <button
+            type="button"
+            onClick={openCommandPalette}
+            className="flex items-center gap-2 px-2.5 sm:px-3 py-1.5 rounded-full sm:rounded-xl bg-slate-100/90 dark:bg-slate-800/80 hover:bg-slate-200/80 dark:hover:bg-slate-700/80 border border-slate-200/70 dark:border-slate-700/70 text-slate-500 dark:text-slate-400 text-xs font-medium transition-all cursor-pointer group shadow-2xs"
+            title="Open Command Palette (Ctrl+K / Cmd+K)"
+          >
+            <Search className="w-3.5 h-3.5 text-slate-400 group-hover:text-emerald-500 dark:group-hover:text-emerald-400 transition-colors" />
+            <span className="hidden md:inline">Quick actions & search</span>
+            <span className="hidden sm:inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 font-mono text-[10px] text-slate-500 dark:text-slate-400 font-semibold shadow-2xs">
+              Ctrl K
+            </span>
+          </button>
+
           {/* Theme Toggle Button */}
           <ThemeToggle />
 

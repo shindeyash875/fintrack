@@ -94,6 +94,27 @@ export const useUIStore = create((set, get) => ({
   openGlobalAutoBudget: () => set({ isGlobalAutoBudgetOpen: true }),
   closeGlobalAutoBudget: () => set({ isGlobalAutoBudgetOpen: false }),
 
+  // Spotlight Command Palette (Ctrl+K / Cmd+K)
+  isCommandPaletteOpen: false,
+  openCommandPalette: () => set({ isCommandPaletteOpen: true }),
+  closeCommandPalette: () => set({ isCommandPaletteOpen: false }),
+  toggleCommandPalette: () => set((state) => ({ isCommandPaletteOpen: !state.isCommandPaletteOpen })),
+
+  // Feature: Smart Group & Bill Splitter
+  isBillSplitterOpen: false,
+  openBillSplitter: () => set({ isBillSplitterOpen: true }),
+  closeBillSplitter: () => set({ isBillSplitterOpen: false }),
+
+  // Feature: Subscriptions & Recurring Bills Radar
+  isSubscriptionsOpen: false,
+  openSubscriptions: () => set({ isSubscriptionsOpen: true }),
+  closeSubscriptions: () => set({ isSubscriptionsOpen: false }),
+
+  // Feature: "What-If" Financial Time Machine Simulator
+  isTimeMachineOpen: false,
+  openTimeMachine: () => set({ isTimeMachineOpen: true }),
+  closeTimeMachine: () => set({ isTimeMachineOpen: false }),
+
   // PWA Install State
   isInstallable: false,
   setIsInstallable: (val) => set({ isInstallable: val }),
