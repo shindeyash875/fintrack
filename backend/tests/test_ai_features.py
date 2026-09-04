@@ -714,6 +714,44 @@ async def test_apply_smart_budget_endpoint(auth_client: AsyncClient, test_user: 
         assert data["data"]["applied_count"] == 3
 
 
+@pytest.mark.asyncio
+async def test_ai_chat_greetings_and_conversation(auth_client: AsyncClient, test_user: User):
+    """Test POST /api/v1/ai/chat with casual greetings (hi/hello/kasa ahes)."""
+    response = await auth_client.post(
+        "/api/v1/ai/chat",
+        json={
+            "message": "Hi, how are you?",
+            "history": [],
+        },
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["success"] is True
+    assert "reply" in data["data"]
+    assert len(data["data"]["reply"]) > 10
+    assert len(data["data"]["suggested_actions"]) > 0
+
+
+@pytest.mark.asyncio
+async def test_ai_chat_spending_query(auth_client: AsyncClient, test_user: User):
+    """Test POST /api/v1/ai/chat with spending question."""
+    response = await auth_client.post(
+        "/api/v1/ai/chat",
+        json={
+            "message": "How much did I spend this month?",
+            "history": [],
+        },
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    reply_lower = data["data"]["reply"].lower()
+    assert any(term in reply_lower for term in ["spend", "spent", "month", "₹", "0.00", "total"])
+    assert len(data["data"]["reply"]) > 10
+
+
+
 
 
 

@@ -6,7 +6,7 @@ from decimal import Decimal
 from typing import Any, Dict, List, Optional, Tuple
 from uuid import UUID
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -1383,6 +1383,244 @@ Return a JSON object with:
             "applied_count": applied_count,
             "message": f"Successfully applied {applied_count} budget limits for {period_month.strftime('%B %Y')}.",
         }
+
+    @classmethod
+    async def chat_with_advisor(
+        cls,
+        session: AsyncSession,
+        user_id: UUID,
+        message: str,
+        history: Optional[List[AIChatMessage]] = None,
+    ) -> AIChatResponse:
+        """
+        Interactive conversational AI Financial Advisor.
+        Supports natural greetings ("hi", "hello", "kasa ahes"), general conversation,
+        and deep personalized financial analysis grounded in user's real-time financial database.
+        """
+        msg_clean = (message or "").strip()
+        msg_lower = msg_clean.lower()
+        today = date.today()
+
+        # 1. Gather live financial numbers for user context
+        summary = await DashboardService.get_summary(session, user_id)
+        total_month = float(summary.total_spent_current_month)
+        total_overall = float(summary.total_spent_overall)
+        daily_avg = float(summary.average_daily_spend)
+        weekly_avg = float(summary.average_weekly_spend)
+
+        # Budget status
+        try:
+            budget_res = await BudgetService.get_status(session, today, user_id)
+            budget_status = budget_res.overall
+            budget_limit = float(budget_status.limit_amount) if budget_status and budget_status.limit_amount else None
+            remaining_budget = float(budget_status.remaining_amount) if budget_status and budget_status.remaining_amount is not None else None
+            pct_used = float(budget_status.percentage_used) if budget_status and budget_status.percentage_used is not None else 0.0
+        except Exception as b_exc:
+            logger.warning(f"[AI Chat Budget Fetch Warning] {b_exc}")
+            budget_status = None
+            budget_limit = None
+            remaining_budget = None
+            pct_used = 0.0
+
+        top_cats = summary.top_categories or []
+        top_cats_str = ", ".join([f"{c.category_name} (₹{float(c.total_amount):,.2f})" for c in top_cats[:4]]) or "None recorded yet"
+
+        recent_txs = summary.recent_expenses or []
+        recent_tx_str = "; ".join([f"{e.title}: ₹{float(e.amount):,.2f} on {e.expense_date}" for e in recent_txs[:4]]) or "None recorded yet"
+
+        budget_info = (
+            f"Limit: ₹{budget_limit:,.2f}, Remaining: ₹{remaining_budget:,.2f} ({pct_used:.1f}% used)"
+            if budget_limit
+            else "No monthly budget limit configured"
+        )
+
+        # Format chat history
+        history_formatted = ""
+        if history:
+            history_formatted = "\n".join([f"{h.role.capitalize()}: {h.content}" for h in history[-6:]])
+
+        # 2. LLM Prompt Construction
+        prompt = f"""
+You are FinTrack's intelligent AI Financial Advisor and personal assistant.
+You can converse naturally, warmly, and helpfully in whatever language or script the user speaks (English, Marathi, Hindi, Hinglish, etc.).
+
+USER'S LIVE FINANCIAL NUMBERS:
+- Total Spent This Month: ₹{total_month:,.2f}
+- Overall Lifetime Spend: ₹{total_overall:,.2f}
+- Average Daily Spend: ₹{daily_avg:,.2f}/day
+- Average Weekly Pace: ₹{weekly_avg:,.2f}/week
+- Monthly Budget Status: {budget_info}
+- Top Spending Categories: {top_cats_str}
+- Recent Expenses Logged: {recent_tx_str}
+
+PREVIOUS CONVERSATION:
+{history_formatted if history_formatted else "New conversation"}
+
+USER'S MESSAGE:
+"{msg_clean}"
+
+BEHAVIORAL INSTRUCTIONS:
+1. GREETINGS & CASUAL CHAT: If the user is saying a greeting ("hi", "hello", "hey", "namaste", "kasa ahes", "shubh prabhat", "good morning", etc.) or asking casual questions ("who are you", "what can you do", "how are you"), respond warmly, politely, and casually. Acknowledge their greeting in the same language/tone, let them know you're here to help manage their money, and suggest what they can ask.
+2. FINANCIAL QUESTIONS: If the user asks about their spending, budgets, savings tips, or expenses, use their real financial numbers above to provide crisp, empathetic, actionable advice.
+3. MULTILINGUAL SUPPORT: Respond in the language the user used (Marathi, Hindi, or English).
+4. SUGGESTED ACTIONS: Provide 2-3 short, relevant follow-up action prompts the user can click on.
+
+OUTPUT FORMAT:
+Return a JSON object with:
+1. "reply": Markdown formatted natural answer.
+2. "suggested_actions": list of 2-3 relevant follow-up questions.
+"""
+
+        class LLMChatOutput(BaseModel):
+            reply: str
+            suggested_actions: List[str] = Field(default_factory=list)
+
+        try:
+            provider = AIFactory.get_provider()
+            try:
+                llm_res = await provider.generate_structured(
+                    prompt=prompt,
+                    response_schema=LLMChatOutput,
+                    system_prompt="You are a friendly, intelligent, empathetic financial advisor and assistant.",
+                )
+                reply = llm_res.reply
+                suggested_actions = llm_res.suggested_actions or [
+                    "How much did I spend this month?",
+                    "Am I within my budget limits?",
+                    "Tips to save money on top categories",
+                ]
+            except Exception:
+                # Fallback to generate_text if provider or mock returns plain text
+                text_res = await provider.generate_text(
+                    prompt=prompt,
+                    system_prompt="You are a friendly, intelligent, empathetic financial advisor and assistant.",
+                )
+                if text_res and len(text_res.strip()) > 0:
+                    reply = text_res.strip()
+                    suggested_actions = [
+                        "How much did I spend this month?",
+                        "Am I within my budget limits?",
+                        "Tips to save money on top categories",
+                    ]
+                else:
+                    raise
+
+            return AIChatResponse(
+                reply=reply,
+                suggested_actions=suggested_actions,
+                referenced_metrics={
+                    "total_spent_current_month": total_month,
+                    "remaining_budget": remaining_budget,
+                    "average_daily_spend": daily_avg,
+                },
+            )
+        except Exception as exc:
+            logger.warning(f"[AI Chat LLM Fallback] {exc}")
+
+            # Intelligent rule-based conversational fallback
+            # (A) Greetings
+            if re.search(r"\b(hi|hello|hey|namaste|hie|hola|kasa|kase|gm|good morning|good evening)\b", msg_lower):
+                return AIChatResponse(
+                    reply=(
+                        f"👋 **Namaste! Hello!** I'm your FinTrack AI Copilot.\n\n"
+                        f"I'm here to help you stay on top of your finances. This month, you've spent **₹{total_month:,.2f}** "
+                        f"({f'₹{remaining_budget:,.2f} budget remaining' if remaining_budget is not None else 'no budget limit set'}).\n\n"
+                        f"How can I assist you today? You can ask about your expenses, budget health, or savings tips!"
+                    ),
+                    suggested_actions=[
+                        "📊 How much did I spend this month?",
+                        "🎯 Am I on track with my monthly budget?",
+                        "💡 Give me 3 tips to save money.",
+                    ],
+                    referenced_metrics={
+                        "total_spent_current_month": total_month,
+                        "remaining_budget": remaining_budget,
+                    },
+                )
+
+            # (B) Spending summary query
+            if re.search(r"\b(spend|spent|total|kharch|kharcha|expenses|kitna)\b", msg_lower):
+                return AIChatResponse(
+                    reply=(
+                        f"📊 **Here is your spending overview:**\n\n"
+                        f"- **Current Month Total:** ₹{total_month:,.2f}\n"
+                        f"- **Daily Average Spend:** ₹{daily_avg:,.2f}/day\n"
+                        f"- **Lifetime Total:** ₹{total_overall:,.2f}\n"
+                        f"- **Top Categories:** {top_cats_str}\n\n"
+                        f"Let me know if you'd like tips to optimize any of these categories!"
+                    ),
+                    suggested_actions=[
+                        "What is my highest expense category?",
+                        "Am I on track with my budget?",
+                        "How can I save ₹2,000 this month?",
+                    ],
+                    referenced_metrics={
+                        "total_spent_current_month": total_month,
+                        "total_spent_overall": total_overall,
+                        "average_daily_spend": daily_avg,
+                    },
+                )
+
+            # (C) Budget query
+            if re.search(r"\b(budget|limit|goal|remaining|bachat)\b", msg_lower):
+                if budget_limit:
+                    status_text = (
+                        f"You have **₹{remaining_budget:,.2f}** remaining out of your **₹{budget_limit:,.2f}** monthly budget "
+                        f"({pct_used:.1f}% used)."
+                    )
+                else:
+                    status_text = "You haven't configured an overall monthly budget goal yet. Setting a goal helps avoid overspending!"
+
+                return AIChatResponse(
+                    reply=f"🎯 **Budget Goal Status:**\n\n{status_text}\n\nWould you like me to suggest a smart 50/30/20 budget allocation for you?",
+                    suggested_actions=[
+                        "Set up an automated 50/30/20 budget",
+                        "Show my daily safe spending allowance",
+                        "What are my highest expenses recently?",
+                    ],
+                    referenced_metrics={
+                        "budget_limit": budget_limit,
+                        "remaining_budget": remaining_budget,
+                        "percentage_used": pct_used,
+                    },
+                )
+
+            # (D) Savings tips
+            if re.search(r"\b(save|saving|tips|advice|reduce|cut)\b", msg_lower):
+                top_cat_name = top_cats[0].category_name if top_cats else "discretionary"
+                return AIChatResponse(
+                    reply=(
+                        f"💡 **3 Actionable Financial Tips:**\n\n"
+                        f"1. **Focus on {top_cat_name}:** Your top expense category is {top_cat_name}. Trimming 10-15% here will easily save you **₹{total_month * 0.1:,.0f}**.\n"
+                        f"2. **The 48-Hour Rule:** For impulse online purchases above ₹1,500, wait 48 hours before checking out.\n"
+                        f"3. **Daily Allowance:** Keep your daily spending under **₹{daily_avg * 0.85:,.0f}/day** for the rest of the month."
+                    ),
+                    suggested_actions=[
+                        "How much did I spend this month?",
+                        "Simulate savings in Wealth Time Machine",
+                        "Am I within my budget?",
+                    ],
+                    referenced_metrics={"total_spent_current_month": total_month},
+                )
+
+            # (E) General question fallback
+            return AIChatResponse(
+                reply=(
+                    f"🤖 I'm your FinTrack AI Financial Copilot! I have real-time access to your expenses, categories, and budgets.\n\n"
+                    f"You can ask me questions like:\n"
+                    f"- *'How much did I spend on food this month?'*\n"
+                    f"- *'Am I on track with my budget?'*\n"
+                    f"- *'Can I afford a ₹15,000 purchase?'*\n"
+                    f"- Or simply chat with me about your financial goals!"
+                ),
+                suggested_actions=[
+                    "How much did I spend this month?",
+                    "Am I on track with my budget?",
+                    "What were my recent expenses?",
+                ],
+                referenced_metrics=None,
+            )
+
 
 
 

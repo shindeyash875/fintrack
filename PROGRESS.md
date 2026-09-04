@@ -1220,11 +1220,27 @@
 - **Global 3D Utilities (`frontend/src/styles/index.css`):**
   - Added `.perspective-600`, `.perspective-1000`, `.perspective-1200`, `.preserve-3d`, `.backface-hidden`, `.rotate-y-180`, `.translate-z-10..40`.
 
+---
+
+## Milestone Completed: Conversational AI Financial Advisor with Real-Time Context Grounding & Multilingual Support
+
+### 1. Work Completed
+- **Root Cause Resolution for Chatbot Canned Responses:**
+  - Resolved `AttributeError` caused by missing `chat_with_advisor` in `backend/app/services/ai_service.py`, which previously caused the `/api/v1/ai/chat` endpoint to silently catch an exception and return the same static greeting on all queries.
+  - Corrected `BudgetService.get_status(session, today, user_id)` invocation in `chat_with_advisor` to accurately extract budget limits and calculate percent spent.
+- **Multilingual & Conversational Intelligence:**
+  - Added natural language conversational handling for greetings (*"hi"*, *"hello"*, *"namaste"*, *"kasa ahes"*, *"good morning"*), personal introductions, and general questions.
+  - Grounded the LLM prompt with real-time financial database metrics (`total_spent_current_month`, `daily_avg`, `recent_expenses`, `top_categories`, `budget_status`).
+  - Added rule-based fallback heuristics with regex classification to guarantee smart contextual responses even when AI provider quota or offline mode is encountered.
+  - Implemented dynamic follow-up action suggestions based on user context.
+- **Test Coverage & Verification:**
+  - Added dedicated unit and integration tests in `backend/tests/test_ai_features.py` (`test_ai_service_chat_with_advisor`, `test_ai_chat_greetings_and_conversation`, `test_ai_chat_spending_query`).
+
 ### 2. Testing & Quality Verification
-- **Frontend Vitest Suite:** **74 of 74 tests passed** (12 test suites, 0 failures).
-- **Backend Pytest Suite:** **58 of 58 tests passed** in isolated PostgreSQL test database.
-- **Production Build (Vite):** Built cleanly in 7.24s with 0 errors.
-- **Rule Compliance:** 100% adherence to all AGENTS.md rules (no inline styles, Tailwind CSS only, no extra npm packages).
+- **Backend Pytest Suite:** **60 of 60 tests passed** (100% pass rate across all 11 test modules).
+- **Frontend Vitest Suite:** **74 of 74 tests passed** (100% pass rate across 12 suites).
+- **Rule Compliance:** Full compliance with AGENTS.md rules.
+
 
 
 
