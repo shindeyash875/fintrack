@@ -1,16 +1,22 @@
 import logging
-from typing import Set
-from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile, status
+from typing import Optional, Set
+from fastapi import APIRouter, Depends, File, HTTPException, Query, Request, UploadFile, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.dependencies import get_current_user, get_db, limiter
 from app.models.user import User
 from app.schemas.ai import (
+    AffordabilityRequest,
+    AffordabilityResponse,
     AIChatRequest,
     AIChatResponse,
+    ApplySmartBudgetRequest,
+    AutoBudgetGenerateRequest,
+    MonthlyDigestResponse,
     ParseExpenseRequest,
     ParsedExpenseData,
     ScannedReceiptData,
+    SmartBudgetPlanResponse,
     SpendingForecastResponse,
 )
 from app.schemas.common import ApiResponse
@@ -234,6 +240,171 @@ async def get_spending_forecast(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to generate spending forecast due to an internal error.",
         )
+
+
+@router.get(
+    "/monthly-digest",
+    response_model=ApiResponse[MonthlyDigestResponse],
+    summary="AI Monthly Financial Health Digest & Executive Scorecard",
+)
+@limiter.limit("20/minute")
+async def get_monthly_digest(
+    request: Request,
+    month: Optional[str] = Query(None, description="Month in YYYY-MM or YYYY-MM-DD format (defaults to current month)"),
+    current_user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_db),
+):
+    """
+    Analyzes full monthly transactions, computes Financial Health Score (0-100) & Grade (A+ to D),
+    identifies spending leaks, celebrates savings milestones, and creates an AI action plan for the month ahead.
+    """
+    try:
+        digest_data = await AIService.get_monthly_digest(
+            session=session,
+            user_id=current_user.id,
+            month_str=month,
+        )
+        return ApiResponse(success=True, data=digest_data)
+
+    except AIConfigurationError as exc:
+        logger.warning(f"[AI Config Error] {exc}")
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=str(exc),
+        )
+    except AIProviderError as exc:
+        logger.error(f"[AI Provider Error] {exc}")
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=f"AI Digest service error: {exc}",
+        )
+    except Exception as exc:
+        logger.error(f"[Monthly Digest Error] Unexpected exception: {exc}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to generate monthly digest due to an internal error.",
+        )
+
+
+@router.post(
+    "/simulate-affordability",
+    response_model=ApiResponse[AffordabilityResponse],
+    summary="AI Purchase Affordability Simulator ('Can I Afford This?')",
+)
+@limiter.limit("20/minute")
+async def simulate_affordability(
+    request: Request,
+    payload: AffordabilityRequest,
+    current_user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_db),
+):
+    """
+    Simulates purchase impact against user's current month budget, category headroom,
+    safe daily spending limit, and provides actionable verdicts and smart alternatives.
+    """
+    try:
+        affordability_data = await AIService.simulate_affordability(
+            session=session,
+            user_id=current_user.id,
+            payload=payload,
+        )
+        return ApiResponse(success=True, data=affordability_data)
+
+    except AIConfigurationError as exc:
+        logger.warning(f"[AI Config Error] {exc}")
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=str(exc),
+        )
+    except AIProviderError as exc:
+        logger.error(f"[AI Provider Error] {exc}")
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=f"AI Affordability service error: {exc}",
+        )
+    except Exception as exc:
+        logger.error(f"[Affordability Error] Unexpected exception: {exc}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to simulate affordability due to an internal error.",
+        )
+
+
+@router.post(
+    "/generate-smart-budget",
+    response_model=ApiResponse[SmartBudgetPlanResponse],
+    summary="AI 50/30/20 Smart Auto-Budget & Savings Goal Planner",
+)
+@limiter.limit("20/minute")
+async def generate_smart_budget(
+    request: Request,
+    payload: AutoBudgetGenerateRequest,
+    current_user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_db),
+):
+    """
+    Generates tailored 50/30/20 category budget ceilings and savings milestones
+    based on historical spending run rates and lifestyle goals.
+    """
+    try:
+        plan_data = await AIService.generate_smart_budget(
+            session=session,
+            user_id=current_user.id,
+            payload=payload,
+        )
+        return ApiResponse(success=True, data=plan_data)
+
+    except AIConfigurationError as exc:
+        logger.warning(f"[AI Config Error] {exc}")
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=str(exc),
+        )
+    except AIProviderError as exc:
+        logger.error(f"[AI Provider Error] {exc}")
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=f"AI Smart Budget service error: {exc}",
+        )
+    except Exception as exc:
+        logger.error(f"[Smart Budget Error] Unexpected exception: {exc}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to generate smart budget due to an internal error.",
+        )
+
+
+@router.post(
+    "/apply-smart-budget",
+    response_model=ApiResponse[dict],
+    summary="Apply and Persist AI-Generated Smart Budget Limits",
+)
+@limiter.limit("20/minute")
+async def apply_smart_budget(
+    request: Request,
+    payload: ApplySmartBudgetRequest,
+    current_user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_db),
+):
+    """
+    Saves and persists generated category and overall budget ceilings in database.
+    """
+    try:
+        result = await AIService.apply_smart_budget(
+            session=session,
+            user_id=current_user.id,
+            payload=payload,
+        )
+        return ApiResponse(success=True, data=result)
+
+    except Exception as exc:
+        logger.error(f"[Apply Smart Budget Error] Unexpected exception: {exc}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to apply smart budget limits.",
+        )
+
+
 
 
 

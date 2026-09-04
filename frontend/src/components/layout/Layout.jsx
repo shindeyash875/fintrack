@@ -12,6 +12,9 @@ import CategoryManageModal from '../categories/CategoryManageModal';
 import SettingsModal from '../common/SettingsModal';
 import ExportModal from '../expenses/ExportModal';
 import ImportModal from '../expenses/ImportModal';
+import { MonthlyDigestModal } from '../ai/MonthlyDigestModal';
+import { AffordabilitySimulatorModal } from '../ai/AffordabilitySimulatorModal';
+import { AutoBudgetGeneratorModal } from '../ai/AutoBudgetGeneratorModal';
 import { useUIStore } from '../../store/useUIStore';
 import { useExpenseStore } from '../../store/useExpenseStore';
 import { useBudgetStore } from '../../store/useBudgetStore';
@@ -30,14 +33,16 @@ export const Layout = ({ children }) => {
     openGlobalCategory,
     isGlobalSettingsOpen,
     closeGlobalSettings,
+    isGlobalMonthlyDigestOpen,
+    closeGlobalMonthlyDigest,
+    isGlobalAffordabilityOpen,
+    closeGlobalAffordability,
+    isGlobalAutoBudgetOpen,
+    closeGlobalAutoBudget,
   } = useUIStore();
 
   const [isExportOpen, setIsExportOpen] = useState(false);
   const [isImportOpen, setIsImportOpen] = useState(false);
-
-  const { fetchExpenses } = useExpenseStore();
-  const { fetchAll: fetchBudgets } = useBudgetStore();
-  const { fetchCategories } = useCategoryStore();
 
   const handleDataRefresh = () => {
     fetchExpenses();
@@ -103,6 +108,25 @@ export const Layout = ({ children }) => {
         isOpen={isImportOpen}
         onClose={() => setIsImportOpen(false)}
         onSuccess={handleDataRefresh}
+      />
+
+      {/* AI Monthly Health Digest & Scorecard Modal */}
+      <MonthlyDigestModal
+        isOpen={isGlobalMonthlyDigestOpen}
+        onClose={closeGlobalMonthlyDigest}
+      />
+
+      {/* AI "Can I Afford This?" Purchase Simulator Modal */}
+      <AffordabilitySimulatorModal
+        isOpen={isGlobalAffordabilityOpen}
+        onClose={closeGlobalAffordability}
+      />
+
+      {/* AI 50/30/20 Smart Auto-Budget Planner Modal */}
+      <AutoBudgetGeneratorModal
+        isOpen={isGlobalAutoBudgetOpen}
+        onClose={closeGlobalAutoBudget}
+        onBudgetApplied={handleDataRefresh}
       />
 
       {/* FinTrack AI Copilot Floating Button & Chat Advisor Modal */}

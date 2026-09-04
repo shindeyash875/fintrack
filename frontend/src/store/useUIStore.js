@@ -30,6 +30,18 @@ export const useUIStore = create((set, get) => ({
   openGlobalSettings: () => set({ isGlobalSettingsOpen: true }),
   closeGlobalSettings: () => set({ isGlobalSettingsOpen: false }),
 
+  isGlobalMonthlyDigestOpen: false,
+  openGlobalMonthlyDigest: () => set({ isGlobalMonthlyDigestOpen: true }),
+  closeGlobalMonthlyDigest: () => set({ isGlobalMonthlyDigestOpen: false }),
+
+  isGlobalAffordabilityOpen: false,
+  openGlobalAffordability: () => set({ isGlobalAffordabilityOpen: true }),
+  closeGlobalAffordability: () => set({ isGlobalAffordabilityOpen: false }),
+
+  isGlobalAutoBudgetOpen: false,
+  openGlobalAutoBudget: () => set({ isGlobalAutoBudgetOpen: true }),
+  closeGlobalAutoBudget: () => set({ isGlobalAutoBudgetOpen: false }),
+
   // PWA Install State
   isInstallable: false,
   setIsInstallable: (val) => set({ isInstallable: val }),

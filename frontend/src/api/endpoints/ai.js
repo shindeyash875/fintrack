@@ -46,4 +46,23 @@ export const aiApi = {
    * @param {string} [month] - YYYY-MM-01 format
    */
   getMonthlyDigest: (month) => apiClient.get('/ai/monthly-digest', { params: { month } }),
+
+  /**
+   * Simulates purchase affordability against budget headroom and cashflow
+   * @param {object} payload - { item_name, amount, category_id, payment_method, emi_months }
+   */
+  simulateAffordability: (payload) => apiClient.post('/ai/simulate-affordability', payload),
+
+  /**
+   * Generates AI 50/30/20 Smart Auto-Budget recommendations
+   * @param {object} payload - { monthly_income, savings_target_percentage, lifestyle_mode }
+   */
+  generateSmartBudget: (payload) => apiClient.post('/ai/generate-smart-budget', payload),
+
+  /**
+   * Saves and persists generated smart budget limits to user's database
+   * @param {object} payload - { period_month, overall_limit, category_budgets }
+   */
+  applySmartBudget: (payload) => apiClient.post('/ai/apply-smart-budget', payload),
 };
+

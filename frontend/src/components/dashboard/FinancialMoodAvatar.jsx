@@ -2,14 +2,15 @@ import React, { useState, useMemo } from 'react';
 import { 
   MessageSquare, 
   Volume2,
-  ChevronRight
+  ChevronRight,
+  Award
 } from 'lucide-react';
 import { useBudgetStore } from '../../store/useBudgetStore';
 import { useUIStore } from '../../store/useUIStore';
 
 export const FinancialMoodAvatar = ({ summary, onOpenBudgetModal, onOpenAIAdvisor }) => {
   const { status: budgetStatus, budgets } = useBudgetStore();
-  const { openGlobalAIChat } = useUIStore();
+  const { openGlobalAIChat, openGlobalMonthlyDigest } = useUIStore();
   const [pokeCount, setPokeCount] = useState(0);
   const [isWobbling, setIsWobbling] = useState(false);
   const [useMarathiFlair, setUseMarathiFlair] = useState(false);
@@ -328,13 +329,13 @@ export const FinancialMoodAvatar = ({ summary, onOpenBudgetModal, onOpenAIAdviso
           </div>
         </div>
 
-        {/* Right: Language Toggle & Quick Action */}
-        <div className="flex items-center gap-2 self-end md:self-center shrink-0">
+        {/* Right: Language Toggle, Scorecard & Quick Action */}
+        <div className="flex items-center gap-1.5 sm:gap-2 self-end md:self-center shrink-0">
           <button
             type="button"
             onClick={() => setUseMarathiFlair((prev) => !prev)}
             title="Toggle Marathi / English mascot responses"
-            className="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-white/80 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors flex items-center gap-1 cursor-pointer"
+            className="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-white/80 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors flex items-center gap-1 cursor-pointer min-h-[34px]"
           >
             <Volume2 className="w-3.5 h-3.5 text-purple-600" />
             <span>{useMarathiFlair ? 'मराठी' : 'English'}</span>
@@ -342,8 +343,18 @@ export const FinancialMoodAvatar = ({ summary, onOpenBudgetModal, onOpenAIAdviso
 
           <button
             type="button"
+            onClick={() => openGlobalMonthlyDigest()}
+            title="View AI Monthly Health Digest & Scorecard"
+            className="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-amber-50 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/60 transition-colors flex items-center gap-1 cursor-pointer min-h-[34px]"
+          >
+            <Award className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+            <span className="hidden sm:inline">Digest</span>
+          </button>
+
+          <button
+            type="button"
             onClick={handleActionClick}
-            className="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-900 dark:bg-white text-white dark:text-slate-900 hover:bg-slate-800 dark:hover:bg-slate-100 transition-colors shadow-sm flex items-center gap-1 cursor-pointer"
+            className="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-900 dark:bg-white text-white dark:text-slate-900 hover:bg-slate-800 dark:hover:bg-slate-100 transition-colors shadow-sm flex items-center gap-1 cursor-pointer min-h-[34px]"
           >
             <span>{mood.actionText}</span>
             <ChevronRight className="w-3.5 h-3.5" />

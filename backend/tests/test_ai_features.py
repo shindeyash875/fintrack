@@ -1,5 +1,6 @@
 import io
 import json
+from decimal import Decimal
 from unittest.mock import AsyncMock, patch
 import pytest
 from httpx import AsyncClient, Response
@@ -12,9 +13,17 @@ from app.core.config import settings
 from app.models.category import Category
 from app.models.user import User
 from app.schemas.ai import (
+    AffordabilityImpact,
+    AffordabilityRequest,
+    AffordabilityResponse,
     AIChatResponse,
+    ApplySmartBudgetRequest,
+    AutoBudgetGenerateRequest,
+    CategoryBudgetRecommendation,
+    MonthlyDigestResponse,
     ParsedExpenseData,
     ScannedReceiptData,
+    SmartBudgetPlanResponse,
     SpendingForecastResponse,
 )
 from app.services.ai.base import AIConfigurationError, AIProviderError
@@ -461,6 +470,251 @@ async def test_forecast_endpoint(auth_client: AsyncClient, test_user: User):
         assert float(data["data"]["predicted_total_month_end"]) == 4500.00
         assert data["data"]["days_remaining"] == 20
         assert len(data["data"]["proactive_tips"]) == 2
+
+
+# =========================================================================
+# 8. Monthly Financial Health Digest Tests (Feature 5.1)
+# =========================================================================
+
+@pytest.mark.asyncio
+async def test_ai_service_get_monthly_digest(test_user: User):
+    test_engine = create_async_engine(settings.test_database_url, poolclass=NullPool)
+    test_session_maker = async_sessionmaker(test_engine, class_=AsyncSession, expire_on_commit=False)
+
+    async with test_session_maker() as session:
+        with patch("app.core.config.settings.AI_API_KEY", "test-api-key"):
+            digest = await AIService.get_monthly_digest(
+                session=session,
+                user_id=test_user.id,
+                month_str="2026-09",
+            )
+
+            assert isinstance(digest, MonthlyDigestResponse)
+            assert 0 <= digest.health_score <= 100
+            assert digest.grade in ["A+", "A", "B", "C", "D"]
+            assert digest.headline is not None
+            assert digest.executive_summary is not None
+            assert isinstance(digest.action_plan_next_month, list)
+            assert isinstance(digest.biggest_wins, list)
+
+    await test_engine.dispose()
+
+
+@pytest.mark.asyncio
+async def test_monthly_digest_endpoint(auth_client: AsyncClient, test_user: User):
+    mock_digest = MonthlyDigestResponse(
+        month="2026-09",
+        month_name="September 2026",
+        health_score=88,
+        grade="A",
+        headline="Strong savings discipline with ₹5,000 budget surplus",
+        executive_summary="You spent ₹15,000 against your ₹20,000 budget, maintaining great discipline.",
+        total_spent=15000.00,
+        budget_limit=20000.00,
+        savings_or_deficit=5000.00,
+        total_transactions=12,
+        daily_average=500.00,
+        top_spending_leaks=[],
+        biggest_wins=["Stayed ₹5,000 under budget", "Maintained healthy daily pace"],
+        action_plan_next_month=["Reduce dining by 10%", "Save ₹6,000 next month"],
+        category_insights=[],
+    )
+
+    with patch.object(AIService, "get_monthly_digest", new_callable=AsyncMock) as mock_d:
+        mock_d.return_value = mock_digest
+
+        response = await auth_client.get("/api/v1/ai/monthly-digest?month=2026-09")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["success"] is True
+        assert data["data"]["month"] == "2026-09"
+        assert data["data"]["health_score"] == 88
+        assert data["data"]["grade"] == "A"
+        assert float(data["data"]["total_spent"]) == 15000.00
+        assert len(data["data"]["biggest_wins"]) == 2
+
+
+# =========================================================================
+# 9. AI "Can I Afford This?" Affordability Simulator Tests (Feature 5.2)
+# =========================================================================
+
+@pytest.mark.asyncio
+async def test_ai_service_simulate_affordability(test_user: User):
+    test_engine = create_async_engine(settings.test_database_url, poolclass=NullPool)
+    test_session_maker = async_sessionmaker(test_engine, class_=AsyncSession, expire_on_commit=False)
+
+    async with test_session_maker() as session:
+        with patch("app.core.config.settings.AI_API_KEY", "test-api-key"):
+            req = AffordabilityRequest(
+                item_name="Noise Cancelling Headphones",
+                amount=Decimal("4500.00"),
+                payment_method="one_time",
+            )
+            res = await AIService.simulate_affordability(
+                session=session,
+                user_id=test_user.id,
+                payload=req,
+            )
+
+            assert isinstance(res, AffordabilityResponse)
+            assert res.verdict in ["SAFE_TO_BUY", "CAUTION", "NOT_RECOMMENDED"]
+            assert res.item_name == "Noise Cancelling Headphones"
+            assert float(res.amount) == 4500.00
+            assert res.affordability_score >= 0 and res.affordability_score <= 100
+            assert res.impact.days_remaining_in_month >= 1
+            assert len(res.recommendations) >= 1
+
+    await test_engine.dispose()
+
+
+@pytest.mark.asyncio
+async def test_affordability_endpoint(auth_client: AsyncClient, test_user: User):
+    mock_affordability = AffordabilityResponse(
+        verdict="SAFE_TO_BUY",
+        verdict_title="Safe to Buy: ₹4,500 fits comfortably in your budget",
+        verdict_description="You have ample monthly headroom to make this purchase without straining cash flow.",
+        item_name="Sony Headphones",
+        amount=Decimal("4500.00"),
+        monthly_commitment=Decimal("4500.00"),
+        affordability_score=85,
+        impact=AffordabilityImpact(
+            current_category_spent=Decimal("1200.00"),
+            category_budget_limit=Decimal("8000.00"),
+            category_remaining_after=Decimal("2300.00"),
+            overall_spent=Decimal("10000.00"),
+            overall_budget_limit=Decimal("30000.00"),
+            overall_remaining_after=Decimal("15500.00"),
+            daily_budget_before=Decimal("800.00"),
+            daily_budget_after=Decimal("620.00"),
+            days_remaining_in_month=25,
+        ),
+        recommendations=["Log purchase immediately", "Keep daily spend under ₹620/day"],
+        alternative_strategies=["Check for card cashbacks"],
+    )
+
+    with patch.object(AIService, "simulate_affordability", new_callable=AsyncMock) as mock_sim:
+        mock_sim.return_value = mock_affordability
+
+        response = await auth_client.post(
+            "/api/v1/ai/simulate-affordability",
+            json={
+                "item_name": "Sony Headphones",
+                "amount": 4500.00,
+                "payment_method": "one_time",
+            },
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["success"] is True
+        assert data["data"]["verdict"] == "SAFE_TO_BUY"
+        assert data["data"]["affordability_score"] == 85
+        assert float(data["data"]["amount"]) == 4500.00
+        assert data["data"]["impact"]["days_remaining_in_month"] == 25
+
+
+@pytest.mark.asyncio
+async def test_ai_service_generate_smart_budget(test_user: User):
+    """Test AIService.generate_smart_budget computation with 50/30/20 rule."""
+    test_engine = create_async_engine(settings.test_database_url, poolclass=NullPool)
+    test_session_maker = async_sessionmaker(test_engine, class_=AsyncSession, expire_on_commit=False)
+
+    payload = AutoBudgetGenerateRequest(
+        monthly_income=Decimal("50000.00"),
+        savings_target_percentage=20,
+        lifestyle_mode="balanced",
+    )
+
+    async with test_session_maker() as session:
+        with patch.object(AIFactory, "get_provider", side_effect=Exception("Provider offline")):
+            plan = await AIService.generate_smart_budget(
+                session=session,
+                user_id=test_user.id,
+                payload=payload,
+            )
+
+            assert float(plan.monthly_income_basis) == 50000.00
+            assert float(plan.needs_allocation) == 25000.00  # 50%
+            assert float(plan.wants_allocation) == 15000.00  # 30%
+            assert float(plan.savings_allocation) == 10000.00  # 20%
+            assert float(plan.overall_recommended_limit) == 40000.00
+            assert len(plan.actionable_milestones) >= 1
+            assert "50000" in plan.ai_financial_philosophy or "balanced" in plan.ai_financial_philosophy.lower()
+
+    await test_engine.dispose()
+
+
+@pytest.mark.asyncio
+async def test_generate_smart_budget_endpoint(auth_client: AsyncClient, test_user: User):
+    """Test POST /api/v1/ai/generate-smart-budget endpoint."""
+    mock_plan = SmartBudgetPlanResponse(
+        monthly_income_basis=Decimal("60000.00"),
+        needs_allocation=Decimal("30000.00"),
+        wants_allocation=Decimal("18000.00"),
+        savings_allocation=Decimal("12000.00"),
+        overall_recommended_limit=Decimal("48000.00"),
+        categories=[
+            CategoryBudgetRecommendation(
+                category_name="Groceries",
+                bucket_type="needs",
+                recommended_limit=Decimal("12000.00"),
+                historical_average=Decimal("10000.00"),
+                rationale="Essential food & grocery requirements",
+            ),
+        ],
+        ai_financial_philosophy="Maintain strict discipline on wants to ensure 20% compounding savings.",
+        actionable_milestones=["Automate 12k SIP on salary day", "Check grocery spend weekly"],
+    )
+
+    with patch.object(AIService, "generate_smart_budget", new_callable=AsyncMock) as mock_gen:
+        mock_gen.return_value = mock_plan
+
+        response = await auth_client.post(
+            "/api/v1/ai/generate-smart-budget",
+            json={
+                "monthly_income": 60000.00,
+                "savings_target_percentage": 20,
+                "lifestyle_mode": "balanced",
+            },
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["success"] is True
+        assert float(data["data"]["monthly_income_basis"]) == 60000.00
+        assert float(data["data"]["needs_allocation"]) == 30000.00
+        assert len(data["data"]["categories"]) == 1
+        assert data["data"]["categories"][0]["category_name"] == "Groceries"
+
+
+@pytest.mark.asyncio
+async def test_apply_smart_budget_endpoint(auth_client: AsyncClient, test_user: User):
+    """Test POST /api/v1/ai/apply-smart-budget endpoint."""
+    with patch.object(AIService, "apply_smart_budget", new_callable=AsyncMock) as mock_apply:
+        mock_apply.return_value = {
+            "period_month": "2026-09-01",
+            "applied_count": 3,
+            "message": "Successfully applied 3 budget limits for September 2026.",
+        }
+
+        response = await auth_client.post(
+            "/api/v1/ai/apply-smart-budget",
+            json={
+                "overall_limit": 48000.00,
+                "category_budgets": [
+                    {"category_id": None, "limit_amount": 12000.00},
+                ],
+            },
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["success"] is True
+        assert data["data"]["applied_count"] == 3
+
+
+
 
 
 

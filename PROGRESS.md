@@ -1037,15 +1037,38 @@
 
 ## Phase 4.2: AI Financial Advisor Chatbot Response Unwrapping & Resilience
 
+## Phase 5: Advanced AI Suite (Monthly Digest, Affordability Simulator, 50/30/20 Auto-Budget)
+
 ### 1. Work Completed
-- **Frontend Response Unwrapping Fix (`AIChatAdvisorModal.jsx`):**
-  - Resolved `res.data.data` evaluation bug where Axios response interceptor (`src/api/client.js`) already unwrapped `response.data`, resulting in `res.data.data === undefined` and throwing false "No response from advisor" errors. Updated to `const aiResponse = res?.data || res`.
-- **Backend Chat Resilience & Grounded Fallback (`AIService.chat_with_advisor` & `POST /api/v1/ai/chat`):**
-  - Hardened dictionary/object parsing for conversational history (`history` items).
-  - Added full try-catch fallback returning real-time grounded financial snapshots (`total_spent_current_month`, `top_categories`, `budget_status`) so chatbot continues assisting user even if remote LLM provider is slow or throttled.
-- **Testing & Verification:**
-  - Frontend Vitest suite: **56 of 56 passed**.
-  - Backend pytest suite: **51 of 51 passed**.
+- **Feature 1: 📊 AI Monthly Financial Health Digest & Executive Scorecard (`GET /api/v1/ai/monthly-digest`):**
+  - Synthesizes user's full monthly financial performance into a **0–100 Health Score** and letter grade (`A+` to `D`).
+  - Identifies top spending leaks with severity badges and rupee amounts.
+  - Highlights biggest financial wins and disciplined milestones.
+  - Formulates a 3-step action plan for the next calendar month.
+  - Frontend `MonthlyDigestModal.jsx` with circular gauge, tabbed wins/leaks/actions, and clipboard export.
+  - Accessible from the **Sidebar** ("Monthly Digest") and dashboard **FinancialMoodAvatar** ("Digest").
+
+- **Feature 2: 🎯 AI "Can I Afford This?" Purchase Affordability Simulator (`POST /api/v1/ai/simulate-affordability`):**
+  - Evaluates prospective purchases against user's category limits, overall monthly spending cap, and remaining calendar days.
+  - Computes exact before vs. after **Daily Safe Spending Allowance** (e.g. ₹800/day → ₹620/day).
+  - Handles **One-Time** and **EMI** options (3, 6, 9, 12 months) calculating monthly commitment burden.
+  - Assigns an **Affordability Score (0–100)** and a clear verdict (`SAFE_TO_BUY`, `CAUTION`, `NOT_RECOMMENDED`).
+  - Frontend `AffordabilitySimulatorModal.jsx` with quick chips, slider, impact comparison, and tactical recommendations.
+  - Accessible from the **Sidebar** ("Can I Afford This?").
+
+- **Feature 3: 💡 AI 50/30/20 Smart Auto-Budget & Savings Goal Planner (`POST /api/v1/ai/generate-smart-budget`, `POST /api/v1/ai/apply-smart-budget`):**
+  - Analyzes 90-day spending patterns across user's active categories.
+  - Applies the 50/30/20 golden budgeting rule (50% Needs, 30% Wants, 20% Savings/Investments).
+  - Supports 3 lifestyle modes: 🌿 *Balanced*, 🛡️ *Frugal Saver*, 🚀 *Wealth Builder*.
+  - Generates an AI strategic philosophy, actionable milestones, and category-level limit recommendations.
+  - Supports one-click bulk persistence via `POST /api/v1/ai/apply-smart-budget` to upsert database records.
+  - Frontend `AutoBudgetGeneratorModal.jsx` with 3-color ratio bar, inline editable limits, and one-click apply.
+  - Accessible from the **Sidebar** ("Smart Auto-Budget") and inside **BudgetModal** ("AI Auto-Budget").
+
+### 2. Testing & Quality Verification
+- **Backend (Pytest):** **58 of 58 tests passed** (including 23 comprehensive AI feature tests).
+- **Frontend (Vitest):** **67 of 67 tests passed** across 11 test suites.
+
 
 
 

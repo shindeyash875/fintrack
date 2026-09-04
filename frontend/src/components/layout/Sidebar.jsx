@@ -12,6 +12,8 @@ import {
   Camera,
   Sparkles,
   TrendingUp,
+  Award,
+  PieChart,
 } from 'lucide-react';
 import { useUIStore } from '../../store/useUIStore';
 import { useAuthStore } from '../../store/useAuthStore';
@@ -23,6 +25,9 @@ export const Sidebar = () => {
     closeSidebar,
     openGlobalReceiptScanner,
     openGlobalAIChat,
+    openGlobalMonthlyDigest,
+    openGlobalAffordability,
+    openGlobalAutoBudget,
     openGlobalBudget,
     openGlobalCategory,
     openGlobalSettings,
@@ -146,6 +151,57 @@ export const Sidebar = () => {
             </div>
             <span className="px-1.5 py-0.5 rounded-full text-[10px] uppercase font-bold bg-indigo-500/30 text-indigo-200 border border-indigo-400/30">
               Insights
+            </span>
+          </button>
+
+          {/* AI Monthly Digest Scorecard Trigger */}
+          <button
+            onClick={() => {
+              closeSidebar();
+              openGlobalMonthlyDigest();
+            }}
+            className="w-full flex items-center justify-between px-3.5 py-3 rounded-xl text-sm font-medium bg-amber-950/40 hover:bg-amber-900/50 text-amber-300 hover:text-white transition-all min-h-[44px] text-left focus:outline-none group mt-1.5 border border-amber-800/40"
+          >
+            <div className="flex items-center gap-3">
+              <Award className="w-5 h-5 shrink-0 text-amber-400 group-hover:scale-110 transition-transform" />
+              <span>Monthly Digest</span>
+            </div>
+            <span className="px-1.5 py-0.5 rounded-full text-[10px] uppercase font-bold bg-amber-500/30 text-amber-200 border border-amber-400/30">
+              Scorecard
+            </span>
+          </button>
+
+          {/* AI Purchase Affordability Simulator Trigger */}
+          <button
+            onClick={() => {
+              closeSidebar();
+              openGlobalAffordability();
+            }}
+            className="w-full flex items-center justify-between px-3.5 py-3 rounded-xl text-sm font-medium bg-teal-950/40 hover:bg-teal-900/50 text-teal-300 hover:text-white transition-all min-h-[44px] text-left focus:outline-none group mt-1.5 border border-teal-800/40"
+          >
+            <div className="flex items-center gap-3">
+              <Target className="w-5 h-5 shrink-0 text-teal-400 group-hover:scale-110 transition-transform" />
+              <span>Can I Afford This?</span>
+            </div>
+            <span className="px-1.5 py-0.5 rounded-full text-[10px] uppercase font-bold bg-teal-500/30 text-teal-200 border border-teal-400/30">
+              Simulator
+            </span>
+          </button>
+
+          {/* AI 50/30/20 Smart Auto-Budget Trigger */}
+          <button
+            onClick={() => {
+              closeSidebar();
+              openGlobalAutoBudget();
+            }}
+            className="w-full flex items-center justify-between px-3.5 py-3 rounded-xl text-sm font-medium bg-violet-950/40 hover:bg-violet-900/50 text-violet-300 hover:text-white transition-all min-h-[44px] text-left focus:outline-none group mt-1.5 border border-violet-800/40"
+          >
+            <div className="flex items-center gap-3">
+              <PieChart className="w-5 h-5 shrink-0 text-violet-400 group-hover:scale-110 transition-transform" />
+              <span>Smart Auto-Budget</span>
+            </div>
+            <span className="px-1.5 py-0.5 rounded-full text-[10px] uppercase font-bold bg-violet-500/30 text-violet-200 border border-violet-400/30">
+              50/30/20
             </span>
           </button>
 

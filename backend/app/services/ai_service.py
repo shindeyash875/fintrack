@@ -3,7 +3,7 @@ import logging
 import re
 from datetime import date, timedelta
 from decimal import Decimal
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 from uuid import UUID
 
 from pydantic import BaseModel
@@ -13,14 +13,25 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.category import Category
 from app.models.expense import Expense
 from app.schemas.ai import (
+    AffordabilityImpact,
+    AffordabilityRequest,
+    AffordabilityResponse,
     AIChatMessage,
     AIChatResponse,
+    ApplySmartBudgetRequest,
+    AutoBudgetGenerateRequest,
+    CategoryBudgetRecommendation,
+    CategoryDigestInsight,
     ForecastCategoryItem,
+    MonthlyDigestResponse,
     ParsedExpenseData,
     ScannedReceiptData,
+    SmartBudgetPlanResponse,
     SpendingAnomalyItem,
     SpendingForecastResponse,
+    SpendingLeakItem,
 )
+from app.schemas.budget import BudgetCreate
 from app.services.ai.factory import AIFactory
 from app.services.budget_service import BudgetService
 from app.services.category_service import CategoryService
@@ -657,6 +668,723 @@ class AIService:
             category_forecasts=category_forecasts,
             proactive_tips=proactive_tips,
         )
+
+    @classmethod
+    async def get_monthly_digest(
+        cls,
+        session: AsyncSession,
+        user_id: UUID,
+        month_str: Optional[str] = None,
+    ) -> MonthlyDigestResponse:
+        """
+        Generate a comprehensive, executive-grade AI Monthly Financial Health Digest.
+        Analyzes total volume, category distribution, budget adherence, leak identification,
+        and strategic recommendations for the upcoming month.
+        """
+        today = date.today()
+        if month_str:
+            try:
+                # Accepts 'YYYY-MM' or 'YYYY-MM-DD'
+                clean_m = month_str.strip()
+                if len(clean_m) == 7:
+                    parts = clean_m.split("-")
+                    target_date = date(int(parts[0]), int(parts[1]), 1)
+                else:
+                    target_date = date.fromisoformat(clean_m)
+                    target_date = target_date.replace(day=1)
+            except Exception:
+                target_date = today.replace(day=1)
+        else:
+            target_date = today.replace(day=1)
+
+        year = target_date.year
+        month = target_date.month
+        _, num_days = calendar.monthrange(year, month)
+        start_date = date(year, month, 1)
+        end_date = date(year, month, num_days)
+        month_name = start_date.strftime("%B %Y")
+        month_iso = start_date.strftime("%Y-%m")
+
+        # 1. Fetch all expenses for this month
+        exp_stmt = (
+            select(Expense, Category.name.label("category_name"))
+            .outerjoin(Category, Category.id == Expense.category_id)
+            .where(
+                Expense.user_id == user_id,
+                Expense.expense_date >= start_date,
+                Expense.expense_date <= end_date,
+            )
+            .order_by(Expense.amount.desc())
+        )
+        expenses_res = (await session.execute(exp_stmt)).all()
+
+        total_spent = sum([float(e.amount) for e, _ in expenses_res])
+        total_txs = len(expenses_res)
+        daily_avg = total_spent / num_days if num_days > 0 else 0.0
+
+        # Group expenses by category
+        cat_map: Dict[str, float] = {}
+        for exp, cat_name in expenses_res:
+            cname = cat_name or "General"
+            cat_map[cname] = cat_map.get(cname, 0.0) + float(exp.amount)
+
+        sorted_categories = sorted(cat_map.items(), key=lambda x: x[1], reverse=True)
+
+        # 2. Fetch Budget Limits
+        budget_status = await BudgetService.get_status(session=session, period_month=start_date, user_id=user_id)
+        overall_limit = float(budget_status.overall.limit_amount) if budget_status.overall and budget_status.overall.limit_amount else None
+
+        # Build category budget map
+        cat_budget_map: Dict[str, float] = {}
+        for cb in budget_status.categories:
+            if cb.limit_amount:
+                cat_budget_map[cb.category_name.lower().strip()] = float(cb.limit_amount)
+
+        # 3. Base Mathematical Health Score & Grade Calculation
+        health_score = 80
+        grade = "B"
+
+        if overall_limit and overall_limit > 0:
+            spent_ratio = total_spent / overall_limit
+            surplus_or_deficit = overall_limit - total_spent
+
+            if spent_ratio <= 0.65:
+                health_score = 96
+                grade = "A+"
+            elif spent_ratio <= 0.85:
+                health_score = 88
+                grade = "A"
+            elif spent_ratio <= 1.00:
+                health_score = 76
+                grade = "B"
+            elif spent_ratio <= 1.15:
+                health_score = 58
+                grade = "C"
+            else:
+                health_score = max(20, int(50 - (spent_ratio - 1.15) * 40))
+                grade = "D"
+        else:
+            surplus_or_deficit = 0.0
+            if total_spent == 0:
+                health_score = 75
+                grade = "B"
+            else:
+                health_score = 82
+                grade = "A"
+
+        # 4. Generate Category Insights & Detect Leaks
+        category_insights: List[CategoryDigestInsight] = []
+        spending_leaks: List[SpendingLeakItem] = []
+
+        for cname, camount in sorted_categories:
+            pct = (camount / total_spent * 100.0) if total_spent > 0 else 0.0
+            blimit = cat_budget_map.get(cname.lower().strip())
+
+            c_grade = "B"
+            if blimit:
+                if camount <= blimit * 0.75:
+                    c_grade = "A+"
+                elif camount <= blimit:
+                    c_grade = "A"
+                elif camount <= blimit * 1.15:
+                    c_grade = "C"
+                else:
+                    c_grade = "D"
+            else:
+                if pct > 40:
+                    c_grade = "C"
+                elif pct > 25:
+                    c_grade = "B"
+                else:
+                    c_grade = "A"
+
+            c_insight = (
+                f"Consumed {pct:.1f}% of total monthly budget."
+                + (f" Exceeded limit of ₹{blimit:,.0f} by ₹{camount - blimit:,.0f}." if blimit and camount > blimit else "")
+            )
+
+            category_insights.append(
+                CategoryDigestInsight(
+                    category_name=cname,
+                    total_spent=Decimal(f"{camount:.2f}"),
+                    budget_limit=Decimal(f"{blimit:.2f}") if blimit else None,
+                    percentage_of_total=round(pct, 1),
+                    grade=c_grade,
+                    insight=c_insight,
+                )
+            )
+
+            # Mark as spending leak if category exceeded budget or accounts for > 35% of high spend
+            if (blimit and camount > blimit) or (pct > 35.0 and camount > 5000):
+                leak_reason = (
+                    f"Over budget by ₹{camount - blimit:,.0f} ({pct:.0f}% of total spend)."
+                    if blimit and camount > blimit
+                    else f"Accounts for a heavy {pct:.1f}% of entire monthly spending."
+                )
+                spending_leaks.append(
+                    SpendingLeakItem(
+                        category_name=cname,
+                        amount=Decimal(f"{camount:.2f}"),
+                        percentage_of_total=round(pct, 1),
+                        leak_reason=leak_reason,
+                    )
+                )
+
+        # 5. Call LLM for Executive Narrative & Synthesis
+        telemetry_prompt = (
+            f"Month: {month_name}\n"
+            f"Total Spent: ₹{total_spent:,.2f}\n"
+            f"Budget Limit: {f'₹{overall_limit:,.2f}' if overall_limit else 'None set'}\n"
+            f"Surplus/Deficit vs Budget: ₹{surplus_or_deficit:,.2f}\n"
+            f"Total Transactions: {total_txs}\n"
+            f"Daily Average: ₹{daily_avg:,.2f}/day\n"
+            f"Calculated Score: {health_score}/100 (Grade {grade})\n"
+            f"Category Breakdown: {', '.join([f'{c}: ₹{a:,.0f} ({a/total_spent*100:.0f}%)' for c, a in sorted_categories[:5]])}\n"
+        )
+
+        system_prompt = (
+            "You are FinTrack AI's Executive Financial Strategist.\n"
+            "Analyze the user's completed monthly performance telemetry and generate:\n"
+            "1. 'headline': A memorable, punchy 1-line summary (e.g., 'Disciplined Dining with Strong 18% Surplus in Savings').\n"
+            "2. 'executive_summary': 2-3 crisp sentences highlighting money pacing, discipline, and key takeaways.\n"
+            "3. 'biggest_wins': Exactly 2 to 3 bullet points of positive financial wins, smart savings, or good habits.\n"
+            "4. 'action_plan_next_month': Exactly 3 high-impact, actionable financial targets for next month.\n"
+            "Return valid JSON matching the schema."
+        )
+
+        class MonthlyDigestAISynthesis(BaseModel):
+            headline: str
+            executive_summary: str
+            biggest_wins: list[str]
+            action_plan_next_month: list[str]
+
+        provider = AIFactory.get_provider()
+        try:
+            ai_synth: MonthlyDigestAISynthesis = await provider.generate_structured(
+                prompt=f"Monthly Financial Telemetry:\n{telemetry_prompt}",
+                response_schema=MonthlyDigestAISynthesis,
+                system_prompt=system_prompt,
+                temperature=0.3,
+            )
+            headline = ai_synth.headline
+            executive_summary = ai_synth.executive_summary
+            biggest_wins = ai_synth.biggest_wins
+            action_plan = ai_synth.action_plan_next_month
+        except Exception as exc:
+            logger.warning(f"[Monthly Digest AI Synthesis Fallback] {exc}")
+            if overall_limit and surplus_or_deficit >= 0:
+                headline = f"Strong Budget Discipline with ₹{surplus_or_deficit:,.0f} in Safe Surplus"
+                executive_summary = (
+                    f"In {month_name}, you managed your finances effectively, spending ₹{total_spent:,.2f} "
+                    f"against your ₹{overall_limit:,.2f} limit. Your disciplined daily pace of ₹{daily_avg:,.0f}/day protected your savings."
+                )
+                biggest_wins = [
+                    f"Successfully stayed under your overall monthly budget by ₹{surplus_or_deficit:,.0f}.",
+                    f"Maintained an efficient average daily burn rate of ₹{daily_avg:,.0f}/day.",
+                ]
+            elif overall_limit and surplus_or_deficit < 0:
+                headline = f"Budget Ceilings Strained by ₹{abs(surplus_or_deficit):,.0f}"
+                executive_summary = (
+                    f"In {month_name}, total spending reached ₹{total_spent:,.2f}, exceeding your budget limit of "
+                    f"₹{overall_limit:,.2f}. Reviewing top discretionary leaks will help restore your savings rate next month."
+                )
+                biggest_wins = [
+                    f"Actively tracked {total_txs} transactions with complete visibility across categories.",
+                ]
+            else:
+                headline = f"{month_name} Financial Review: ₹{total_spent:,.0f} Logged across {total_txs} Transactions"
+                executive_summary = (
+                    f"You recorded a total expenditure of ₹{total_spent:,.2f} in {month_name} at an average of "
+                    f"₹{daily_avg:,.0f} per day. Setting category budget limits will help unlock automated savings targets."
+                )
+                biggest_wins = [
+                    f"Consistent tracking across {len(sorted_categories)} active spending categories.",
+                ]
+
+            top_cat_name = sorted_categories[0][0] if sorted_categories else "General"
+            action_plan = [
+                f"Set a target to reduce spending on {top_cat_name} by 10% in the upcoming month.",
+                "Conduct a 2-day zero discretionary spend challenge in the middle of next month.",
+                "Review and log daily cash and UPI expenses consistently to keep your score above 85.",
+            ]
+
+        return MonthlyDigestResponse(
+            month=month_iso,
+            month_name=month_name,
+            health_score=health_score,
+            grade=grade,
+            headline=headline,
+            executive_summary=executive_summary,
+            total_spent=Decimal(f"{total_spent:.2f}"),
+            budget_limit=Decimal(f"{overall_limit:.2f}") if overall_limit else None,
+            savings_or_deficit=Decimal(f"{surplus_or_deficit:.2f}"),
+            total_transactions=total_txs,
+            daily_average=Decimal(f"{daily_avg:.2f}"),
+            top_spending_leaks=spending_leaks[:3],
+            biggest_wins=biggest_wins[:4],
+            action_plan_next_month=action_plan[:3],
+            category_insights=category_insights[:8],
+        )
+
+    @classmethod
+    async def simulate_affordability(
+        cls,
+        session: AsyncSession,
+        user_id: UUID,
+        payload: AffordabilityRequest,
+    ) -> AffordabilityResponse:
+        """
+        Simulate purchase affordability against current month budget, category headroom,
+        safe daily spending limits, and projected month-end surplus.
+        """
+        today = date.today()
+        year = today.year
+        month = today.month
+        _, num_days = calendar.monthrange(year, month)
+        start_date = date(year, month, 1)
+        end_date = date(year, month, num_days)
+        days_remaining = max(1, num_days - today.day + 1)
+
+        # 1. Fetch current month expenses
+        exp_stmt = (
+            select(Expense, Category.name.label("category_name"), Expense.category_id)
+            .outerjoin(Category, Category.id == Expense.category_id)
+            .where(
+                Expense.user_id == user_id,
+                Expense.expense_date >= start_date,
+                Expense.expense_date <= end_date,
+            )
+        )
+        expenses_res = (await session.execute(exp_stmt)).all()
+
+        total_spent = sum([float(e.amount) for e, _, _ in expenses_res])
+
+        # Category mapping
+        target_cat_name = "General"
+        target_cat_spent = 0.0
+
+        if payload.category_id:
+            for e, cat_name, cat_id in expenses_res:
+                if cat_id == payload.category_id:
+                    target_cat_spent += float(e.amount)
+                    if cat_name:
+                        target_cat_name = cat_name
+        elif payload.category_name:
+            target_cat_name = payload.category_name.strip()
+            for e, cat_name, _ in expenses_res:
+                if cat_name and cat_name.lower() == target_cat_name.lower():
+                    target_cat_spent += float(e.amount)
+
+        # 2. Fetch Budgets
+        budget_status = await BudgetService.get_status(session=session, period_month=start_date, user_id=user_id)
+        overall_limit = float(budget_status.overall.limit_amount) if budget_status.overall and budget_status.overall.limit_amount else None
+
+        cat_limit: Optional[float] = None
+        for cb in budget_status.categories:
+            if payload.category_id and cb.category_id == payload.category_id:
+                cat_limit = float(cb.limit_amount) if cb.limit_amount else None
+                break
+            elif cb.category_name.lower() == target_cat_name.lower():
+                cat_limit = float(cb.limit_amount) if cb.limit_amount else None
+                break
+
+        # 3. Calculate purchase impact
+        item_cost = float(payload.amount)
+        is_emi = payload.payment_method == "emi"
+        emi_months = max(1, payload.emi_months or 3) if is_emi else 1
+        monthly_deduction = (item_cost / emi_months) if is_emi else item_cost
+
+        new_total_spent = total_spent + monthly_deduction
+        new_cat_spent = target_cat_spent + monthly_deduction
+
+        cat_remaining_after = (cat_limit - new_cat_spent) if cat_limit is not None else None
+        overall_remaining_after = (overall_limit - new_total_spent) if overall_limit is not None else None
+
+        daily_budget_before = max(0.0, (overall_limit - total_spent) / days_remaining) if overall_limit else 0.0
+        daily_budget_after = max(0.0, ((overall_limit - new_total_spent) / days_remaining)) if overall_limit else 0.0
+
+        # 4. Determine mathematical verdict & score
+        score = 80
+        verdict = "SAFE_TO_BUY"
+
+        if overall_limit and overall_limit > 0:
+            spent_ratio_after = new_total_spent / overall_limit
+            if spent_ratio_after <= 0.75:
+                verdict = "SAFE_TO_BUY"
+                score = int(95 - (spent_ratio_after * 20))
+            elif spent_ratio_after <= 0.95:
+                verdict = "CAUTION"
+                score = int(70 - ((spent_ratio_after - 0.75) * 100))
+            elif spent_ratio_after <= 1.05:
+                verdict = "CAUTION"
+                score = 45
+            else:
+                verdict = "NOT_RECOMMENDED"
+                overrun_pct = (spent_ratio_after - 1.0) * 100
+                score = max(10, int(35 - overrun_pct))
+        else:
+            # Fallback when no overall budget is set
+            if total_spent > 0:
+                cost_ratio = monthly_deduction / total_spent
+                if cost_ratio <= 0.20:
+                    verdict = "SAFE_TO_BUY"
+                    score = 85
+                elif cost_ratio <= 0.50:
+                    verdict = "CAUTION"
+                    score = 60
+                else:
+                    verdict = "NOT_RECOMMENDED"
+                    score = 35
+            else:
+                verdict = "SAFE_TO_BUY"
+                score = 80
+
+        # Adjust for category budget if exceeded
+        if cat_limit and cat_remaining_after is not None and cat_remaining_after < 0:
+            if verdict == "SAFE_TO_BUY":
+                verdict = "CAUTION"
+                score = max(50, score - 20)
+
+        # 5. LLM Prompt for qualitative insights & alternatives
+        prompt = f"""
+You are FinTrack's Chief Financial Officer and AI Affordability Advisor.
+Evaluate whether the user can afford the following purchase this month based on their real financial numbers:
+
+PURCHASE DETAILS:
+- Item: "{payload.item_name}"
+- Total Price: ₹{item_cost:,.2f}
+- Payment Mode: {"EMI (" + str(emi_months) + " months)" if is_emi else "One-Time Payment"}
+- Immediate Monthly Burden: ₹{monthly_deduction:,.2f}
+- Target Category: "{target_cat_name}"
+
+USER'S BUDGET CONTEXT:
+- Total Spent This Month So Far: ₹{total_spent:,.2f}
+- Overall Monthly Budget Limit: {f"₹{overall_limit:,.2f}" if overall_limit else "Not Configured"}
+- Overall Remaining After Purchase: {f"₹{overall_remaining_after:,.2f}" if overall_remaining_after is not None else "N/A"}
+- Category Budget Limit: {f"₹{cat_limit:,.2f}" if cat_limit else "None"}
+- Category Remaining After Purchase: {f"₹{cat_remaining_after:,.2f}" if cat_remaining_after is not None else "N/A"}
+- Daily Safe Spending Before Purchase: ₹{daily_budget_before:,.2f}/day
+- Daily Safe Spending After Purchase: ₹{daily_budget_after:,.2f}/day
+- Days Remaining in Month: {days_remaining} days
+- Mathematical Score: {score}/100, Base Verdict: {verdict}
+
+OUTPUT REQUIREMENTS:
+Return a JSON object with:
+1. "verdict_title": A punchy, empathetic, 1-line verdict headline.
+2. "verdict_description": 2-3 sentences explaining clear reasons in plain English.
+3. "recommendations": A list of 2-3 specific tactical tips or guardrails.
+4. "alternative_strategies": A list of 2-3 smart alternatives (e.g. waiting until salary day, switching to no-cost EMI, cutting specific dining/shopping budgets).
+"""
+
+        class LLMAffordabilityOutput(BaseModel):
+            verdict_title: str
+            verdict_description: str
+            recommendations: List[str]
+            alternative_strategies: List[str]
+
+        try:
+            provider = AIFactory.get_provider()
+            llm_res = await provider.generate_structured(
+                prompt=prompt,
+                response_schema=LLMAffordabilityOutput,
+                system_instruction="You are an expert personal financial advisor evaluating purchase affordability.",
+            )
+            verdict_title = llm_res.verdict_title
+            verdict_description = llm_res.verdict_description
+            recommendations = llm_res.recommendations
+            alternative_strategies = llm_res.alternative_strategies
+        except Exception as exc:
+            logger.warning(f"[Affordability LLM Fallback] {exc}")
+            if verdict == "SAFE_TO_BUY":
+                verdict_title = f"Safe to Buy: ₹{item_cost:,.0f} fits comfortably in your budget"
+                verdict_description = (
+                    f"Purchasing '{payload.item_name}' for ₹{monthly_deduction:,.2f} will leave you with ample buffer for "
+                    f"the remaining {days_remaining} days of the month without breaking your financial goals."
+                )
+                recommendations = [
+                    f"Your safe daily spending allowance remains healthy at ₹{daily_budget_after:,.0f}/day.",
+                    "Log the transaction immediately upon purchase to keep budget charts synchronized.",
+                ]
+                alternative_strategies = [
+                    "Check for instant bank discount cards or cashback offers at checkout.",
+                    "Consider setting aside a small emergency buffer for upcoming bills.",
+                ]
+            elif verdict == "CAUTION":
+                verdict_title = f"Proceed with Caution: ₹{item_cost:,.0f} will tighten your cash flow"
+                verdict_description = (
+                    f"Buying '{payload.item_name}' is possible, but it will reduce your safe daily allowance from "
+                    f"₹{daily_budget_before:,.0f}/day down to ₹{daily_budget_after:,.0f}/day for the next {days_remaining} days."
+                )
+                recommendations = [
+                    f"Trim discretionary dining or shopping expenses by ₹{monthly_deduction * 0.3:,.0f} to offset this.",
+                    f"Maintain a strict daily ceiling of ₹{daily_budget_after:,.0f}/day until month end.",
+                ]
+                alternative_strategies = [
+                    f"Spread the cost across a {max(3, emi_months)}-month no-cost EMI to reduce monthly burden to ₹{item_cost / max(3, emi_months):,.0f}/mo.",
+                    f"Wait {min(15, days_remaining)} days until next month's salary credit before purchasing.",
+                ]
+            else:
+                verdict_title = f"Not Recommended: ₹{item_cost:,.0f} will cause budget deficit"
+                verdict_description = (
+                    f"Purchasing '{payload.item_name}' now will exceed your available budget by "
+                    f"₹{abs(overall_remaining_after or 0):,.2f} and risk cashflow stress before the month ends."
+                )
+                recommendations = [
+                    "Postpone this discretionary purchase until your next income cycle.",
+                    "Avoid using high-interest credit card debt or non-essential loans for this item.",
+                ]
+                alternative_strategies = [
+                    f"Create a dedicated savings sinking fund of ₹{item_cost / 3:,.0f}/month for 3 months.",
+                    "Look for refurbished, open-box, or seasonal discount alternatives.",
+                ]
+
+        impact_data = AffordabilityImpact(
+            current_category_spent=Decimal(f"{target_cat_spent:.2f}"),
+            category_budget_limit=Decimal(f"{cat_limit:.2f}") if cat_limit is not None else None,
+            category_remaining_after=Decimal(f"{cat_remaining_after:.2f}") if cat_remaining_after is not None else None,
+            overall_spent=Decimal(f"{total_spent:.2f}"),
+            overall_budget_limit=Decimal(f"{overall_limit:.2f}") if overall_limit is not None else None,
+            overall_remaining_after=Decimal(f"{overall_remaining_after:.2f}") if overall_remaining_after is not None else None,
+            daily_budget_before=Decimal(f"{daily_budget_before:.2f}"),
+            daily_budget_after=Decimal(f"{daily_budget_after:.2f}"),
+            days_remaining_in_month=days_remaining,
+        )
+
+        return AffordabilityResponse(
+            verdict=verdict,
+            verdict_title=verdict_title,
+            verdict_description=verdict_description,
+            item_name=payload.item_name,
+            amount=Decimal(f"{item_cost:.2f}"),
+            monthly_commitment=Decimal(f"{monthly_deduction:.2f}"),
+            affordability_score=score,
+            impact=impact_data,
+            recommendations=recommendations,
+            alternative_strategies=alternative_strategies,
+        )
+
+    @classmethod
+    async def generate_smart_budget(
+        cls,
+        session: AsyncSession,
+        user_id: UUID,
+        payload: AutoBudgetGenerateRequest,
+    ) -> SmartBudgetPlanResponse:
+        """
+        Synthesize an automated 50/30/20 smart budget allocation based on user's active categories,
+        historical spending behavior, and lifestyle mode.
+        """
+        today = date.today()
+        ninety_days_ago = today - timedelta(days=90)
+
+        # 1. Fetch user categories
+        user_categories = await CategoryService.get_all_with_counts(session, user_id)
+
+        # 2. Fetch last 90-day expenses to compute category baseline
+        exp_stmt = select(Expense).where(
+            Expense.user_id == user_id,
+            Expense.expense_date >= ninety_days_ago,
+        )
+        expenses = (await session.execute(exp_stmt)).scalars().all()
+
+        cat_spend_map: Dict[UUID, float] = {}
+        for exp in expenses:
+            if exp.category_id:
+                cat_spend_map[exp.category_id] = cat_spend_map.get(exp.category_id, 0.0) + float(exp.amount)
+
+        # Monthly run rate per category (over 3 months)
+        cat_monthly_avg = {cid: total / 3.0 for cid, total in cat_spend_map.items()}
+        total_monthly_historical = sum(cat_monthly_avg.values())
+
+        # 3. Determine income baseline
+        if payload.monthly_income and payload.monthly_income > 0:
+            income_basis = float(payload.monthly_income)
+        elif total_monthly_historical > 0:
+            income_basis = max(25000.0, round((total_monthly_historical * 1.33) / 1000.0) * 1000.0)
+        else:
+            income_basis = 35000.0
+
+        # 4. Lifestyle & Savings Ratios
+        lifestyle = (payload.lifestyle_mode or "balanced").lower().strip()
+        savings_pct = payload.savings_target_percentage or 20
+
+        if lifestyle == "frugal":
+            needs_pct = 0.60
+            wants_pct = max(0.10, 1.0 - needs_pct - (savings_pct / 100.0))
+        elif lifestyle == "growth":
+            needs_pct = 0.40
+            wants_pct = max(0.20, 1.0 - needs_pct - (savings_pct / 100.0))
+        else:  # balanced
+            needs_pct = 0.50
+            wants_pct = max(0.20, (100 - 50 - savings_pct) / 100.0)
+
+        needs_total = income_basis * needs_pct
+        wants_total = income_basis * wants_pct
+        savings_total = income_basis * (savings_pct / 100.0)
+        overall_limit = needs_total + wants_total
+
+        # 5. Bucket classification
+        NEEDS_KEYWORDS = {
+            "grocery", "groceries", "food", "rent", "utility", "utilities", "electricity",
+            "water", "gas", "cylinder", "wifi", "internet", "phone", "mobile", "recharge",
+            "fuel", "petrol", "diesel", "transport", "commute", "bus", "metro", "train",
+            "medical", "medicine", "doctor", "health", "hospital", "pharmacy", "education",
+            "school", "fees", "insurance", "emi", "loan", "maintenance", "maid"
+        }
+
+        recommendations: List[CategoryBudgetRecommendation] = []
+        needs_cats: List[Tuple[Any, float]] = []
+        wants_cats: List[Tuple[Any, float]] = []
+
+        for cat in user_categories:
+            cname = cat.name.lower()
+            hist = cat_monthly_avg.get(cat.id, 0.0)
+            is_need = any(kw in cname for kw in NEEDS_KEYWORDS)
+            if is_need:
+                needs_cats.append((cat, hist))
+            else:
+                wants_cats.append((cat, hist))
+
+        # Distribute Needs allocation
+        total_hist_needs = sum([h for _, h in needs_cats]) or 1.0
+        for cat, hist in needs_cats:
+            if total_hist_needs > 1.0:
+                share = hist / total_hist_needs
+                suggested = max(1000.0, round((needs_total * share) / 500.0) * 500.0)
+            else:
+                suggested = max(1000.0, round((needs_total / max(1, len(needs_cats))) / 500.0) * 500.0)
+            recommendations.append(
+                CategoryBudgetRecommendation(
+                    category_id=cat.id,
+                    category_name=cat.name,
+                    bucket_type="needs",
+                    recommended_limit=Decimal(f"{suggested:.2f}"),
+                    historical_average=Decimal(f"{hist:.2f}"),
+                    rationale=f"Essential need: Allocated {suggested/income_basis*100:.1f}% of income with buffer for inflation.",
+                )
+            )
+
+        # Distribute Wants allocation
+        total_hist_wants = sum([h for _, h in wants_cats]) or 1.0
+        for cat, hist in wants_cats:
+            if total_hist_wants > 1.0:
+                share = hist / total_hist_wants
+                suggested = max(500.0, round((wants_total * share) / 500.0) * 500.0)
+            else:
+                suggested = max(500.0, round((wants_total / max(1, len(wants_cats))) / 500.0) * 500.0)
+            recommendations.append(
+                CategoryBudgetRecommendation(
+                    category_id=cat.id,
+                    category_name=cat.name,
+                    bucket_type="wants",
+                    recommended_limit=Decimal(f"{suggested:.2f}"),
+                    historical_average=Decimal(f"{hist:.2f}"),
+                    rationale=f"Discretionary lifestyle: Capped to protect your ₹{savings_total:,.0f} savings goal.",
+                )
+            )
+
+        # 6. LLM Philosophy & Actionable Milestones
+        prompt = f"""
+You are FinTrack's Chief Financial Planner.
+Synthesize an inspiring, practical 50/30/20 financial philosophy and roadmap for this user:
+
+FINANCIAL BASIS:
+- Estimated Monthly Income: ₹{income_basis:,.2f}
+- Needs Budget ({int(needs_pct*100)}%): ₹{needs_total:,.2f}
+- Wants Budget ({int(wants_pct*100)}%): ₹{wants_total:,.2f}
+- Savings & Investment Target ({savings_pct}%): ₹{savings_total:,.2f}
+- Overall Spending Limit: ₹{overall_limit:,.2f}
+- Lifestyle Strategy Mode: "{lifestyle}"
+
+OUTPUT REQUIREMENTS:
+Return a JSON object with:
+1. "ai_financial_philosophy": 2-3 inspiring sentences explaining the strategy and long-term wealth impact.
+2. "actionable_milestones": 3-4 concrete actionable steps (e.g. automating savings on 1st of month, setting category alerts).
+"""
+
+        class LLMBudgetOutput(BaseModel):
+            ai_financial_philosophy: str
+            actionable_milestones: List[str]
+
+        try:
+            provider = AIFactory.get_provider()
+            llm_res = await provider.generate_structured(
+                prompt=prompt,
+                response_schema=LLMBudgetOutput,
+                system_instruction="You are a certified financial planner providing 50/30/20 auto-budget recommendations.",
+            )
+            philosophy = llm_res.ai_financial_philosophy
+            milestones = llm_res.actionable_milestones
+        except Exception as exc:
+            logger.warning(f"[Smart Budget LLM Fallback] {exc}")
+            philosophy = (
+                f"Following this {lifestyle} plan commits ₹{savings_total:,.0f} each month toward your emergency fund "
+                f"and wealth creation while giving you complete freedom to spend ₹{wants_total:,.0f} on lifestyle without guilt."
+            )
+            milestones = [
+                f"Automate a ₹{savings_total:,.0f} transfer into high-yield savings or SIP immediately on salary credit day.",
+                "Review category limits weekly to prevent unexpected end-of-month budget crunches.",
+                "Utilize the 48-hour rule for any discretionary wants over ₹2,000.",
+            ]
+
+        return SmartBudgetPlanResponse(
+            monthly_income_basis=Decimal(f"{income_basis:.2f}"),
+            needs_allocation=Decimal(f"{needs_total:.2f}"),
+            wants_allocation=Decimal(f"{wants_total:.2f}"),
+            savings_allocation=Decimal(f"{savings_total:.2f}"),
+            overall_recommended_limit=Decimal(f"{overall_limit:.2f}"),
+            categories=recommendations,
+            ai_financial_philosophy=philosophy,
+            actionable_milestones=milestones,
+        )
+
+    @classmethod
+    async def apply_smart_budget(
+        cls,
+        session: AsyncSession,
+        user_id: UUID,
+        payload: ApplySmartBudgetRequest,
+    ) -> Dict[str, Any]:
+        """
+        Persist and apply the recommended budget limits directly to user's database.
+        """
+        period_month = payload.period_month or date.today().replace(day=1)
+        applied_count = 0
+
+        # 1. Apply overall limit if present
+        if payload.overall_limit and payload.overall_limit > 0:
+            await BudgetService.upsert(
+                session=session,
+                data=BudgetCreate(
+                    category_id=None,
+                    limit_amount=payload.overall_limit,
+                    period_month=period_month,
+                ),
+                user_id=user_id,
+            )
+            applied_count += 1
+
+        # 2. Apply category limits
+        for item in payload.category_budgets:
+            if item.limit_amount and item.limit_amount > 0:
+                await BudgetService.upsert(
+                    session=session,
+                    data=BudgetCreate(
+                        category_id=item.category_id,
+                        limit_amount=item.limit_amount,
+                        period_month=period_month,
+                    ),
+                    user_id=user_id,
+                )
+                applied_count += 1
+
+        return {
+            "period_month": period_month.isoformat(),
+            "applied_count": applied_count,
+            "message": f"Successfully applied {applied_count} budget limits for {period_month.strftime('%B %Y')}.",
+        }
+
+
 
 
 

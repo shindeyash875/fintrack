@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Calendar, Target, IndianRupee, Trash2, Edit2, Plus, AlertCircle } from 'lucide-react';
+import { Calendar, Target, IndianRupee, Trash2, Edit2, Plus, AlertCircle, Sparkles } from 'lucide-react';
 import Modal from '../common/Modal';
 import Button from '../common/Button';
 import { budgetSchema } from '../../schemas/budgetSchema';
@@ -12,7 +12,7 @@ import { useUIStore } from '../../store/useUIStore';
 export const BudgetModal = ({ isOpen, onClose, initialCategoryId = null, onBudgetChange = null }) => {
   const { budgets, upsertBudget, deleteBudget, periodMonth, setPeriodMonth, fetchAll } = useBudgetStore();
   const { categories, fetchCategories } = useCategoryStore();
-  const { addToast } = useUIStore();
+  const { addToast, openGlobalAutoBudget } = useUIStore();
 
   const [selectedMonth, setSelectedMonth] = useState(
     periodMonth ? periodMonth.slice(0, 7) : new Date().toISOString().slice(0, 7)
@@ -162,12 +162,23 @@ export const BudgetModal = ({ isOpen, onClose, initialCategoryId = null, onBudge
               <p className="text-xs text-slate-500">Budgets apply on a calendar month basis</p>
             </div>
           </div>
-          <div className="w-full sm:w-auto">
+          <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+            <button
+              type="button"
+              onClick={() => {
+                onClose();
+                openGlobalAutoBudget();
+              }}
+              className="px-3 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white shadow-xs transition-all flex items-center gap-1.5 min-h-[44px]"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+              <span>AI Auto-Budget</span>
+            </button>
             <input
               type="month"
               value={selectedMonth}
               onChange={handleMonthChange}
-              className="w-full sm:w-auto px-3 py-2 text-sm font-medium bg-white border border-slate-300 rounded-xl shadow-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-slate-900 min-h-[44px]"
+              className="flex-1 sm:flex-initial px-3 py-2 text-sm font-medium bg-white border border-slate-300 rounded-xl shadow-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-slate-900 min-h-[44px]"
             />
           </div>
         </div>
