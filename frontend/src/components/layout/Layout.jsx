@@ -19,6 +19,8 @@ import CommandPalette from '../common/CommandPalette';
 import BillSplitterModal from '../tools/BillSplitterModal';
 import SubscriptionsModal from '../tools/SubscriptionsModal';
 import TimeMachineModal from '../tools/TimeMachineModal';
+import AmbientAurora from '../common/AmbientAurora';
+import Confetti from '../common/Confetti';
 import { useUIStore } from '../../store/useUIStore';
 import { useExpenseStore } from '../../store/useExpenseStore';
 import { useBudgetStore } from '../../store/useBudgetStore';
@@ -65,12 +67,18 @@ export const Layout = ({ children }) => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col overflow-x-hidden transition-colors duration-200">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col overflow-x-hidden transition-colors duration-250 relative">
+      {/* Dynamic Ambient Aurora Background Mesh */}
+      <AmbientAurora />
+
+      {/* Global Financial Milestone Confetti */}
+      <Confetti />
+
       {/* Persistent left rail on desktop (>=1024px), sliding drawer on mobile */}
       <Sidebar />
 
       {/* Main Content Area */}
-      <div className="lg:pl-64 flex flex-col flex-1 min-w-0">
+      <div className="lg:pl-64 flex flex-col flex-1 min-w-0 relative z-10">
         <Navbar />
         {/* Responsive padding with pb-24 on mobile so bottom navigation never covers content */}
         <main className="flex-1 p-3.5 sm:p-6 lg:p-8 pb-24 lg:pb-8 max-w-7xl w-full mx-auto">

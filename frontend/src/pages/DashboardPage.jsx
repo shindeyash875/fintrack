@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import { motion } from 'framer-motion';
 import { 
   TrendingUp, 
   Wallet, 
@@ -13,6 +14,7 @@ import {
   Hourglass,
   Command,
   ArrowUpRight,
+  PartyPopper,
 } from 'lucide-react';
 import { dashboardApi } from '../api/endpoints/dashboard';
 import { CardSkeleton } from '../components/common/Skeleton';
@@ -32,6 +34,7 @@ import MonthCompareWidget from '../components/dashboard/MonthCompareWidget';
 import TopCategoriesList from '../components/dashboard/TopCategoriesList';
 import AnimatedCounter from '../components/common/AnimatedCounter';
 import Sparkline from '../components/dashboard/Sparkline';
+import SpotlightCard from '../components/common/SpotlightCard';
 import { useBudgetStore } from '../store/useBudgetStore';
 import { useUIStore } from '../store/useUIStore';
 
@@ -59,7 +62,8 @@ export const DashboardPage = () => {
     openBillSplitter, 
     openSubscriptions, 
     openTimeMachine, 
-    openCommandPalette 
+    openCommandPalette,
+    triggerConfetti,
   } = useUIStore();
 
   // Fetch Summary & MoM comparison
@@ -125,14 +129,45 @@ export const DashboardPage = () => {
     return [15, 30, 22, 45, 35, 60, 48];
   }, [trendData]);
 
+  // Animation variants
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.08,
+      },
+    },
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 14 },
+    show: { opacity: 1, y: 0, transition: { duration: 0.35, ease: [0.16, 1, 0.3, 1] } },
+  };
+
   return (
-    <div className="space-y-6 sm:space-y-8">
+    <motion.div
+      variants={containerVariants}
+      initial="hidden"
+      animate="show"
+      className="space-y-6 sm:space-y-8"
+    >
       {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
+      <motion.div variants={itemVariants} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 dark:text-white font-['Outfit']">
-            Financial Dashboard
-          </h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 dark:text-white font-['Outfit']">
+              Financial Dashboard
+            </h1>
+            <button
+              type="button"
+              onClick={triggerConfetti}
+              title="Celebrate financial wins!"
+              className="p-1 rounded-lg text-slate-400 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-950/30 transition-all cursor-pointer active:scale-90"
+            >
+              <PartyPopper className="w-5 h-5 text-amber-500" />
+            </button>
+          </div>
           <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5 sm:mt-1">
             Real-time spending overview, interactive charts & budget goal tracking.
           </p>
@@ -147,7 +182,7 @@ export const DashboardPage = () => {
               const el = document.getElementById('ai-forecast');
               if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
             }}
-            className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl text-sm font-semibold bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white shadow-xs hover:shadow transition-all duration-150 flex-1 sm:flex-none cursor-pointer"
+            className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl text-sm font-semibold bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white shadow-xs hover:shadow transition-all duration-150 flex-1 sm:flex-none cursor-pointer shimmer-container"
           >
             <TrendingUp className="w-4 h-4" />
             <span>AI Forecast</span>
@@ -162,24 +197,26 @@ export const DashboardPage = () => {
             }}
             icon={Plus}
             size="md"
-            className="flex-1 sm:flex-none"
+            className="flex-1 sm:flex-none shimmer-container"
           >
             Add Expense
           </Button>
         </div>
-      </div>
+      </motion.div>
 
       {/* AI Quick Input Bar */}
-      <AIQuickInput
-        onExpenseCreated={fetchOverview}
-        onOpenEditModal={(prefill) => {
-          setPrefillExpense(prefill);
-          setIsExpenseModalOpen(true);
-        }}
-      />
+      <motion.div variants={itemVariants}>
+        <AIQuickInput
+          onExpenseCreated={fetchOverview}
+          onOpenEditModal={(prefill) => {
+            setPrefillExpense(prefill);
+            setIsExpenseModalOpen(true);
+          }}
+        />
+      </motion.div>
 
       {/* Smart Financial Tools Quick Ribbon ("Hatke" Suite) */}
-      <div className="flex items-center gap-2.5 overflow-x-auto pb-1.5 pt-0.5 no-scrollbar">
+      <motion.div variants={itemVariants} className="flex items-center gap-2.5 overflow-x-auto pb-1.5 pt-0.5 no-scrollbar">
         <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 shrink-0 hidden md:inline">
           Smart Tools:
         </span>
@@ -187,7 +224,7 @@ export const DashboardPage = () => {
         <button
           type="button"
           onClick={openBillSplitter}
-          className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 hover:bg-emerald-500/20 dark:bg-emerald-500/15 dark:hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-700 dark:text-emerald-300 text-xs font-semibold transition-all shrink-0 cursor-pointer shadow-2xs group"
+          className="flex items-center gap-2 px-3.5 py-2 rounded-full bg-emerald-500/10 hover:bg-emerald-500/20 dark:bg-emerald-500/15 dark:hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-700 dark:text-emerald-300 text-xs font-semibold transition-all shrink-0 cursor-pointer shadow-2xs group active:scale-95"
         >
           <Users className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 group-hover:scale-110 transition-transform" />
           <span>Bill & Group Splitter</span>
@@ -199,7 +236,7 @@ export const DashboardPage = () => {
         <button
           type="button"
           onClick={openSubscriptions}
-          className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-500/10 hover:bg-blue-500/20 dark:bg-blue-500/15 dark:hover:bg-blue-500/25 border border-blue-500/30 text-blue-700 dark:text-blue-300 text-xs font-semibold transition-all shrink-0 cursor-pointer shadow-2xs group"
+          className="flex items-center gap-2 px-3.5 py-2 rounded-full bg-blue-500/10 hover:bg-blue-500/20 dark:bg-blue-500/15 dark:hover:bg-blue-500/25 border border-blue-500/30 text-blue-700 dark:text-blue-300 text-xs font-semibold transition-all shrink-0 cursor-pointer shadow-2xs group active:scale-95"
         >
           <Calendar className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 group-hover:scale-110 transition-transform" />
           <span>Subscriptions Radar</span>
@@ -211,7 +248,7 @@ export const DashboardPage = () => {
         <button
           type="button"
           onClick={openTimeMachine}
-          className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-violet-500/10 hover:bg-violet-500/20 dark:bg-violet-500/15 dark:hover:bg-violet-500/25 border border-violet-500/30 text-violet-700 dark:text-violet-300 text-xs font-semibold transition-all shrink-0 cursor-pointer shadow-2xs group"
+          className="flex items-center gap-2 px-3.5 py-2 rounded-full bg-violet-500/10 hover:bg-violet-500/20 dark:bg-violet-500/15 dark:hover:bg-violet-500/25 border border-violet-500/30 text-violet-700 dark:text-violet-300 text-xs font-semibold transition-all shrink-0 cursor-pointer shadow-2xs group active:scale-95"
         >
           <Hourglass className="w-3.5 h-3.5 text-violet-600 dark:text-violet-400 group-hover:scale-110 transition-transform" />
           <span>Wealth Time Machine</span>
@@ -223,21 +260,25 @@ export const DashboardPage = () => {
         <button
           type="button"
           onClick={openCommandPalette}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-200/80 dark:border-slate-700 text-slate-600 dark:text-slate-300 text-xs font-semibold transition-all shrink-0 cursor-pointer shadow-2xs"
+          className="flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-200/80 dark:border-slate-700 text-slate-600 dark:text-slate-300 text-xs font-semibold transition-all shrink-0 cursor-pointer shadow-2xs active:scale-95"
         >
           <Command className="w-3.5 h-3.5 text-slate-500" />
           <span>Spotlight (Ctrl+K)</span>
         </button>
-      </div>
+      </motion.div>
 
       {/* Overspending Alert Banner */}
-      <OverspendingBanner onManageBudgets={() => setIsBudgetModalOpen(true)} />
+      <motion.div variants={itemVariants}>
+        <OverspendingBanner onManageBudgets={() => setIsBudgetModalOpen(true)} />
+      </motion.div>
 
       {/* Financial Mood & Sentiment Mascot Avatar */}
-      <FinancialMoodAvatar
-        summary={summary}
-        onOpenBudgetModal={() => setIsBudgetModalOpen(true)}
-      />
+      <motion.div variants={itemVariants}>
+        <FinancialMoodAvatar
+          summary={summary}
+          onOpenBudgetModal={() => setIsBudgetModalOpen(true)}
+        />
+      </motion.div>
 
       {/* Error state alert */}
       {error && (
@@ -247,7 +288,7 @@ export const DashboardPage = () => {
         </div>
       )}
 
-      {/* Bento Grid Metric Cards with Animated Rolling Numbers & Sparklines (FR-17, FR-25) */}
+      {/* Bento Grid Metric Cards with Interactive Cursor Spotlight (FR-17, FR-25) */}
       {isLoadingSummary ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-4">
           <CardSkeleton />
@@ -256,9 +297,13 @@ export const DashboardPage = () => {
           <CardSkeleton />
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-4">
+        <motion.div variants={itemVariants} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-4">
           {/* Card 1: Total Spend Current Month */}
-          <div className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-md rounded-2xl p-4 sm:p-5 border border-slate-200/80 dark:border-slate-800 shadow-xs hover:shadow-md hover:border-emerald-500/40 transition-all flex flex-col justify-between">
+          <SpotlightCard
+            spotlightColor="rgba(16, 185, 129, 0.16)"
+            darkSpotlightColor="rgba(16, 185, 129, 0.25)"
+            className="p-4 sm:p-5 flex flex-col justify-between"
+          >
             <div>
               <div className="flex items-center justify-between">
                 <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
@@ -287,10 +332,14 @@ export const DashboardPage = () => {
                 height={24}
               />
             </div>
-          </div>
+          </SpotlightCard>
 
           {/* Card 2: Overall Lifetime Spend */}
-          <div className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-md rounded-2xl p-4 sm:p-5 border border-slate-200/80 dark:border-slate-800 shadow-xs hover:shadow-md hover:border-blue-500/40 transition-all flex flex-col justify-between">
+          <SpotlightCard
+            spotlightColor="rgba(59, 130, 246, 0.16)"
+            darkSpotlightColor="rgba(59, 130, 246, 0.25)"
+            className="p-4 sm:p-5 flex flex-col justify-between"
+          >
             <div>
               <div className="flex items-center justify-between">
                 <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
@@ -317,7 +366,7 @@ export const DashboardPage = () => {
                 height={24}
               />
             </div>
-          </div>
+          </SpotlightCard>
 
           {/* Card 3: Budget Goal Status */}
           {(() => {
@@ -326,9 +375,11 @@ export const DashboardPage = () => {
             const isNear = liveOverall && liveOverall.status === 'near_limit';
 
             return (
-              <div
+              <SpotlightCard
+                spotlightColor={isOver ? 'rgba(244, 63, 94, 0.18)' : 'rgba(16, 185, 129, 0.18)'}
+                darkSpotlightColor={isOver ? 'rgba(244, 63, 94, 0.25)' : 'rgba(16, 185, 129, 0.25)'}
                 onClick={() => setIsBudgetModalOpen(true)}
-                className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-md rounded-2xl p-4 sm:p-5 border border-slate-200/80 dark:border-slate-800 shadow-xs hover:shadow-md hover:border-emerald-400 dark:hover:border-emerald-500 transition-all cursor-pointer group flex flex-col justify-between"
+                className="p-4 sm:p-5 flex flex-col justify-between cursor-pointer group"
                 title="Click to manage budget goals"
               >
                 <div>
@@ -377,12 +428,16 @@ export const DashboardPage = () => {
                     height={24}
                   />
                 </div>
-              </div>
+              </SpotlightCard>
             );
           })()}
 
           {/* Card 4: Weekly Pace */}
-          <div className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-md rounded-2xl p-4 sm:p-5 border border-slate-200/80 dark:border-slate-800 shadow-xs hover:shadow-md hover:border-purple-500/40 transition-all flex flex-col justify-between">
+          <SpotlightCard
+            spotlightColor="rgba(168, 85, 247, 0.16)"
+            darkSpotlightColor="rgba(168, 85, 247, 0.25)"
+            className="p-4 sm:p-5 flex flex-col justify-between"
+          >
             <div>
               <div className="flex items-center justify-between">
                 <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
@@ -409,20 +464,22 @@ export const DashboardPage = () => {
                 height={24}
               />
             </div>
-          </div>
-        </div>
+          </SpotlightCard>
+        </motion.div>
       )}
 
       {/* Month-over-Month Comparison Widget (FR-23) */}
-      <MonthCompareWidget compareData={compareData} isLoading={isLoadingCompare} />
+      <motion.div variants={itemVariants}>
+        <MonthCompareWidget compareData={compareData} isLoading={isLoadingCompare} />
+      </motion.div>
 
       {/* AI Spending Forecast & Anomaly Detection */}
-      <div id="ai-forecast" className="scroll-mt-20">
+      <motion.div variants={itemVariants} id="ai-forecast" className="scroll-mt-20">
         <AIForecastCard onRefreshOverview={fetchOverview} />
-      </div>
+      </motion.div>
 
       {/* Visual Charts Grid (FR-19, FR-20, FR-22) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <motion.div variants={itemVariants} className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Spending Trends: Bar/Area Chart with Granularity (7 cols) */}
         <div className="lg:col-span-7">
           <SpendingTrendChart
@@ -440,13 +497,15 @@ export const DashboardPage = () => {
             isLoading={isLoadingCategoryChart}
           />
         </div>
-      </div>
+      </motion.div>
 
       {/* Interactive Budget Tracker */}
-      <BudgetTracker />
+      <motion.div variants={itemVariants}>
+        <BudgetTracker />
+      </motion.div>
 
       {/* Deep-Dive Grid: Ranked Top Categories & Recent Transactions (FR-18, FR-24) */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <motion.div variants={itemVariants} className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Top Categories Ranked List */}
         <TopCategoriesList
           categories={summary?.top_categories || []}
@@ -497,7 +556,7 @@ export const DashboardPage = () => {
             )}
           </div>
         </div>
-      </div>
+      </motion.div>
 
       {/* Budget Modal */}
       <BudgetModal
@@ -523,7 +582,7 @@ export const DashboardPage = () => {
         expenseToEdit={prefillExpense}
         onSuccess={fetchOverview}
       />
-    </div>
+    </motion.div>
   );
 };
 

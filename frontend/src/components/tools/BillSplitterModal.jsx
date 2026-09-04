@@ -18,7 +18,7 @@ import { useExpenseStore } from '../../store/useExpenseStore';
 import { useCategoryStore } from '../../store/useCategoryStore';
 
 export const BillSplitterModal = ({ isOpen, onClose, onSuccess }) => {
-  const { addToast } = useUIStore();
+  const { addToast, triggerConfetti } = useUIStore();
   const { addExpense } = useExpenseStore();
   const { categories } = useCategoryStore();
 
@@ -147,6 +147,7 @@ export const BillSplitterModal = ({ isOpen, onClose, onSuccess }) => {
       });
 
       addToast(`Logged your share of ₹${myShare.toFixed(2)} to your expenses!`, 'success');
+      triggerConfetti();
       if (onSuccess) onSuccess();
       onClose();
     } catch (err) {

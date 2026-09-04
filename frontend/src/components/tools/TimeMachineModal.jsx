@@ -24,7 +24,7 @@ const PRESETS = [
 ];
 
 export const TimeMachineModal = ({ isOpen, onClose }) => {
-  const { openGlobalBudget, addToast } = useUIStore();
+  const { openGlobalBudget, addToast, triggerConfetti } = useUIStore();
 
   const [dailySavings, setDailySavings] = useState(150);
   const [returnRate, setReturnRate] = useState(12); // 12% p.a. default for Equity SIP
@@ -275,6 +275,7 @@ export const TimeMachineModal = ({ isOpen, onClose }) => {
             variant="secondary"
             icon={Target}
             onClick={() => {
+              triggerConfetti();
               onClose();
               openGlobalBudget();
             }}

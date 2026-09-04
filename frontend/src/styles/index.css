@@ -29,7 +29,7 @@
     -webkit-overflow-scrolling: touch;
     background-color: #f8fafc;
     color: #0f172a;
-    transition: background-color 0.2s ease, color 0.2s ease;
+    transition: background-color 0.25s cubic-bezier(0.16, 1, 0.3, 1), color 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
   .dark body {
@@ -92,17 +92,77 @@
   background: #475569;
 }
 
+/* Eye-Catching Keyframe Animations */
+@keyframes aurora-drift-1 {
+  0% {
+    transform: translate(0px, 0px) rotate(0deg) scale(1);
+  }
+  33% {
+    transform: translate(60px, -40px) rotate(120deg) scale(1.15);
+  }
+  66% {
+    transform: translate(-40px, 50px) rotate(240deg) scale(0.9);
+  }
+  100% {
+    transform: translate(0px, 0px) rotate(360deg) scale(1);
+  }
+}
+
+@keyframes aurora-drift-2 {
+  0% {
+    transform: translate(0px, 0px) rotate(360deg) scale(1);
+  }
+  33% {
+    transform: translate(-50px, 60px) rotate(240deg) scale(1.2);
+  }
+  66% {
+    transform: translate(50px, -30px) rotate(120deg) scale(0.85);
+  }
+  100% {
+    transform: translate(0px, 0px) rotate(0deg) scale(1);
+  }
+}
+
+@keyframes shimmer-sweep {
+  0% {
+    transform: translateX(-150%) skewX(-20deg);
+  }
+  50%, 100% {
+    transform: translateX(250%) skewX(-20deg);
+  }
+}
+
+@keyframes holographic-spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes pulse-gentle {
+  0%, 100% {
+    opacity: 0.4;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.75;
+    transform: scale(1.05);
+  }
+}
+
 /* Luxury Glassmorphism & Ambient Utilities */
 @layer utilities {
   .glass-card {
-    background: rgba(255, 255, 255, 0.85);
+    background: rgba(255, 255, 255, 0.82);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
     border: 1px solid rgba(226, 232, 240, 0.8);
   }
 
   .dark .glass-card {
-    background: rgba(15, 23, 42, 0.75);
+    background: rgba(15, 23, 42, 0.72);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
     border: 1px solid rgba(51, 65, 85, 0.5);
@@ -128,5 +188,47 @@
 
   .dark .ambient-glow-emerald {
     box-shadow: 0 0 60px -10px rgba(16, 185, 129, 0.25);
+  }
+
+  .animate-aurora-1 {
+    animation: aurora-drift-1 22s infinite cubic-bezier(0.4, 0, 0.2, 1);
+    will-change: transform;
+  }
+
+  .animate-aurora-2 {
+    animation: aurora-drift-2 28s infinite cubic-bezier(0.4, 0, 0.2, 1);
+    will-change: transform;
+  }
+
+  .animate-holographic {
+    animation: holographic-spin 8s linear infinite;
+    will-change: transform;
+  }
+
+  .animate-pulse-gentle {
+    animation: pulse-gentle 4s ease-in-out infinite;
+  }
+
+  /* Shimmer Sheen on Hero Buttons / Cards */
+  .shimmer-container {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .shimmer-container::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 60%;
+    height: 100%;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(255, 255, 255, 0.18),
+      transparent
+    );
+    animation: shimmer-sweep 4s infinite cubic-bezier(0.16, 1, 0.3, 1);
+    pointer-events: none;
   }
 }

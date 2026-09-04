@@ -115,6 +115,15 @@ export const useUIStore = create((set, get) => ({
   openTimeMachine: () => set({ isTimeMachineOpen: true }),
   closeTimeMachine: () => set({ isTimeMachineOpen: false }),
 
+  // Financial Milestone Confetti Celebration
+  isConfettiActive: false,
+  triggerConfetti: () => {
+    set({ isConfettiActive: true });
+    setTimeout(() => {
+      set({ isConfettiActive: false });
+    }, 3000);
+  },
+
   // PWA Install State
   isInstallable: false,
   setIsInstallable: (val) => set({ isInstallable: val }),
