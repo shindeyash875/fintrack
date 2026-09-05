@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Sidebar from './Sidebar';
 import Navbar from './Navbar';
 import BottomNav from './BottomNav';
@@ -59,6 +59,11 @@ export const Layout = ({ children }) => {
 
   const [isExportOpen, setIsExportOpen] = useState(false);
   const [isImportOpen, setIsImportOpen] = useState(false);
+
+  useEffect(() => {
+    fetchCategories();
+    fetchBudgets();
+  }, [fetchCategories, fetchBudgets]);
 
   const handleDataRefresh = () => {
     fetchExpenses();

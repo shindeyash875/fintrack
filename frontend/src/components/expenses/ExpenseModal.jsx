@@ -48,6 +48,9 @@ export const ExpenseModal = ({ isOpen, onClose, expenseToEdit = null }) => {
 
   useEffect(() => {
     if (isOpen) {
+      if (!categories || categories.length === 0) {
+        fetchCategories();
+      }
       setIsCreatingCategory(false);
       setNewCatName('');
       if (expenseToEdit) {
@@ -70,7 +73,7 @@ export const ExpenseModal = ({ isOpen, onClose, expenseToEdit = null }) => {
         });
       }
     }
-  }, [isOpen, expenseToEdit, categories, reset]);
+  }, [isOpen, expenseToEdit, categories, fetchCategories, reset, todayStr]);
 
   const handleQuickCreateCategory = async (e) => {
     e.preventDefault();
